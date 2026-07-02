@@ -1,0 +1,66 @@
+﻿async function createExam(req, res) {
+  try {
+    const {
+      examName,   // e.g. "Mid-Term Mathematics Paper 1"
+      subject,    // e.g. "Mathematics" (a name string)
+      grade,      // e.g. "Grade 7"
+      term,       // e.g. "Term 1"
+      year,       // e.g. "2025/2026" (optional)
+      examDate,   // "YYYY-MM-DD"
+      maxScore,   // number
+    } = req.body;
+
+    if (!examName || !subject || !grade || !term || !examDate) {
+      return res.status(400).json({ error: 'examName, subject, grade, term and examDate are required' });
+    }
+
+    // term comes in as "Term 1" / "Term 2" / "Term 3" â€” exams.term is an integer column
+    const termMatch = String(term).match(/\d+/);
+    const termNumber = termMatch ? parseInt(termMatch[0], 10) : null;
+    if (!termNumber) {
+      return res.status(400).json({ error: `Could not parse term number from "${term}"` });
+    }
+
+    // Resolve subject_id by name + grade + school
+    const { rows: subjectRows } = await query(
+      `SELECT id FROM subjects WHERE name = $1 AND grade = $2 AND school_id = $3`,
+      [subject, grade, req.user.school_id]
+    );
+
+    if (subjectRows.length === 0) {
+      return res.status(400).json({
+        error: `Subject "${subject}" not found for ${grade}. Check the subjects table is seeded for this grade.`,
+      });
+    }
+    const subjectId = subjectRows[0].id;
+
+    const examType = 'Standard'; // no UI field yet for this
+    const academicYear = year || '2025/2026';
+
+    const maxScoreNum = maxScore ? Number(maxScore) : 100;
+
+    const { rows } = await query(
+      `INSERT INTO exams (id, school_id, name, exam_type, term, academic_year, grade, subject_id, max_score, start_date, end_date, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [
+        uuid(),
+        req.user.school_id,
+        examName,
+        examType,
+        termNumber,
+        academicYear,
+        grade,
+        subjectId,
+        maxScoreNum,
+        examDate,
+        examDate, // no separate end-date field in the UI yet, reuse examDate
+        req.user.id,
+      ]
+    );
+
+    res.status(201).json({ message: 'Exam created', exam: rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to create exam' });
+  }
+}
