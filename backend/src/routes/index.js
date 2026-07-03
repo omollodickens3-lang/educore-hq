@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const auth = require('../controllers/authController');
@@ -37,6 +37,7 @@ router.delete('/teachers/subjects/:subjectId', authenticate, teachers.removeSubj
 router.get('/exams', authenticate, exams.getExams);
 router.post('/exams', authenticate, exams.createExam);
 router.get('/exams/analysis', authenticate, exams.getAnalysis);
+router.get('/exams/trends', authenticate, exams.getTrends);
 router.get('/exams/:examId/scores', authenticate, exams.getScores);
 router.post('/exams/:examId/scores', authenticate, exams.upsertScores);
 

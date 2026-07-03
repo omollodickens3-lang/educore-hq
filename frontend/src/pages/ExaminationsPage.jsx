@@ -75,6 +75,18 @@ function getCBC(score, maxScore, examGrade) {
   return scale.find((b) => pct >= b.min) ?? scale[scale.length - 1];
 }
 
+function autoRemark(cbc) {
+  if (!cbc) return "";
+  const base = cbc.level.replace(/[12]$/, "");
+  const remarks = {
+    EE: "Exceeding expectation. Excellent work, keep it up!",
+    ME: "Meeting expectation. Good, steady progress.",
+    AE: "Approaching expectation. Needs more practice.",
+    BE: "Below expectation. Requires close support.",
+  };
+  return remarks[base] || "";
+}
+
 // ─── Utilities ─────────────────────────────────────────────────────────────────
 function classAvg(scores, maxScore) {
   const valid = scores.filter((s) => s.score !== null && s.score !== "" && s.score !== undefined);
@@ -368,7 +380,15 @@ function MarkEntryTab({ exam, scores, setScores, onSaved }) {
   const toastTimer = useRef();
 
   function update(learnerId, field, value) {
-    setScores((prev) => prev.map((r) => r.learnerId === learnerId ? { ...r, [field]: value } : r));
+    setScores((prev) => prev.map((r) => {
+      if (r.learnerId !== learnerId) return r;
+      const updated = { ...r, [field]: value };
+      if (field === "score") {
+        const cbc = getCBC(value, maxScore, exam.grade);
+        updated.remarks = autoRemark(cbc);
+      }
+      return updated;
+    }));
     setDirty(true);
   }
 
@@ -495,10 +515,10 @@ function MarkEntryTab({ exam, scores, setScores, onSaved }) {
                     <CBCBadge cbc={cbc} />
                   </td>
                   <td style={styles.td}>
-                    <input value={row.remarks ?? ""}
-                      onChange={(e) => update(row.learnerId, "remarks", e.target.value)}
-                      placeholder="Teacher note…"
-                      style={{ ...styles.input, padding: "6px 10px", fontSize: 13 }} />
+                <input value={row.remarks ?? ""}
+                  readOnly
+                  placeholder="Auto-generated once scored"
+                  style={{ ...styles.input, padding: "6px 10px", fontSize: 13, background: "#F3F4F6", color: "#6B7280", cursor: "default" }} />
                   </td>
                 </tr>
               );
@@ -806,7 +826,9 @@ export default function ExaminationsPage() {
 
   const loadExams = useCallback(() => {
     setLoadingExams(true);
-    const params = Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== ""));
+  const { year, ...rest } = filters;
+  const params = Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== ""));
+  if (year) params.academicYear = `${year}/${Number(year) + 1}`;
     api.getExams(params)
       .then((data) => {
         const list = Array.isArray(data) ? data : data.exams ?? [];
@@ -884,7 +906,7 @@ export default function ExaminationsPage() {
               >
                 {exams.map((ex) => (
                   <option key={ex.id ?? ex._id} value={ex.id ?? ex._id}>
-                    {ex.examName ?? ex.name} — {ex.subject} {ex.grade} {ex.term}
+                        {ex.examName ?? ex.name} - {ex.grade}, Term {ex.term}
                   </option>
                 ))}
               </select>
@@ -1059,3 +1081,4 @@ const styles = {
   },
   empty: { margin: 0, fontSize: 13, color: "#9CA3AF", fontStyle: "italic" },
 };
+
