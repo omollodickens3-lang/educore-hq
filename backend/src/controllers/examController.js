@@ -1,29 +1,7 @@
 const { query, getClient } = require('../config/db');
 const { v4: uuid } = require('uuid');
 
-function termToInt(term) {
-  if (term === null || term === undefined) return null;
-  const match = String(term).match(/\d+/);
-  return match ? parseInt(match[0]) : null;
-}
-
-function cbcGrade(score, section) {
-  const pct = Math.round(score);
-  if (section === 'js') {
-    if (pct >= 90) return 'EE1';
-    if (pct >= 75) return 'EE2';
-    if (pct >= 58) return 'ME1';
-    if (pct >= 41) return 'ME2';
-    if (pct >= 31) return 'AE1';
-    if (pct >= 21) return 'AE2';
-    if (pct >= 11) return 'BE1';
-    return 'BE2';
-  }
-  if (pct >= 80) return 'EE';
-  if (pct >= 60) return 'ME';
-  if (pct >= 40) return 'AE';
-  return 'BE';
-}
+const { termToInt, cbcGrade } = require('../utils/examUtils');
 
 async function getExams(req, res) {
   try {
@@ -152,6 +130,22 @@ async function getTrends(req, res) {
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to fetch trends' }); }
 }
 
-module.exports = { getExams, createExam, getScores, upsertScores, getAnalysis, getTrends };
+async function getSchoolOverview(req, res) {
+  try {
+    const { term, academicYear = '2025/2026' } = req.query;
+    let sql = `
+      SELECT e.grade, s.subject, ROUND(AVG(s.score),1) AS avg_score, COUNT(DISTINCT s.learner_id) AS learners_marked
+      FROM scores s
+      JOIN exams e ON e.id = s.exam_id
+      WHERE s.school_id=$1 AND e.academic_year=$2`;
+    const params = [req.user.school_id, academicYear];
+    if (term) { sql += ` AND e.term=$3`; params.push(parseInt(term)); }
+    sql += ` GROUP BY e.grade, s.subject ORDER BY e.grade, avg_score DESC`;
+    const { rows } = await query(sql, params);
+    res.json({ overview: rows });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to fetch school overview' }); }
+}
+
+module.exports = { getExams, createExam, getScores, upsertScores, getAnalysis, getTrends, getSchoolOverview };
 
 

@@ -42,6 +42,7 @@ const api = {
   getLearners:  (p = {}) => apiFetch("/learners?" + new URLSearchParams(p)),
   getScores:   (id)     => apiFetch(`/exams/${id}/scores`),
   upsertScores:(id, r)  => apiFetch(`/exams/${id}/scores`, { method: "POST", body: JSON.stringify({ scores: r }) }),
+  getTrends: (p = {}) => apiFetch("/exams/trends?" + new URLSearchParams(p)),
 };
 
 // ─── CBC grading ───────────────────────────────────────────────────────────────
@@ -239,6 +240,11 @@ function OverviewTab({ exam, scores }) {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <div style={styles.card}>
+          <h3 style={styles.cardTitle}>Term-over-term trend</h3>
+          <TrendsChart grade={exam.grade} subject={exam.subject} />
+        </div>
+
         {/* CBC Competency Ladder */}
         <div style={styles.card}>
           <h3 style={styles.cardTitle}>Competency distribution</h3>
@@ -371,6 +377,40 @@ function ScoreHistogram({ scores, maxScore, examGrade }) {
 }
 
 // ─── Mark Entry Tab ────────────────────────────────────────────────────────────
+function TrendsChart({ grade, subject }) {
+  const [trends, setTrends] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!grade || !subject) return;
+    setLoading(true);
+    api.getTrends({ grade, subject })
+      .then((data) => setTrends(data.trends ?? []))
+      .catch(() => setTrends([]))
+      .finally(() => setLoading(false));
+  }, [grade, subject]);
+
+  if (loading) return <p style={styles.empty}>Loading trend...</p>;
+  if (trends.length < 2) return <p style={styles.empty}>Need at least 2 terms of data to show a trend.</p>;
+
+  const maxAvg = Math.max(...trends.map((t) => Number(t.avg_score)), 100);
+
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 10, height: 100 }}>
+      {trends.map((t, i) => (
+        <div key={i} style={{ flex: 1, textAlign: "center" }}>
+          <div style={{
+            height: `${(Number(t.avg_score) / maxAvg) * 80}px`,
+            background: "#3B5BDB", borderRadius: "4px 4px 0 0",
+          }} />
+          <p style={{ margin: "4px 0 0", fontSize: 11, fontWeight: 700, color: "#111827" }}>{t.avg_score}</p>
+          <p style={{ margin: 0, fontSize: 10, color: "#9CA3AF" }}>T{t.term} {t.academic_year}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function MarkEntryTab({ exam, scores, setScores, onSaved }) {
   const [saving, setSaving]   = useState(false);
   const [dirty, setDirty]     = useState(false);

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { learnersAPI, attendanceAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { examsAPI } from '../utils/api';
 
 export default function DashboardPage() {
   const auth = useAuth();
@@ -22,6 +23,46 @@ export default function DashboardPage() {
     },
   });
   const alerts = alertsQuery.data;
+
+  const overviewQuery = useQuery({
+    queryKey: ['schoolOverview'],
+    queryFn: function () {
+      return examsAPI.getSchoolOverview().then(function (r) { return r.data; });
+    },
+  });
+  const overview = overviewQuery.data ? overviewQuery.data.overview : null;
+
+  let overallMean = null;
+  let topGrade = null;
+  let weakGrade = null;
+  let topSubject = null;
+  if (overview && overview.length) {
+    const total = overview.reduce(function (sum, r) { return sum + Number(r.avg_score); }, 0);
+    overallMean = total / overview.length;
+    const byGrade = {};
+    const bySubject = {};
+    overview.forEach(function (r) {
+      if (!byGrade[r.grade]) byGrade[r.grade] = [];
+      byGrade[r.grade].push(Number(r.avg_score));
+      if (!bySubject[r.subject]) bySubject[r.subject] = [];
+      bySubject[r.subject].push(Number(r.avg_score));
+    });
+    const gradeAvgs = Object.keys(byGrade).map(function (g) {
+      const arr = byGrade[g];
+      return { grade: g, avg: arr.reduce(function (a, b) { return a + b; }, 0) / arr.length };
+    });
+    const subjectAvgs = Object.keys(bySubject).map(function (s) {
+      const arr = bySubject[s];
+      return { subject: s, avg: arr.reduce(function (a, b) { return a + b; }, 0) / arr.length };
+    });
+    gradeAvgs.sort(function (a, b) { return b.avg - a.avg; });
+    subjectAvgs.sort(function (a, b) { return b.avg - a.avg; });
+    if (gradeAvgs.length) {
+      topGrade = gradeAvgs[0].grade;
+      weakGrade = gradeAvgs[gradeAvgs.length - 1].grade;
+    }
+    if (subjectAvgs.length) { topSubject = subjectAvgs[0].subject; }
+  }
 
   let teacherName = '';
   if (user && user.teacher) {
@@ -89,6 +130,36 @@ export default function DashboardPage() {
             </a>
           );
         })}
+      </div>
+
+      <div style={{ fontSize: '11px', fontWeight: '500', color: '#64748b', textTransform: 'uppercase', marginTop: '20px', marginBottom: '10px' }}>
+        School performance overview
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '10px' }}>
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+          <div style={{ fontSize: '11px', color: '#64748b' }}>School mean</div>
+          <div style={{ fontSize: '26px', fontWeight: '500', color: '#185fa5' }}>
+            {overallMean !== null ? overallMean.toFixed(1) : '...'}
+          </div>
+        </div>
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+          <div style={{ fontSize: '11px', color: '#64748b' }}>Top grade</div>
+          <div style={{ fontSize: '20px', fontWeight: '500', color: '#0f7a4a' }}>
+            {topGrade || '...'}
+          </div>
+        </div>
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+          <div style={{ fontSize: '11px', color: '#64748b' }}>Needs attention</div>
+          <div style={{ fontSize: '20px', fontWeight: '500', color: '#a32d2d' }}>
+            {weakGrade || '...'}
+          </div>
+        </div>
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+          <div style={{ fontSize: '11px', color: '#64748b' }}>Top subject</div>
+          <div style={{ fontSize: '20px', fontWeight: '500', color: '#3c3489' }}>
+            {topSubject || '...'}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import axios from 'axios';
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
   timeout: 15000,
 });
 api.interceptors.request.use(config => {
@@ -47,6 +47,7 @@ export const teachersAPI = {
   removeSubject: (subjectId) => api.delete(`/teachers/subjects/${subjectId}`),
 };
 export const examsAPI = {
+  getSchoolOverview: (params) => api.get('/exams/school-overview', { params }),
   getAll: (params) => api.get('/exams', { params }),
   create: (data) => api.post('/exams', data),
   getScores: (examId) => api.get(`/exams/${examId}/scores`),
