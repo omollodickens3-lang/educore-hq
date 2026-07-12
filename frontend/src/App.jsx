@@ -9,6 +9,7 @@ import TeachersPage from './pages/TeachersPage';
 import LearnersPage from './pages/LearnersPage';
 import ExaminationsPage from './pages/ExaminationsPage';
 import ReportsPage from './pages/ReportsPage';
+import AttendancePage from './pages/AttendancePage';
 
 const queryClient = new QueryClient();
 
@@ -50,7 +51,7 @@ function AppRoutes() {
         <Route path="teachers"     element={<TeachersPage />} />
         <Route path="examinations" element={<ExaminationsPage />} />
         <Route path="reports"       element={<ReportsPage />} />
-        <Route path="attendance"   element={<ComingSoon title="✅ Attendance Register" />} />
+        <Route path="attendance"    element={<AttendancePage />} />
         <Route path="assignments"  element={<ComingSoon title="📚 Assignments" />} />
         <Route path="content"      element={<ComingSoon title="✏️ Content Generation" />} />
         <Route path="portal"       element={<ComingSoon title="💬 Parent Portal" />} />

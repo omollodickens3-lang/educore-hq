@@ -69,3 +69,7 @@ export const reportsAPI = {
     return api.get(url, { responseType: "blob" });
   },
 };
+
+attendanceAPI.getAttendance = (params) => api.get("/attendance", { params });
+attendanceAPI.markBulk = (data) => api.post("/attendance/bulk", data);
+attendanceAPI.getLearnerStats = (learnerId) => api.get(`/attendance/stats/${learnerId}`);
