@@ -185,3 +185,21 @@ module.exports = {
   getTeachers, getTeacherById, createTeacher, updateTeacher, deleteTeacher,
   assignSubjects, removeSubject
 };
+
+async function uploadSignature(req, res) {
+  try {
+    const { id } = req.params;
+    if (!req.file) return res.status(400).json({ error: "No signature file uploaded" });
+    const base64 = req.file.buffer.toString("base64");
+    await query(
+      "UPDATE teachers SET signature_data = $1, signature_mime = $2 WHERE id = $3",
+      [base64, req.file.mimetype, id]
+    );
+    res.json({ message: "Signature uploaded successfully" });
+  } catch (err) {
+    console.error("uploadSignature error:", err.message);
+    res.status(500).json({ error: "Failed to upload signature" });
+  }
+}
+
+module.exports.uploadSignature = uploadSignature;

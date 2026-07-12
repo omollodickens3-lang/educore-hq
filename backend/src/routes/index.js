@@ -52,3 +52,10 @@ router.get('/schools/check-subdomain', schools.checkSubdomain);
 
 module.exports = router;
 
+
+const multer = require("multer");
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } });
+const reports = require("../controllers/reportController");
+
+router.post("/teachers/:id/signature", authenticate, upload.single("signature"), teachers.uploadSignature);
+router.get("/reports/learner/:learnerId/:examId", authenticate, reports.generateLearnerReport);
