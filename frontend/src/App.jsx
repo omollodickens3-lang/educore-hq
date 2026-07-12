@@ -16,7 +16,7 @@ function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', background:'#0a1628', color:'#6b8cba', fontFamily:'system-ui', fontSize:'14px' }}>
-      Loading EduCore�
+      Loading EduCore…
     </div>
   );
   if (!user) return <Navigate to="/login" replace />;
@@ -28,9 +28,9 @@ function ComingSoon({ title }) {
     <div style={{ padding:'40px', fontFamily:'system-ui', textAlign:'center' }}>
       <div style={{ fontSize:'40px', marginBottom:'12px' }}>{title.split(' ')[0]}</div>
       <h1 style={{ fontSize:'20px', fontWeight:'600', color:'#0f172a', marginBottom:'8px' }}>{title}</h1>
-      <p style={{ color:'#64748b', fontSize:'14px' }}>This module is ready � Stage 2 will connect the full UI.</p>
+      <p style={{ color:'#64748b', fontSize:'14px' }}>This module is ready — Stage 2 will connect the full UI.</p>
       <div style={{ marginTop:'20px', padding:'14px', background:'#eaf3de', borderRadius:'10px', border:'0.5px solid #c0dd97', display:'inline-block' }}>
-        <span style={{ color:'#27500a', fontSize:'13px' }}>? API endpoints ready � Database connected � Authentication working</span>
+        <span style={{ color:'#27500a', fontSize:'13px' }}>✅ API endpoints ready · Database connected · Authentication working</span>
       </div>
     </div>
   );
@@ -50,10 +50,10 @@ function AppRoutes() {
         <Route path="teachers"     element={<TeachersPage />} />
         <Route path="examinations" element={<ExaminationsPage />} />
         <Route path="reports"       element={<ReportsPage />} />
-        <Route path="attendance"   element={<ComingSoon title="? Attendance Register" />} />
-        <Route path="assignments"  element={<ComingSoon title="?? Assignments" />} />
-        <Route path="content"      element={<ComingSoon title="?? Content Generation" />} />
-        <Route path="portal"       element={<ComingSoon title="?? Parent Portal" />} />
+        <Route path="attendance"   element={<ComingSoon title="✅ Attendance Register" />} />
+        <Route path="assignments"  element={<ComingSoon title="📚 Assignments" />} />
+        <Route path="content"      element={<ComingSoon title="✏️ Content Generation" />} />
+        <Route path="portal"       element={<ComingSoon title="💬 Parent Portal" />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
