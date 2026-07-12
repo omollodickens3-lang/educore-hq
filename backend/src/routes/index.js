@@ -7,6 +7,7 @@ const exams = require('../controllers/examController');
 const attendance = require('../controllers/attendanceController');
 const schools = require('../controllers/schoolController');
 const teachers = require('../controllers/teacherController');
+const assignments = require('../controllers/assignmentController');
 
 router.get('/health', (req, res) => {
   res.json({ status: 'ok', platform: 'EduCore', version: '1.0.0' });
@@ -47,6 +48,11 @@ router.post('/attendance/bulk', authenticate, attendance.markBulk);
 router.get('/attendance/alerts', authenticate, attendance.getAlerts);
 router.get('/attendance/stats/:learnerId', authenticate, attendance.getLearnerStats);
 
+router.post('/assignments', authenticate, assignments.createAssignment);
+router.get('/assignments', authenticate, assignments.getAssignments);
+router.get('/assignments/:id', authenticate, assignments.getAssignmentDetail);
+router.patch('/assignments/submissions/:submissionId', authenticate, assignments.updateSubmission);
+
 router.post('/schools/register', schools.registerSchool);
 router.get('/schools/check-subdomain', schools.checkSubdomain);
 
@@ -59,3 +65,4 @@ const reports = require("../controllers/reportController");
 
 router.post("/teachers/:id/signature", authenticate, upload.single("signature"), teachers.uploadSignature);
 router.get("/reports/learner/:learnerId/:examId", authenticate, reports.generateLearnerReport);
+
