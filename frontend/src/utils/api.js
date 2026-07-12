@@ -54,3 +54,18 @@ export const examsAPI = {
   upsertScores: (examId, scores) => api.post(`/exams/${examId}/scores`, { scores }),
   getAnalysis: (params) => api.get('/exams/analysis', { params }),
 };
+
+teachersAPI.uploadSignature = (id, file) => {
+  const formData = new FormData();
+  formData.append("signature", file);
+  return api.post(`/teachers/${id}/signature`, formData);
+};
+
+export const reportsAPI = {
+  download: (learnerId, examId, signedBy) => {
+    const url = signedBy
+      ? `/reports/learner/${learnerId}/${examId}?signedBy=${signedBy}`
+      : `/reports/learner/${learnerId}/${examId}`;
+    return api.get(url, { responseType: "blob" });
+  },
+};
