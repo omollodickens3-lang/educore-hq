@@ -1,4 +1,4 @@
-﻿const { query, getClient } = require("../config/db");
+﻿const { query } = require("../config/db");
 const { v4: uuid } = require("uuid");
 
 // Create a new assignment
@@ -11,12 +11,11 @@ async function createAssignment(req, res) {
 
     const assignmentId = uuid();
     await query(
-      `INSERT INTO assignments (id, school_id, created_by, subject, grade, stream, title, description, due_date)
+      `INSERT INTO assignments (id, school_id, teacher_id, subject, grade, stream, title, description, due_date)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [assignmentId, req.user.school_id, req.user.id, subject, grade, stream || null, title, description || null, dueDate]
     );
 
-    // Auto-create a pending submission row for every learner in that grade/stream
     const { rows: learners } = await query(
       `SELECT id FROM learners WHERE school_id=$1 AND grade=$2 AND ($3::text IS NULL OR stream=$3)`,
       [req.user.school_id, grade, stream || null]
@@ -37,12 +36,11 @@ async function createAssignment(req, res) {
   }
 }
 
-// List all assignments for the school (optionally filtered)
 async function getAssignments(req, res) {
   try {
     const { grade, subject } = req.query;
     const { rows } = await query(
-      `SELECT a.*, 
+      `SELECT a.*,
         (SELECT COUNT(*) FROM assignment_submissions s WHERE s.assignment_id = a.id) AS total_learners,
         (SELECT COUNT(*) FROM assignment_submissions s WHERE s.assignment_id = a.id AND s.status != 'pending') AS total_responded
        FROM assignments a
@@ -59,7 +57,6 @@ async function getAssignments(req, res) {
   }
 }
 
-// Get one assignment + full learner roster with submission status
 async function getAssignmentDetail(req, res) {
   try {
     const { id } = req.params;
@@ -85,7 +82,6 @@ async function getAssignmentDetail(req, res) {
   }
 }
 
-// Update one learner's submission status/grade/feedback
 async function updateSubmission(req, res) {
   try {
     const { submissionId } = req.params;
@@ -93,9 +89,6 @@ async function updateSubmission(req, res) {
     if (!["pending", "submitted", "graded"].includes(status)) {
       return res.status(400).json({ error: "Invalid status" });
     }
-
-    const submittedAt = status === "submitted" || status === "graded" ? "now()" : "NULL";
-    const gradedAt = status === "graded" ? "now()" : "NULL";
 
     await query(
       `UPDATE assignment_submissions
