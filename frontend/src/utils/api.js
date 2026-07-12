@@ -73,3 +73,9 @@ export const reportsAPI = {
 attendanceAPI.getAttendance = (params) => api.get("/attendance", { params });
 attendanceAPI.markBulk = (data) => api.post("/attendance/bulk", data);
 attendanceAPI.getLearnerStats = (learnerId) => api.get(`/attendance/stats/${learnerId}`);
+
+export const assignmentsAPI = {};
+assignmentsAPI.getAll = () => api.get("/assignments");
+assignmentsAPI.create = (data) => api.post("/assignments", data);
+assignmentsAPI.getById = (id) => api.get(`/assignments/${id}`);
+assignmentsAPI.updateSubmission = (submissionId, data) => api.patch(`/assignments/submissions/${submissionId}`, data);
