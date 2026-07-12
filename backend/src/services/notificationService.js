@@ -16,14 +16,14 @@ async function notify({ schoolId, learnerId, triggerType, recipientPhone, messag
   try {
     await sendViaProvider(channel, recipientPhone, message);
     await query(
-      `INSERT INTO notifications (id, school_id, learner_id, trigger_type, channel, recipient_phone, message, status, sent_at)
+      `INSERT INTO learner_notifications (id, school_id, learner_id, trigger_type, channel, recipient_phone, message, status, sent_at)
        VALUES ($1,$2,$3,$4,$5,$6,$7,'sent',now())`,
       [id, schoolId, learnerId, triggerType, MOCK_MODE ? "mock" : channel, recipientPhone, message]
     );
     return { id, status: "sent" };
   } catch (err) {
     await query(
-      `INSERT INTO notifications (id, school_id, learner_id, trigger_type, channel, recipient_phone, message, status, error)
+      `INSERT INTO learner_notifications (id, school_id, learner_id, trigger_type, channel, recipient_phone, message, status, error)
        VALUES ($1,$2,$3,$4,$5,$6,$7,'failed',$8)`,
       [id, schoolId, learnerId, triggerType, channel, recipientPhone, message, err.message]
     );
@@ -32,4 +32,5 @@ async function notify({ schoolId, learnerId, triggerType, recipientPhone, messag
 }
 
 module.exports = { notify };
+
 
