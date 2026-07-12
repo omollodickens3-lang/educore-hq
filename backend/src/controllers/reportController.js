@@ -1,4 +1,4 @@
-const PDFDocument = require("pdfkit");
+﻿const PDFDocument = require("pdfkit");
 const { query } = require("../config/db");
 
 async function generateLearnerReport(req, res) {
@@ -84,9 +84,10 @@ async function generateLearnerReport(req, res) {
 
     if (teacher && teacher.signature_data) {
       const imgBuffer = Buffer.from(teacher.signature_data, "base64");
-      doc.image(imgBuffer, 40, doc.y, { width: 120 });
-      doc.text(teacher.first_name + " " + teacher.last_name, 40, doc.y + 65);
-      doc.text(teacher.role || "Teacher", 40, doc.y + 80);
+      const sigY = doc.y;
+      doc.image(imgBuffer, 40, sigY, { fit: [140, 55], align: "left" });
+      doc.text(teacher.first_name + " " + teacher.last_name, 40, sigY + 60);
+      doc.text(teacher.role || "Teacher", 40, sigY + 75);
     } else {
       doc.text("_____________________", 40, doc.y);
       doc.text("Head Teacher / Class Teacher", 40, doc.y + 15);
@@ -100,3 +101,4 @@ async function generateLearnerReport(req, res) {
 }
 
 module.exports = { generateLearnerReport };
+
