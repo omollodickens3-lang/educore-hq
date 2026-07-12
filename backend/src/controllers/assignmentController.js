@@ -1,7 +1,6 @@
 ﻿const { query } = require("../config/db");
 const { v4: uuid } = require("uuid");
 
-// Create a new assignment
 async function createAssignment(req, res) {
   try {
     const { subject, grade, stream, title, description, dueDate } = req.body;
@@ -23,9 +22,9 @@ async function createAssignment(req, res) {
 
     for (const l of learners) {
       await query(
-        `INSERT INTO assignment_submissions (id, assignment_id, learner_id, status)
-         VALUES ($1,$2,$3,'pending')`,
-        [uuid(), assignmentId, l.id]
+        `INSERT INTO assignment_submissions (id, assignment_id, learner_id, school_id, status)
+         VALUES ($1,$2,$3,$4,'pending')`,
+        [uuid(), assignmentId, l.id, req.user.school_id]
       );
     }
 
@@ -66,7 +65,7 @@ async function getAssignmentDetail(req, res) {
     }
 
     const { rows: roster } = await query(
-      `SELECT s.id AS submission_id, s.status, s.grade, s.feedback, s.submitted_at, s.graded_at,
+      `SELECT s.id AS submission_id, s.status, s.grade_label AS grade, s.feedback, s.submitted_at, s.graded_at,
               l.id AS learner_id, l.first_name, l.last_name, l.admission_no
        FROM assignment_submissions s
        JOIN learners l ON l.id = s.learner_id
@@ -92,11 +91,12 @@ async function updateSubmission(req, res) {
 
     await query(
       `UPDATE assignment_submissions
-       SET status=$1, grade=$2, feedback=$3,
+       SET status=$1, grade_label=$2, feedback=$3,
            submitted_at = COALESCE(submitted_at, CASE WHEN $1 IN ('submitted','graded') THEN now() ELSE NULL END),
-           graded_at = CASE WHEN $1 = 'graded' THEN now() ELSE graded_at END
+           graded_at = CASE WHEN $1 = 'graded' THEN now() ELSE graded_at END,
+           graded_by = CASE WHEN $1 = 'graded' THEN $5 ELSE graded_by END
        WHERE id=$4`,
-      [status, grade || null, feedback || null, submissionId]
+      [status, grade || null, feedback || null, submissionId, req.user.id]
     );
 
     res.json({ message: "Submission updated" });
