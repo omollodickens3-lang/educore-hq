@@ -9,6 +9,7 @@ const schools = require('../controllers/schoolController');
 const teachers = require('../controllers/teacherController');
 const assignments = require('../controllers/assignmentController');
 const conduct = require('../controllers/conductController');
+const parentPortal = require('../controllers/parentController');
 
 router.get('/health', (req, res) => {
   res.json({ status: 'ok', platform: 'EduCore', version: '1.0.0' });
@@ -56,6 +57,8 @@ router.patch('/assignments/submissions/:submissionId', authenticate, assignments
 
 router.post('/conduct', authenticate, conduct.createConductLog);
 router.get('/conduct', authenticate, conduct.getConductLogs);
+
+router.get('/parent/my-child', authenticate, parentPortal.getMyChild);
 
 router.post('/schools/register', schools.registerSchool);
 router.get('/schools/check-subdomain', schools.checkSubdomain);
