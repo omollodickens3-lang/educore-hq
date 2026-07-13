@@ -83,3 +83,6 @@ assignmentsAPI.updateSubmission = (submissionId, data) => api.patch(`/assignment
 export const conductAPI = {};
 conductAPI.getAll = () => api.get("/conduct");
 conductAPI.create = (data) => api.post("/conduct", data);
+
+export const parentAPI = {};
+parentAPI.getMyChild = () => api.get('/parent/my-child');
