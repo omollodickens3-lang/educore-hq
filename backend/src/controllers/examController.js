@@ -2,6 +2,7 @@ const { query, getClient } = require('../config/db');
 const { v4: uuid } = require('uuid');
 
 const { termToInt, cbcGrade } = require('../utils/examUtils');
+const { notify } = require('../services/notificationService');
 
 async function getExams(req, res) {
   try {
@@ -91,6 +92,34 @@ async function upsertScores(req, res) {
       upserted++;
     }
     await client.query('COMMIT');
+
+
+    try {
+      const { rows: examRows2 } = await query(
+        `SELECT name FROM exams WHERE id=$1 AND school_id=$2`,
+        [req.params.examId, req.user.school_id]
+      );
+      const examName = examRows2[0]?.name || 'the exam';
+      const uniqueLearnerIds = [...new Set(scores.map(s => s.learnerId))];
+      for (const learnerId of uniqueLearnerIds) {
+        const { rows: learnerRows } = await query(
+          `SELECT first_name, last_name, parent_phone FROM learners WHERE id=$1`,
+          [learnerId]
+        );
+        const l = learnerRows[0];
+        if (l && l.parent_phone) {
+          await notify({
+            schoolId: req.user.school_id,
+            learnerId,
+            triggerType: 'exam_results',
+            recipientPhone: l.parent_phone,
+            message: `${l.first_name} ${l.last_name}'s results for ${examName} have been entered. Check the parent portal for details.`,
+          });
+        }
+      }
+    } catch (notifyErr) {
+      console.error('Exam results notify error:', notifyErr);
+    }
     res.json({ message: `${upserted} scores saved`, upserted });
   } catch (err) {
     console.error(err);
