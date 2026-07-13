@@ -1,0 +1,48 @@
+﻿
+  src\controllers\attendanceController.js:59:              await notify({
+  src\controllers\attendanceController.js:60:                schoolId: req.user.school_id,
+  src\controllers\attendanceController.js:61:                learnerId: r.learnerId,
+> src\controllers\attendanceController.js:62:                triggerType: 'chronic_absenteeism',
+  src\controllers\attendanceController.js:63:                recipientPhone: l.parent_phone,
+  src\controllers\attendanceController.js:64:                message: `Attendance alert: ${l.first_name} ${l.last_name}'s 
+attendance rate is ${rate}%, below the 75% threshold.`,
+  src\controllers\attendanceController.js:65:              });
+  src\controllers\attendanceController.js:66:            }
+  src\controllers\attendanceController.js:67:          }
+  src\controllers\attendanceController.js:68:        } catch (notifyErr) {
+> src\controllers\attendanceController.js:69:          console.error('Absenteeism notify error:', notifyErr);
+  src\controllers\attendanceController.js:70:        }
+  src\controllers\attendanceController.js:71:      }
+  src\controllers\attendanceController.js:72:    }
+  src\controllers\attendanceController.js:73:    res.json({ message: `${marked} records saved`, marked });
+  src\controllers\attendanceController.js:74:  } catch (err) {
+  src\controllers\attendanceController.js:75:    await client.query('ROLLBACK');
+  src\controllers\attendanceController.js:76:    res.status(500).json({ error: 'Failed to mark attendance' });
+  src\controllers\attendanceController.js:77:  } finally { client.release(); }
+  src\controllers\attendanceController.js:78:}
+  src\controllers\attendanceController.js:79:
+  src\controllers\attendanceController.js:93:    const total = parseInt(stats.total_marked) || 1;
+  src\controllers\attendanceController.js:94:    const present = parseInt(stats.present) + parseInt(stats.late);
+  src\controllers\attendanceController.js:95:    stats.rate = Math.round(present / total * 100);
+> src\controllers\attendanceController.js:96:    stats.chronicAbsentee = stats.rate < 75;
+  src\controllers\attendanceController.js:97:    res.json(stats);
+  src\controllers\attendanceController.js:98:  } catch (err) { res.status(500).json({ error: 'Failed to fetch stats' }); }
+  src\controllers\attendanceController.js:99:}
+  src\controllers\attendanceController.js:100:
+  src\controllers\attendanceController.js:101:async function getAlerts(req, res) {
+  src\controllers\attendanceController.js:102:  try {
+  src\controllers\attendanceController.js:103:    const schoolId = req.user.school_id;
+  src\controllers\attendanceController.js:104:    const today = new Date().toISOString().split('T')[0];
+  src\controllers\attendanceController.js:105:    const { rows: absentToday } = await query(`
+  src\controllers\attendanceController.js:106:      SELECT l.id, l.first_name, l.last_name, l.grade, l.stream, l.parent_name, 
+l.parent_phone
+  src\controllers\attendanceController.js:108:      WHERE a.school_id=$1 AND a.date=$2 AND a.status='A' AND a.session='AM'`,
+  src\controllers\attendanceController.js:109:      [schoolId, today]
+  src\controllers\attendanceController.js:110:    );
+> src\controllers\attendanceController.js:111:    res.json({ absentToday, chronic: [] });
+  src\controllers\attendanceController.js:112:  } catch (err) { res.status(500).json({ error: 'Failed to fetch alerts' }); }
+  src\controllers\attendanceController.js:113:}
+  src\controllers\attendanceController.js:114:
+  src\controllers\attendanceController.js:115:module.exports = { getAttendance, markBulk, getLearnerStats, getAlerts };
+
+
