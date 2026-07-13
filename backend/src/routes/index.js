@@ -81,3 +81,9 @@ router.get("/reports/learner/:learnerId/:examId", authenticate, reports.generate
 
 
 
+
+
+const classes = require("../controllers/classController");
+router.get("/classes", authenticate, classes.getClasses);
+router.post("/classes", authenticate, classes.createClass);
+router.delete("/classes/:id", authenticate, classes.deleteClass);
