@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const auth = require('../controllers/authController');
@@ -10,6 +10,7 @@ const teachers = require('../controllers/teacherController');
 const assignments = require('../controllers/assignmentController');
 const conduct = require('../controllers/conductController');
 const parentPortal = require('../controllers/parentController');
+const classes = require('../controllers/classController');
 
 router.get('/health', (req, res) => {
   res.json({ status: 'ok', platform: 'EduCore', version: '1.0.0' });
@@ -18,6 +19,11 @@ router.get('/health', (req, res) => {
 router.post('/auth/login', auth.login);
 router.get('/auth/me', authenticate, auth.me);
 router.post('/auth/change-password', authenticate, auth.changePassword);
+
+router.get('/classes', authenticate, classes.getClasses);
+router.post('/classes', authenticate, classes.createClass);
+router.put('/classes/:id', authenticate, classes.updateClass);
+router.delete('/classes/:id', authenticate, classes.deleteClass);
 
 router.get('/learners', authenticate, learners.getLearners);
 router.get('/learners/stats', authenticate, learners.getStats);
@@ -72,4 +78,6 @@ const reports = require("../controllers/reportController");
 
 router.post("/teachers/:id/signature", authenticate, upload.single("signature"), teachers.uploadSignature);
 router.get("/reports/learner/:learnerId/:examId", authenticate, reports.generateLearnerReport);
+
+
 

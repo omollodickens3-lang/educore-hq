@@ -7,3 +7,8 @@ build/
 .DS_Store
 *.broken.js
 *.bak*
+backend/check-schema.js
+backend/create-test-parent.js
+backend/gen_pw.js
+backend/reset_pw.sql
+frontend/app_check.txt
