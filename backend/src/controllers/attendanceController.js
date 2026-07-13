@@ -40,6 +40,36 @@ async function markBulk(req, res) {
       marked++;
     }
     await client.query('COMMIT');
+
+    const { notify } = require('../services/notificationService');
+    for (const r of records) {
+      if (r.status === 'A') {
+        try {
+          const { rows: statRows } = await query(
+            `SELECT COUNT(*) FILTER (WHERE status='P') AS present, COUNT(*) FILTER (WHERE status='L') AS late, COUNT(*) AS total FROM attendance WHERE learner_id=$1 AND school_id=$2`,
+            [r.learnerId, req.user.school_id]
+          );
+          const s = statRows[0];
+          const total = parseInt(s.total) || 1;
+          const rate = Math.round(((parseInt(s.present) + parseInt(s.late)) / total) * 100);
+          if (rate < 75) {
+            const { rows: learnerRows } = await query(`SELECT first_name, last_name, parent_phone FROM learners WHERE id=$1`, [r.learnerId]);
+            const l = learnerRows[0];
+            if (l && l.parent_phone) {
+              await notify({
+                schoolId: req.user.school_id,
+                learnerId: r.learnerId,
+                triggerType: 'chronic_absenteeism',
+                recipientPhone: l.parent_phone,
+                message: `Attendance alert: ${l.first_name} ${l.last_name}'s attendance rate is ${rate}%, below the 75% threshold.`,
+              });
+            }
+          }
+        } catch (notifyErr) {
+          console.error('Absenteeism notify error:', notifyErr);
+        }
+      }
+    }
     res.json({ message: `${marked} records saved`, marked });
   } catch (err) {
     await client.query('ROLLBACK');
