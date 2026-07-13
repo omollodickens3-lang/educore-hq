@@ -79,3 +79,11 @@ assignmentsAPI.getAll = () => api.get("/assignments");
 assignmentsAPI.create = (data) => api.post("/assignments", data);
 assignmentsAPI.getById = (id) => api.get(`/assignments/${id}`);
 assignmentsAPI.updateSubmission = (submissionId, data) => api.patch(`/assignments/submissions/${submissionId}`, data);
+
+export const conductAPI = {};
+conductAPI.getAll = () => api.get("/conduct");
+conductAPI.create = (data) => api.post("/conduct", data);
+
+export const conductAPI = {};
+conductAPI.getAll = () => api.get("/conduct");
+conductAPI.create = (data) => api.post("/conduct", data);
