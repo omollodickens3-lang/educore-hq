@@ -1,4 +1,4 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
   timeout: 15000,
@@ -92,3 +92,4 @@ export const classesAPI = {};
 classesAPI.getAll = () => api.get('/classes');
 classesAPI.create = (data) => api.post('/classes', data);
 classesAPI.delete = (id) => api.delete(`/classes/${id}`);
+classesAPI.update = (id, data) => api.put(`/classes/${id}`, data);
