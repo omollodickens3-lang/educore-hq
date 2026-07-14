@@ -5,18 +5,18 @@ import toast from 'react-hot-toast';
 
 const NAV = [
   { section: 'Main' },
-  { to: '/',            icon: 'âŠž', label: 'Dashboard' },
-  { to: '/learners',    icon: 'ðŸ‘¥', label: 'Learners' },
-  { to: '/teachers',     icon: '..', label: 'Teachers' },
-  { to: '/classes',      icon: '..', label: 'Manage Classes' },
+  { to: '/',            icon: '🏠', label: 'Dashboard' },
+  { to: '/learners',    icon: '🎓', label: 'Learners' },
+  { to: '/teachers',     icon: '🧑‍🏫', label: 'Teachers' },
+  { to: '/classes',      icon: '🏫', label: 'Manage Classes' },
   { section: 'Academics' },
-  { to: '/examinations',icon: 'ðŸ“‹', label: 'Examinations' },
-  { to: '/reports',     icon: 'ðŸ“„', label: 'Report Forms' },
-  { to: '/attendance',  icon: 'âœ…', label: 'Attendance' },
-  { to: '/assignments', icon: 'ðŸ“š', label: 'Assignments' },
+  { to: '/examinations',icon: '📝', label: 'Examinations' },
+  { to: '/reports',     icon: '📋', label: 'Report Forms' },
+  { to: '/attendance',  icon: '✅', label: 'Attendance' },
+  { to: '/assignments', icon: '📚', label: 'Assignments' },
   { section: 'Content' },
-  { to: '/content',     icon: 'âœï¸', label: 'Content Gen' },
-  { to: '/portal',      icon: 'ðŸ’¬', label: 'Parent Portal' },
+  { to: '/content',     icon: '✨', label: 'Content Gen' },
+  { to: '/portal',      icon: '👪', label: 'Parent Portal' },
 ];
 
 export default function AppLayout() {
