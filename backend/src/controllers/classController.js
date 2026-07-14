@@ -65,4 +65,24 @@ async function deleteClass(req, res) {
   }
 }
 
-module.exports = { getClasses, createClass, deleteClass };
+async function updateClass(req, res) {
+  try {
+    const { id } = req.params;
+    const { grade, stream, section, classTeacherId, academicYear } = req.body;
+    const { rowCount, rows } = await query(
+      `UPDATE classes SET grade=$1, stream=$2, section=$3, class_teacher_id=$4, academic_year=$5
+       WHERE id=$6 AND school_id=$7
+       RETURNING id, grade, stream, section, class_teacher_id, academic_year`,
+      [grade, stream, section || null, classTeacherId || null, academicYear || null, id, req.user.school_id]
+    );
+    if (rowCount === 0) {
+      return res.status(404).json({ error: "Class not found" });
+    }
+    res.json(rows[0]);
+  } catch (err) {
+    console.error("Update class error:", err.message);
+    res.status(500).json({ error: "Failed to update class" });
+  }
+}
+
+module.exports = { getClasses, createClass, updateClass, deleteClass };
