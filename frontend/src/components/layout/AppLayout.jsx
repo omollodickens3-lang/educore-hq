@@ -1,21 +1,22 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
 const NAV = [
   { section: 'Main' },
-  { to: '/',            icon: '⊞', label: 'Dashboard' },
-  { to: '/learners',    icon: '👥', label: 'Learners' },
-  { to: '/teachers',    icon: '🎓', label: 'Teachers' },
+  { to: '/',            icon: 'âŠž', label: 'Dashboard' },
+  { to: '/learners',    icon: 'ðŸ‘¥', label: 'Learners' },
+  { to: '/teachers',     icon: '..', label: 'Teachers' },
+  { to: '/classes',      icon: '..', label: 'Manage Classes' },
   { section: 'Academics' },
-  { to: '/examinations',icon: '📋', label: 'Examinations' },
-  { to: '/reports',     icon: '📄', label: 'Report Forms' },
-  { to: '/attendance',  icon: '✅', label: 'Attendance' },
-  { to: '/assignments', icon: '📚', label: 'Assignments' },
+  { to: '/examinations',icon: 'ðŸ“‹', label: 'Examinations' },
+  { to: '/reports',     icon: 'ðŸ“„', label: 'Report Forms' },
+  { to: '/attendance',  icon: 'âœ…', label: 'Attendance' },
+  { to: '/assignments', icon: 'ðŸ“š', label: 'Assignments' },
   { section: 'Content' },
-  { to: '/content',     icon: '✍️', label: 'Content Gen' },
-  { to: '/portal',      icon: '💬', label: 'Parent Portal' },
+  { to: '/content',     icon: 'âœï¸', label: 'Content Gen' },
+  { to: '/portal',      icon: 'ðŸ’¬', label: 'Parent Portal' },
 ];
 
 export default function AppLayout() {
@@ -36,7 +37,7 @@ export default function AppLayout() {
     <div style={{ display:'flex', height:'100vh', fontFamily:'system-ui,sans-serif', fontSize:'13px' }}>
       <div style={{ width:'200px', background:'#0a1628', flexShrink:0, display:'flex', flexDirection:'column' }}>
         <div style={{ padding:'14px', borderBottom:'0.5px solid rgba(255,255,255,0.07)', display:'flex', alignItems:'center', gap:'8px' }}>
-          <div style={{ width:'28px', height:'28px', background:'#185fa5', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'16px' }}>🏫</div>
+          <div style={{ width:'28px', height:'28px', background:'#185fa5', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'16px' }}>ðŸ«</div>
           <div>
             <div style={{ color:'#fff', fontSize:'13px', fontWeight:'500' }}>EduCore</div>
             <div style={{ color:'#6b8cba', fontSize:'10px' }}>CBC Platform</div>
@@ -75,14 +76,14 @@ export default function AppLayout() {
             </div>
             <div style={{ color:'#4a6a94', fontSize:'10px', textTransform:'capitalize' }}>{user?.role?.replace('_',' ')}</div>
           </div>
-          <button onClick={handleLogout} style={{ background:'none', border:'none', color:'#4a6a94', cursor:'pointer', fontSize:'16px' }}>⏻</button>
+          <button onClick={handleLogout} style={{ background:'none', border:'none', color:'#4a6a94', cursor:'pointer', fontSize:'16px' }}>â»</button>
         </div>
       </div>
 
       <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', background:'#f1f5f9' }}>
         <div style={{ background:'#fff', borderBottom:'0.5px solid #e2e8f0', padding:'0 18px', height:'50px', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
           <span style={{ fontSize:'13px', color:'#64748b' }}>{schoolName}</span>
-          <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', background:'#e6f1fb', color:'#185fa5' }}>📅 Term 2 · 2025/2026</span>
+          <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', background:'#e6f1fb', color:'#185fa5' }}>ðŸ“… Term 2 Â· 2025/2026</span>
         </div>
         <div style={{ flex:1, overflowY:'auto' }}>
           <Outlet />

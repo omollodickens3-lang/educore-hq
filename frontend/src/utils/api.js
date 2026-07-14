@@ -86,3 +86,9 @@ conductAPI.create = (data) => api.post("/conduct", data);
 
 export const parentAPI = {};
 parentAPI.getMyChild = () => api.get('/parent/my-child');
+
+
+export const classesAPI = {};
+classesAPI.getAll = () => api.get('/classes');
+classesAPI.create = (data) => api.post('/classes', data);
+classesAPI.delete = (id) => api.delete(`/classes/${id}`);
