@@ -78,12 +78,3 @@ const reports = require("../controllers/reportController");
 
 router.post("/teachers/:id/signature", authenticate, upload.single("signature"), teachers.uploadSignature);
 router.get("/reports/learner/:learnerId/:examId", authenticate, reports.generateLearnerReport);
-
-
-
-
-
-const classes = require("../controllers/classController");
-router.get("/classes", authenticate, classes.getClasses);
-router.post("/classes", authenticate, classes.createClass);
-router.delete("/classes/:id", authenticate, classes.deleteClass);
