@@ -76,14 +76,14 @@ export default function AppLayout() {
             </div>
             <div style={{ color:'#4a6a94', fontSize:'10px', textTransform:'capitalize' }}>{user?.role?.replace('_',' ')}</div>
           </div>
-          <button onClick={handleLogout} style={{ background:'none', border:'none', color:'#4a6a94', cursor:'pointer', fontSize:'16px' }}>â»</button>
+          <button onClick={handleLogout} style={{ background:'none', border:'none', color:'#4a6a94', cursor:'pointer', fontSize:'16px' }}>🚪</button>
         </div>
       </div>
 
       <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', background:'#f1f5f9' }}>
         <div style={{ background:'#fff', borderBottom:'0.5px solid #e2e8f0', padding:'0 18px', height:'50px', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
           <span style={{ fontSize:'13px', color:'#64748b' }}>{schoolName}</span>
-          <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', background:'#e6f1fb', color:'#185fa5' }}>ðŸ“… Term 2 Â· 2025/2026</span>
+          <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', background:'#e6f1fb', color:'#185fa5' }}>📅 Term 2 · 2025/2026</span>
         </div>
         <div style={{ flex:1, overflowY:'auto' }}>
           <Outlet />
