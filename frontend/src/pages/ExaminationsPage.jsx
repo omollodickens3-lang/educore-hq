@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ExaminationsPage.jsx  –  EduCore CBC Examinations Module
  *
  * Grading system
@@ -759,19 +759,25 @@ function Field({ label, children }) {
 function CreateExamModal({ onClose, onCreate }) {
   const [form, setForm] = useState({
     examName: "", subject: "", grade: "", term: "",
-    year: THIS_YEAR, examDate: "", maxScore: 100,
+    year: THIS_YEAR, examDate: "", maxScore: 100, examType: "",
   });
   const [saving, setSaving] = useState(false);
   const [err, setErr]       = useState("");
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   async function submit() {
-    if (!form.examName || !form.subject || !form.grade || !form.term || !form.examDate) {
+    if (!form.examName || !form.subject || !form.grade || !form.term || !form.examDate || !form.examType) {
       setErr("Please fill in all required fields."); return;
     }
     setSaving(true); setErr("");
     try {
-      const result = await api.createExam({ ...form, maxScore: Number(form.maxScore) });
+      const result = await api.createExam({
+        ...form,
+        name: form.examName,
+        academicYear: form.year,
+        startDate: form.examDate,
+        maxScore: Number(form.maxScore),
+      });
       onCreate(result);
     } catch (e) { setErr(e.message); }
     finally { setSaving(false); }
@@ -788,6 +794,12 @@ function CreateExamModal({ onClose, onCreate }) {
           <Field label="Exam name *">
             <input style={styles.input} value={form.examName} placeholder="e.g. Mid-Term Mathematics Paper 1"
               onChange={(e) => set("examName", e.target.value)} />
+          </Field>
+          <Field label="Exam type *">
+            <select style={styles.input} value={form.examType} onChange={(e) => set("examType", e.target.value)}>
+              <option value="">Select</option>
+              {["CAT","Opener","Mid Term","End Term","Mock"].map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
           </Field>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <Field label="Subject *">
@@ -1121,4 +1133,3 @@ const styles = {
   },
   empty: { margin: 0, fontSize: 13, color: "#9CA3AF", fontStyle: "italic" },
 };
-
