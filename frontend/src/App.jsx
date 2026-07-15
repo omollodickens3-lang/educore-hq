@@ -25,6 +25,7 @@ function ProtectedRoute({ children }) {
       Loading EduCore...</div>
   );
   if (!user) return <Navigate to="/login" replace />;
+  if (user.role === 'parent') return <Navigate to="/parent" replace />;
   return children;
 }
 
