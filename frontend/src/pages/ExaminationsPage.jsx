@@ -778,7 +778,7 @@ function CreateExamModal({ onClose, onCreate }) {
         startDate: form.examDate,
         maxScore: Number(form.maxScore),
       });
-      onCreate(result);
+      onCreate(result.exam ?? result);
     } catch (e) { setErr(e.message); }
     finally { setSaving(false); }
   }
