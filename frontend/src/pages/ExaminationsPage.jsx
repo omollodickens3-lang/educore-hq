@@ -817,7 +817,7 @@ function CreateExamModal({ onClose, onCreate }) {
             <Field label="Term *">
               <select style={styles.input} value={form.term} onChange={(e) => set("term", e.target.value)}>
                 <option value="">Select…</option>
-                {TERMS.map((t) => <option key={t}>{t}</option>)}
+                {TERMS.map((t, i) => <option key={t} value={i + 1}>{t}</option>)}
               </select>
             </Field>
             <Field label="Year">
