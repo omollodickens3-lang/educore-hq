@@ -7,7 +7,7 @@ const { notify } = require('../services/notificationService');
 async function getExams(req, res) {
   try {
     const { grade, term, examType, academicYear = '2025/2026' } = req.query;
-    let sql = `SELECT e.*, s.name AS subject FROM exams e LEFT JOIN subjects s ON s.id = e.subject_id WHERE e.school_id=$1 AND e.academic_year=$2`;
+    let sql = `SELECT e.* FROM exams e WHERE e.school_id=$1 AND e.academic_year=$2`;
     const params = [req.user.school_id, academicYear];
     let idx = 3;
     if (grade)    { sql += ` AND e.grade=$${idx++}`;      params.push(grade); }
@@ -21,12 +21,12 @@ async function getExams(req, res) {
 
 async function createExam(req, res) {
   try {
-    const { name, examType, term, academicYear = '2025/2026', grade, stream, startDate, endDate } = req.body;
-    if (!grade || !term || !examType) return res.status(400).json({ error: 'grade, term and examType required' });
+    const { name, examType, term, academicYear = '2025/2026', grade, stream, startDate, endDate, subject } = req.body;
+    if (!grade || !term || !examType || !subject) return res.status(400).json({ error: 'grade, term, examType and subject required' });
     const { rows } = await query(`
-      INSERT INTO exams (id, school_id, name, exam_type, term, academic_year, grade, stream, start_date, end_date, created_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
-      [uuid(), req.user.school_id, name || `${grade} Term ${term} ${examType}`, examType, term, academicYear, grade, stream||null, startDate||null, endDate||null, req.user.id]
+      INSERT INTO exams (id, school_id, name, exam_type, term, academic_year, grade, stream, start_date, end_date, created_by, subject)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [uuid(), req.user.school_id, name || `${grade} Term ${term} ${examType}`, examType, term, academicYear, grade, stream||null, startDate||null, endDate||null, req.user.id, subject]
     );
     res.status(201).json({ message: 'Exam created', exam: rows[0] });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to create exam' }); }
