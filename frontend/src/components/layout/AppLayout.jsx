@@ -11,6 +11,7 @@ const NAV = [
   { to: '/classes',      icon: '🏫', label: 'Manage Classes' },
   { section: 'Academics' },
   { to: '/examinations',icon: '📝', label: 'Examinations' },
+  { to: '/analytics', icon: '📊', label: 'Analytics' },
   { to: '/reports',     icon: '📋', label: 'Report Forms' },
   { to: '/attendance',  icon: '✅', label: 'Attendance' },
   { to: '/assignments', icon: '📚', label: 'Assignments' },
