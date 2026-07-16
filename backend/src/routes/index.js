@@ -49,6 +49,7 @@ router.get('/exams/analysis', authenticate, exams.getAnalysis);
 router.get('/exams/trends', authenticate, exams.getTrends);
 router.get('/exams/school-overview', authenticate, exams.getSchoolOverview);
 router.get('/exams/stream-ranking', authenticate, exams.getStreamRanking);
+router.get('/exams/learner-ranking', authenticate, exams.getLearnerRanking);
 router.get('/exams/:examId/scores', authenticate, exams.getScores);
 router.post('/exams/:examId/scores', authenticate, exams.upsertScores);
 
