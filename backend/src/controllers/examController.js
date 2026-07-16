@@ -130,31 +130,35 @@ async function upsertScores(req, res) {
 
 async function getAnalysis(req, res) {
   try {
-    const { grade, term, academicYear = '2025/2026' } = req.query;
-    const { rows: subjAvgs } = await query(`
-      SELECT s.subject, ROUND(AVG(s.score),1) AS avg_score, MAX(s.score) AS highest, MIN(s.score) AS lowest
-      FROM scores s JOIN exams e ON e.id = s.exam_id
-      WHERE s.school_id=$1 AND e.grade=$2 AND e.term=$3 AND e.academic_year=$4
-      GROUP BY s.subject ORDER BY avg_score DESC`,
-      [req.user.school_id, grade, termToInt(term), academicYear]
-    );
+    const { grade, term, academicYear = '2025/2026', stream } = req.query;
+    let sql = `
+      SELECT s.subject, ROUND(AVG(s.score),1) AS avg_score, MAX(s.score) AS highest, MIN(s.score) AS lowest, COUNT(DISTINCT s.learner_id) AS learners_marked
+      FROM scores s
+      JOIN exams e ON e.id = s.exam_id
+      JOIN learners l ON l.id = s.learner_id
+      WHERE s.school_id=$1 AND e.grade=$2 AND e.term=$3 AND e.academic_year=$4`;
+    const params = [req.user.school_id, grade, termToInt(term), academicYear];
+    if (stream) { sql += ` AND l.stream=$5`; params.push(stream); }
+    sql += ` GROUP BY s.subject ORDER BY avg_score DESC`;
+    const { rows: subjAvgs } = await query(sql, params);
     res.json({ subjectAverages: subjAvgs });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to fetch analysis' }); }
 }
 
 async function getTrends(req, res) {
   try {
-    const { grade, subject } = req.query;
+    const { grade, subject, stream } = req.query;
     if (!grade || !subject) return res.status(400).json({ error: 'grade and subject required' });
-    const { rows } = await query(`
+    let sql = `
       SELECT e.academic_year, e.term, ROUND(AVG(s.score),1) AS avg_score, COUNT(DISTINCT s.learner_id) AS learners_marked
       FROM scores s
       JOIN exams e ON e.id = s.exam_id
-      WHERE s.school_id=$1 AND e.grade=$2 AND s.subject=$3
-      GROUP BY e.academic_year, e.term
-      ORDER BY e.academic_year, e.term`,
-      [req.user.school_id, grade, subject]
-    );
+      JOIN learners l ON l.id = s.learner_id
+      WHERE s.school_id=$1 AND e.grade=$2 AND s.subject=$3`;
+    const params = [req.user.school_id, grade, subject];
+    if (stream) { sql += ` AND l.stream=$4`; params.push(stream); }
+    sql += ` GROUP BY e.academic_year, e.term ORDER BY e.academic_year, e.term`;
+    const { rows } = await query(sql, params);
     res.json({ trends: rows });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to fetch trends' }); }
 }
@@ -163,13 +167,14 @@ async function getSchoolOverview(req, res) {
   try {
     const { term, academicYear = '2025/2026' } = req.query;
     let sql = `
-      SELECT e.grade, s.subject, ROUND(AVG(s.score),1) AS avg_score, COUNT(DISTINCT s.learner_id) AS learners_marked
+      SELECT e.grade, l.stream, s.subject, ROUND(AVG(s.score),1) AS avg_score, COUNT(DISTINCT s.learner_id) AS learners_marked
       FROM scores s
       JOIN exams e ON e.id = s.exam_id
+      JOIN learners l ON l.id = s.learner_id
       WHERE s.school_id=$1 AND e.academic_year=$2`;
     const params = [req.user.school_id, academicYear];
     if (term) { sql += ` AND e.term=$3`; params.push(parseInt(term)); }
-    sql += ` GROUP BY e.grade, s.subject ORDER BY e.grade, avg_score DESC`;
+    sql += ` GROUP BY e.grade, l.stream, s.subject ORDER BY e.grade, l.stream, avg_score DESC`;
     const { rows } = await query(sql, params);
     res.json({ overview: rows });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to fetch school overview' }); }
