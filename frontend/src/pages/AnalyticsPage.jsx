@@ -22,6 +22,7 @@ async function apiFetch(path, opts = {}) {
 const api = {
   getStreamRanking: (p = {}) => apiFetch("/exams/stream-ranking?" + new URLSearchParams(p)),
   getLearnerRanking: (p = {}) => apiFetch("/exams/learner-ranking?" + new URLSearchParams(p)),
+  getSubjectRankingByStream: (p = {}) => apiFetch("/exams/subject-ranking-by-stream?" + new URLSearchParams(p)),
 };
 
 const GRADES = ["Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Grade 7","Grade 8","Grade 9","Grade 10","Grade 11","Grade 12"];
@@ -62,6 +63,7 @@ export default function AnalyticsPage() {
   const [filters, setFilters] = useState({ grade: "Grade 7", term: "2", academicYear: `${THIS_YEAR}/${THIS_YEAR + 1}`, subject: "", stream: "" });
   const [streamRanking, setStreamRanking] = useState([]);
   const [learnerRanking, setLearnerRanking] = useState([]);
+  const [subjectRanking, setSubjectRanking] = useState([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
@@ -82,6 +84,12 @@ export default function AnalyticsPage() {
       ]);
       setStreamRanking(sr.streamRanking || []);
       setLearnerRanking(lr.learnerRanking || []);
+      if (filters.stream) {
+        const sub = await api.getSubjectRankingByStream(params);
+        setSubjectRanking(sub.subjectRanking || []);
+      } else {
+        setSubjectRanking([]);
+      }
     } catch (e) {
       setErr(e.message || "Failed to load analytics");
     } finally {
@@ -156,6 +164,47 @@ export default function AnalyticsPage() {
                     <GradeBadge label="AE" count={row.ae_count} colorKey="ae" />
                     <GradeBadge label="BE" count={row.be_count} colorKey="be" />
                   </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <div style={styles.section}>
+        <div style={styles.sectionTitle}>Subject Ranking by Stream {filters.stream ? `— Stream ${filters.stream}` : "(select a stream above)"}</div>
+        {!filters.stream ? (
+          <div style={styles.empty}>Enter a stream above to see subject-by-subject ranking.</div>
+        ) : loading ? (
+          <div style={styles.empty}>Loading...</div>
+        ) : subjectRanking.length === 0 ? (
+          <div style={styles.empty}>No score data yet for this selection.</div>
+        ) : (
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Rank</th>
+                <th style={styles.th}>Subject</th>
+                <th style={styles.th}>Avg Score</th>
+                <th style={styles.th}>Learners Marked</th>
+                <th style={styles.th}>Grade Distribution</th>
+                <th style={styles.th}>Subject Teacher</th>
+              </tr>
+            </thead>
+            <tbody>
+              {subjectRanking.map((row) => (
+                <tr key={row.subject}>
+                  <td style={styles.td}><span style={styles.rankBadge}>{row.rank}</span></td>
+                  <td style={styles.td}>{row.subject}</td>
+                  <td style={styles.td}>{row.avg_score}%</td>
+                  <td style={styles.td}>{row.learners_marked}</td>
+                  <td style={styles.td}>
+                    <GradeBadge label="EE" count={row.ee_count} colorKey="ee" />
+                    <GradeBadge label="ME" count={row.me_count} colorKey="me" />
+                    <GradeBadge label="AE" count={row.ae_count} colorKey="ae" />
+                    <GradeBadge label="BE" count={row.be_count} colorKey="be" />
+                  </td>
+                  <td style={styles.td}>{row.subject_teacher || "—"}</td>
                 </tr>
               ))}
             </tbody>
