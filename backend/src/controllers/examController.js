@@ -194,12 +194,12 @@ async function getStreamRanking(req, res) {
         COUNT(*) FILTER (WHERE s.grade_label IN ('AE','AE1','AE2')) AS ae_count,
         COUNT(*) FILTER (WHERE s.grade_label IN ('BE','BE1','BE2')) AS be_count,
         RANK() OVER (ORDER BY AVG(s.score) DESC) AS rank,
-        MAX(ut.full_name) AS class_teacher
+        MAX(ut.first_name || ' ' || ut.last_name) AS class_teacher
       FROM scores s
       JOIN exams e ON e.id = s.exam_id
       JOIN learners l ON l.id = s.learner_id
       LEFT JOIN classes c ON c.school_id = s.school_id AND c.grade = e.grade AND c.stream = l.stream
-      LEFT JOIN users ut ON ut.id = c.class_teacher_id
+      LEFT JOIN teachers ut ON ut.id = c.class_teacher_id
       WHERE s.school_id=$1 AND e.grade=$2 AND e.term=$3 AND e.academic_year=$4`;
     const params = [req.user.school_id, grade, termToInt(term), academicYear];
     if (subject) { sql += ` AND s.subject=$5`; params.push(subject); }
@@ -247,7 +247,7 @@ async function getSubjectRankingByStream(req, res) {
         COUNT(*) FILTER (WHERE s.grade_label IN ('AE','AE1','AE2')) AS ae_count,
         COUNT(*) FILTER (WHERE s.grade_label IN ('BE','BE1','BE2')) AS be_count,
         RANK() OVER (ORDER BY AVG(s.score) DESC) AS rank,
-        MAX(ut.full_name) AS subject_teacher
+        MAX(ut.first_name || ' ' || ut.last_name) AS subject_teacher
       FROM scores s
       JOIN exams e ON e.id = s.exam_id
       JOIN learners l ON l.id = s.learner_id
@@ -265,7 +265,7 @@ async function getSubjectRankingByStream(req, res) {
         ORDER BY priority ASC
         LIMIT 1
       ) tsub ON true
-      LEFT JOIN users ut ON ut.id = tsub.teacher_id
+      LEFT JOIN teachers ut ON ut.id = tsub.teacher_id
       WHERE s.school_id=$1 AND e.grade=$2 AND e.term=$3 AND e.academic_year=$4 AND l.stream=$5
       GROUP BY s.subject
       ORDER BY avg_score DESC`;
