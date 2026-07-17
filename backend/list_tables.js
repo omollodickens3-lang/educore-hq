@@ -1,16 +1,7 @@
-const { query, pool } = require('./src/config/db');
+﻿require("dotenv").config();
+const { query } = require("./src/config/db");
 
-(async () => {
-  try {
-    const { rows } = await query(`
-      SELECT table_name
-      FROM information_schema.tables
-      WHERE table_schema = 'public'
-      ORDER BY table_name
-    `);
-    console.log('=== all tables ===');
-    rows.forEach(r => console.log(r.table_name));
-  } finally {
-    await pool.end();
-  }
-})();
+query("SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name")
+  .then(r => console.log(r.rows.map(x => x.table_name).join("\n")))
+  .catch(e => console.error(e.message))
+  .finally(() => process.exit(0));

@@ -1,0 +1,60 @@
+﻿
+> src\controllers\examController.js:22:async function createExam(req, res) {
+  src\controllers\examController.js:23:  try {
+  src\controllers\examController.js:24:    const { name, examType, term, academicYear = '2025/2026', grade, stream, startDate, 
+endDate } = req.body;
+  src\controllers\examController.js:25:    if (!grade || !term || !examType) return res.status(400).json({ error: 'grade, term and 
+examType required' });
+  src\controllers\examController.js:26:    const { rows } = await query(`
+  src\controllers\examController.js:27:      INSERT INTO exams (id, school_id, name, exam_type, term, academic_year, grade, stream, 
+start_date, end_date, created_by)
+  src\controllers\examController.js:28:      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+  src\controllers\examController.js:29:      [uuid(), req.user.school_id, name || `${grade} Term ${term} ${examType}`, examType, 
+term, academicYear, grade, stream||null, startDate||null, endDate||null, req.user.id]
+  src\controllers\examController.js:30:    );
+  src\controllers\examController.js:31:    res.status(201).json({ message: 'Exam created', exam: rows[0] });
+  src\controllers\examController.js:32:  } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to create exam' 
+}); }
+  src\controllers\examController.js:33:}
+  src\controllers\examController.js:34:
+  src\controllers\examController.js:35:async function getScores(req, res) {
+  src\controllers\examController.js:36:  try {
+  src\controllers\examController.js:37:    const { rows: examRows } = await query(
+  src\controllers\examController.js:38:      `SELECT * FROM exams WHERE id=$1 AND school_id=$2`,
+  src\controllers\examController.js:39:      [req.params.examId, req.user.school_id]
+  src\controllers\examController.js:40:    );
+  src\controllers\examController.js:41:    if (!examRows.length) return res.status(404).json({ error: 'Exam not found' });
+  src\controllers\examController.js:42:    const exam = examRows[0];
+  src\controllers\examController.js:43:
+  src\controllers\examController.js:44:    const { rows } = await query(`
+  src\controllers\examController.js:45:      SELECT
+  src\controllers\examController.js:46:        l.id AS learner_id,
+  src\controllers\examController.js:47:        l.first_name,
+  src\controllers\examController.js:48:        l.last_name,
+  src\controllers\examController.js:49:        l.admission_no,
+  src\controllers\examController.js:50:        l.grade,
+  src\controllers\examController.js:51:        l.stream,
+  src\controllers\examController.js:52:        s.id AS score_id,
+  src\controllers\examController.js:53:        s.exam_id,
+  src\controllers\examController.js:54:        s.subject,
+  src\controllers\examController.js:55:        s.score,
+  src\controllers\examController.js:56:        s.max_score,
+  src\controllers\examController.js:57:        s.grade_label,
+  src\controllers\examController.js:58:        s.remarks,
+  src\controllers\examController.js:59:        s.entered_at,
+  src\controllers\examController.js:60:        s.updated_at
+  src\controllers\examController.js:61:      FROM learners l
+  src\controllers\examController.js:62:      LEFT JOIN scores s ON s.learner_id = l.id AND s.exam_id = $1
+  src\controllers\examController.js:63:      WHERE l.school_id = $2 AND l.grade = $3
+  src\controllers\examController.js:64:      ORDER BY l.last_name, l.first_name`,
+  src\controllers\examController.js:65:      [req.params.examId, req.user.school_id, exam.grade]
+  src\controllers\examController.js:66:    );
+  src\controllers\examController.js:67:    res.json({ scores: rows });
+  src\controllers\examController.js:68:  } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to fetch scores' 
+}); }
+  src\controllers\examController.js:69:}
+  src\controllers\examController.js:70:
+  src\controllers\examController.js:71:async function upsertScores(req, res) {
+  src\controllers\examController.js:72:  const client = await getClient();
+
+
