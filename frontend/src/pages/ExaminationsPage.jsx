@@ -873,7 +873,7 @@ export default function ExaminationsPage() {
   const [loadingExams,  setLoadingExams]  = useState(true);
   const [loadingScores, setLoadingScores] = useState(false);
   const [showCreate, setShowCreate]  = useState(false);
-  const [filters,    setFilters]     = useState({ term: "", grade: "", year: THIS_YEAR });
+  const [filters,    setFilters]     = useState({ term: "", grade: "", year: THIS_YEAR - 1 });
   const [examErr,    setExamErr]     = useState("");
 
   const loadExams = useCallback(() => {
