@@ -225,8 +225,8 @@ async function getLearnerRanking(req, res) {
       WHERE s.school_id=$1 AND e.grade=$2 AND e.term=$3 AND e.academic_year=$4`;
     const params = [req.user.school_id, grade, termToInt(term), academicYear];
     let idx = 5;
-    if (stream) { sql += ` AND l.stream=${idx}`; params.push(stream); idx++; }
-    if (subject) { sql += ` AND s.subject=${idx}`; params.push(subject); idx++; }
+    if (stream) { sql += ' AND l.stream=$' + idx; params.push(stream); idx++; }
+    if (subject) { sql += ' AND s.subject=$' + idx; params.push(subject); idx++; }
     sql += ` GROUP BY l.id, l.first_name, l.last_name, l.admission_no, l.stream ORDER BY avg_score DESC`;
     const { rows } = await query(sql, params);
     res.json({ learnerRanking: rows });
