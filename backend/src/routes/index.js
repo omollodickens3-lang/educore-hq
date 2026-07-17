@@ -51,6 +51,7 @@ router.get('/exams/school-overview', authenticate, exams.getSchoolOverview);
 router.get('/exams/stream-ranking', authenticate, exams.getStreamRanking);
 router.get('/exams/learner-ranking', authenticate, exams.getLearnerRanking);
 router.get('/exams/subject-ranking-by-stream', authenticate, exams.getSubjectRankingByStream);
+router.get('/exams/broadsheet', authenticate, exams.getBroadsheet);
 router.get('/exams/:examId/scores', authenticate, exams.getScores);
 router.post('/exams/:examId/scores', authenticate, exams.upsertScores);
 
