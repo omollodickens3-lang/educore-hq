@@ -27,11 +27,16 @@ const NAV = [
 export default function AppLayout() {
   const { user, logout, schoolName } = useAuth();
   const navigate = useNavigate();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   function handleLogout() {
     logout();
     toast.success('Logged out');
     navigate('/login');
+  }
+
+  function handleNavClick() {
+    setMobileNavOpen(false);
   }
 
   const initials = user?.teacher
@@ -40,9 +45,42 @@ export default function AppLayout() {
 
   return (
     <div style={{ display:'flex', height:'100vh', fontFamily:'system-ui,sans-serif', fontSize:'13px' }}>
-      <div style={{ width:'200px', background:'#0a1628', flexShrink:0, display:'flex', flexDirection:'column' }}>
+      <style>{`
+        .ec-sidebar { transition: transform 0.25s ease; }
+        .ec-backdrop { display: none; }
+        @media (max-width: 768px) {
+          .ec-sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 40;
+            transform: translateX(-100%);
+            width: 240px !important;
+          }
+          .ec-sidebar.ec-open { transform: translateX(0); }
+          .ec-hamburger { display: flex !important; }
+          .ec-backdrop.ec-open {
+            display: block;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 30;
+          }
+          .ec-header-inner {
+            flex-wrap: wrap !important;
+            gap: 6px;
+            height: auto !important;
+            padding: 8px 12px !important;
+          }
+          .ec-school-name { font-size: 12px !important; }
+        }
+      `}</style>
+
+      <div className={"ec-sidebar" + (mobileNavOpen ? " ec-open" : "")}
+           style={{ width:'200px', background:'#0a1628', flexShrink:0, display:'flex', flexDirection:'column' }}>
         <div style={{ padding:'14px', borderBottom:'0.5px solid rgba(255,255,255,0.07)', display:'flex', alignItems:'center', gap:'8px' }}>
-          <div style={{ width:'28px', height:'28px', background:'#185fa5', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'16px' }}>ðŸ«</div>
+          <div style={{ width:'28px', height:'28px', background:'#185fa5', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'16px' }}>{'\u{1F3EB}'}</div>
           <div>
             <div style={{ color:'#fff', fontSize:'13px', fontWeight:'500' }}>EduCore</div>
             <div style={{ color:'#6b8cba', fontSize:'10px' }}>CBC Platform</div>
@@ -57,7 +95,7 @@ export default function AppLayout() {
               </div>
             );
             return (
-              <NavLink key={item.to} to={item.to} end={item.to === '/'}
+              <NavLink key={item.to} to={item.to} end={item.to === '/'} onClick={handleNavClick}
                 style={({ isActive }) => ({
                   display:'flex', alignItems:'center', gap:'8px',
                   padding:'8px 14px',
@@ -85,10 +123,18 @@ export default function AppLayout() {
         </div>
       </div>
 
-      <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', background:'#f1f5f9' }}>
-        <div style={{ background:'#fff', borderBottom:'0.5px solid #e2e8f0', padding:'0 18px', height:'50px', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
-          <span style={{ fontSize:'13px', color:'#64748b' }}>{schoolName}</span>
-          <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', background:'#e6f1fb', color:'#185fa5' }}>📅 Term 2 · 2025/2026</span>
+      <div className={"ec-backdrop" + (mobileNavOpen ? " ec-open" : "")} onClick={() => setMobileNavOpen(false)} />
+
+      <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', background:'#f1f5f9', minWidth:0 }}>
+        <div className="ec-header-inner" style={{ background:'#fff', borderBottom:'0.5px solid #e2e8f0', padding:'0 18px', height:'50px', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:'10px', minWidth:0 }}>
+            <button className="ec-hamburger" onClick={() => setMobileNavOpen(true)}
+              style={{ display:'none', background:'none', border:'none', fontSize:'20px', cursor:'pointer', padding:'4px' }}>
+              ☰
+            </button>
+            <span className="ec-school-name" style={{ fontSize:'13px', color:'#64748b', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{schoolName}</span>
+          </div>
+          <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', background:'#e6f1fb', color:'#185fa5', whiteSpace:'nowrap', flexShrink:0 }}>📅 Term 2 · 2025/2026</span>
         </div>
         <div style={{ flex:1, overflowY:'auto' }}>
           <Outlet />
