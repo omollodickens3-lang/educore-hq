@@ -32,7 +32,8 @@ const styles = {
   subheader: { fontSize: 13, color: "#9CA3AF", marginBottom: 20 },
   filterBar: { display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 24, alignItems: "center" },
   select: { background: "#111827", border: "1px solid #1F2937", color: "#E5E7EB", borderRadius: 8, padding: "8px 10px", fontSize: 13 },
-  section: { background: "#111827", border: "1px solid #1F2937", borderRadius: 12, padding: 20, marginBottom: 20, overflowX: "auto" },
+  section: { background: "#111827", border: "1px solid #1F2937", borderRadius: 12, padding: 20, marginBottom: 20, overflowX: "auto", position: "relative" },
+  scrollHint: { textAlign: "center", fontSize: 11, color: "#6B7280", marginTop: 10, display: "none" },
   sectionTitle: { fontSize: 15, fontWeight: 700, marginBottom: 14, color: "#F9FAFB" },
   table: { width: "100%", borderCollapse: "collapse", fontSize: 13 },
   th: { textAlign: "left", padding: "8px 10px", color: "#9CA3AF", fontWeight: 600, borderBottom: "1px solid #1F2937", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap" },
@@ -73,6 +74,11 @@ export default function BroadsheetPage() {
 
   return (
     <div style={styles.page}>
+      <style>{`
+        @media (max-width: 768px) {
+          .ec-scroll-hint { display: block !important; }
+        }
+      `}</style>
       <div style={styles.header}>Broadsheet</div>
       <div style={styles.subheader}>All-subject scores per learner for one class, with totals and rank.</div>
 
@@ -139,6 +145,9 @@ export default function BroadsheetPage() {
               ))}
             </tbody>
           </table>
+        )}
+        {rows.length > 0 && (
+          <div className="ec-scroll-hint" style={styles.scrollHint}>← Swipe to see all columns →</div>
         )}
       </div>
     </div>
