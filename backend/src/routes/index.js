@@ -11,6 +11,7 @@ const assignments = require('../controllers/assignmentController');
 const conduct = require('../controllers/conductController');
 const parentPortal = require('../controllers/parentController');
 const classes = require('../controllers/classController');
+const notifications = require('../controllers/notificationController');
 const classList = require('../controllers/classListController');
 
 router.get('/health', (req, res) => {
@@ -73,6 +74,8 @@ router.post('/conduct', authenticate, conduct.createConductLog);
 router.get('/conduct', authenticate, conduct.getConductLogs);
 
 router.get('/parent/my-child', authenticate, parentPortal.getMyChild);
+router.get('/notifications', authenticate, notifications.getNotifications);
+router.get('/notifications/stats', authenticate, notifications.getNotificationStats);
 
 router.post('/schools/register', schools.registerSchool);
 router.get('/schools/check-subdomain', schools.checkSubdomain);
