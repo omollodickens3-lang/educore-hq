@@ -56,7 +56,7 @@ export default function AppLayout() {
             bottom: 0;
             z-index: 40;
             transform: translateX(-100%);
-            width: 240px !important;
+            width: 210px !important;
           }
           .ec-sidebar.ec-open { transform: translateX(0); }
           .ec-hamburger { display: flex !important; }

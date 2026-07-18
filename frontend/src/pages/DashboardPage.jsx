@@ -82,8 +82,21 @@ export default function DashboardPage() {
     { icon: '💬', label: 'Parent Portal', path: '/portal' },
   ];
 
+  const cardStyle = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', minWidth: 0 };
+
   return (
-    <div style={{ padding: '20px', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ padding: '20px', fontFamily: 'system-ui, sans-serif', maxWidth: '100%', overflowX: 'hidden' }}>
+      <style>{`
+        .ec-grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+        @media (max-width: 640px) {
+          .ec-grid-4 { grid-template-columns: repeat(2,1fr) !important; }
+        }
+        .ec-stat-value { font-size: 26px; }
+        @media (max-width: 640px) {
+          .ec-stat-value { font-size: 20px !important; }
+        }
+      `}</style>
+
       <h1 style={{ fontSize: '20px', fontWeight: '600', color: '#0f172a' }}>
         Welcome back, {teacherName}
       </h1>
@@ -91,28 +104,28 @@ export default function DashboardPage() {
         {schoolName} - Academic Year 2025/2026 - Term 2
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '10px', marginBottom: '20px' }}>
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+      <div className="ec-grid-4" style={{ marginBottom: '20px' }}>
+        <div style={cardStyle}>
           <div style={{ fontSize: '11px', color: '#64748b' }}>Total learners</div>
-          <div style={{ fontSize: '26px', fontWeight: '500', color: '#185fa5' }}>
+          <div className="ec-stat-value" style={{ fontWeight: '500', color: '#185fa5' }}>
             {stats ? (parseInt(stats.active || 0) + parseInt(stats.remediation || 0)) : '...'}
           </div>
         </div>
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+        <div style={cardStyle}>
           <div style={{ fontSize: '11px', color: '#64748b' }}>Need support</div>
-          <div style={{ fontSize: '26px', fontWeight: '500', color: '#a32d2d' }}>
+          <div className="ec-stat-value" style={{ fontWeight: '500', color: '#a32d2d' }}>
             {stats ? stats.remediation : '...'}
           </div>
         </div>
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+        <div style={cardStyle}>
           <div style={{ fontSize: '11px', color: '#64748b' }}>Absent today</div>
-          <div style={{ fontSize: '26px', fontWeight: '500', color: '#854f0b' }}>
+          <div className="ec-stat-value" style={{ fontWeight: '500', color: '#854f0b' }}>
             {alerts && alerts.absentToday ? alerts.absentToday.length : '...'}
           </div>
         </div>
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+        <div style={cardStyle}>
           <div style={{ fontSize: '11px', color: '#64748b' }}>JS learners</div>
-          <div style={{ fontSize: '26px', fontWeight: '500', color: '#3c3489' }}>
+          <div className="ec-stat-value" style={{ fontWeight: '500', color: '#3c3489' }}>
             {stats ? stats.js_count : '...'}
           </div>
         </div>
@@ -121,11 +134,11 @@ export default function DashboardPage() {
       <div style={{ fontSize: '11px', fontWeight: '500', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px' }}>
         Modules
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '8px' }}>
+      <div className="ec-grid-4">
         {modules.map(function (m) {
           return (
-            <a key={m.path} href={m.path} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '20px' }}>{m.icon}</span>
+            <a key={m.path} href={m.path} style={{ ...cardStyle, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '20px', flexShrink: 0 }}>{m.icon}</span>
               <span style={{ fontSize: '12px', fontWeight: '500', color: '#0f172a' }}>{m.label}</span>
             </a>
           );
@@ -135,26 +148,26 @@ export default function DashboardPage() {
       <div style={{ fontSize: '11px', fontWeight: '500', color: '#64748b', textTransform: 'uppercase', marginTop: '20px', marginBottom: '10px' }}>
         School performance overview
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '10px' }}>
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+      <div className="ec-grid-4">
+        <div style={cardStyle}>
           <div style={{ fontSize: '11px', color: '#64748b' }}>School mean</div>
-          <div style={{ fontSize: '26px', fontWeight: '500', color: '#185fa5' }}>
+          <div className="ec-stat-value" style={{ fontWeight: '500', color: '#185fa5' }}>
             {overallMean !== null ? overallMean.toFixed(1) : '...'}
           </div>
         </div>
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+        <div style={cardStyle}>
           <div style={{ fontSize: '11px', color: '#64748b' }}>Top grade</div>
           <div style={{ fontSize: '20px', fontWeight: '500', color: '#0f7a4a' }}>
             {topGrade || '...'}
           </div>
         </div>
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+        <div style={cardStyle}>
           <div style={{ fontSize: '11px', color: '#64748b' }}>Needs attention</div>
           <div style={{ fontSize: '20px', fontWeight: '500', color: '#a32d2d' }}>
             {weakGrade || '...'}
           </div>
         </div>
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+        <div style={cardStyle}>
           <div style={{ fontSize: '11px', color: '#64748b' }}>Top subject</div>
           <div style={{ fontSize: '20px', fontWeight: '500', color: '#3c3489' }}>
             {topSubject || '...'}
