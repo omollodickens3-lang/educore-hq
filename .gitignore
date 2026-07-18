@@ -12,3 +12,4 @@ backend/create-test-parent.js
 backend/gen_pw.js
 backend/reset_pw.sql
 frontend/app_check.txt
+*.cjs
