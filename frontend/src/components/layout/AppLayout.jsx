@@ -15,6 +15,7 @@ const NAV = [
   { to: '/broadsheet', icon: 'clipboard', label: 'Broadsheet' },
   { to: '/class-list', icon: 'list', label: 'Class Lists' },
   { to: '/notifications', icon: 'bell', label: 'Notifications' },
+  { to: '/trends', icon: 'trending-up', label: 'Trends' },
   { to: '/reports',     icon: '📋', label: 'Report Forms' },
   { to: '/attendance',  icon: '✅', label: 'Attendance' },
   { to: '/assignments', icon: '📚', label: 'Assignments' },
