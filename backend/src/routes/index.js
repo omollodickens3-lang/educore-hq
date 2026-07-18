@@ -28,6 +28,9 @@ router.delete('/classes/:id', authenticate, classes.deleteClass);
 
 router.get('/learners', authenticate, learners.getLearners);
 router.get('/learners/stats', authenticate, learners.getStats);
+router.get('/learners/class-list', authenticate, classList.getClassList);
+router.get('/learners/class-list/csv', authenticate, classList.exportClassListCSV);
+router.get('/learners/class-list/pdf', authenticate, classList.exportClassListPDF);
 router.get('/learners/:id', authenticate, learners.getLearnerById);
 router.post('/learners', authenticate, learners.createLearner);
 router.put('/learners/:id', authenticate, learners.updateLearner);
@@ -35,9 +38,6 @@ router.delete('/learners/:id', authenticate, learners.deleteLearner);
 router.get('/learners/:id/progress', authenticate, learners.getLearnerProgress);
 router.put('/learners/:id/strands', authenticate, learners.updateStrands);
 router.post('/learners/bulk', authenticate, learners.bulkCreateLearners);
-router.get('/learners/class-list', authenticate, classList.getClassList);
-router.get('/learners/class-list/csv', authenticate, classList.exportClassListCSV);
-router.get('/learners/class-list/pdf', authenticate, classList.exportClassListPDF);
 
 router.get('/teachers', authenticate, teachers.getTeachers);
 router.get('/teachers/:id', authenticate, teachers.getTeacherById);
