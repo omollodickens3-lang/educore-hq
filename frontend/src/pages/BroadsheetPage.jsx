@@ -27,20 +27,20 @@ const GRADES = ["Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Gra
 const THIS_YEAR = new Date().getFullYear();
 
 const styles = {
-  page: { padding: 24, fontFamily: "inherit", background: "#0B0F19", minHeight: "100vh", color: "#E5E7EB" },
-  header: { fontSize: 22, fontWeight: 700, marginBottom: 4, color: "#F9FAFB" },
-  subheader: { fontSize: 13, color: "#9CA3AF", marginBottom: 20 },
+  page: { padding: 24, fontFamily: "inherit", color: "#0f172a" },
+  header: { fontSize: 22, fontWeight: 700, marginBottom: 4, color: "#0f172a" },
+  subheader: { fontSize: 13, color: "#64748b", marginBottom: 20 },
   filterBar: { display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 24, alignItems: "center" },
-  select: { background: "#111827", border: "1px solid #1F2937", color: "#E5E7EB", borderRadius: 8, padding: "8px 10px", fontSize: 13 },
-  section: { background: "#111827", border: "1px solid #1F2937", borderRadius: 12, padding: 20, marginBottom: 20, overflowX: "auto", position: "relative" },
-  scrollHint: { textAlign: "center", fontSize: 11, color: "#6B7280", marginTop: 10, display: "none" },
-  sectionTitle: { fontSize: 15, fontWeight: 700, marginBottom: 14, color: "#F9FAFB" },
+  select: { background: "#fff", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: 8, padding: "8px 10px", fontSize: 13 },
+  section: { background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: 20, marginBottom: 20, overflowX: "auto", position: "relative" },
+  scrollHint: { textAlign: "center", fontSize: 11, color: "#94a3b8", marginTop: 10, display: "none" },
+  sectionTitle: { fontSize: 15, fontWeight: 700, marginBottom: 14, color: "#0f172a" },
   table: { width: "100%", borderCollapse: "collapse", fontSize: 13 },
-  th: { textAlign: "left", padding: "8px 10px", color: "#9CA3AF", fontWeight: 600, borderBottom: "1px solid #1F2937", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap" },
-  td: { padding: "10px", borderBottom: "1px solid #1F2937", whiteSpace: "nowrap" },
-  rankBadge: { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, borderRadius: "50%", background: "#1F2937", fontSize: 12, fontWeight: 700 },
-  empty: { color: "#6B7280", fontSize: 13, padding: "16px 0", textAlign: "center" },
-  error: { color: "#DC2626", background: "#1F1315", padding: "12px 16px", borderRadius: 8, fontSize: 13, marginBottom: 16 },
+  th: { textAlign: "left", padding: "8px 10px", color: "#64748b", fontWeight: 600, borderBottom: "1px solid #e2e8f0", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap" },
+  td: { padding: "10px", borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap", color: "#0f172a" },
+  rankBadge: { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, borderRadius: "50%", background: "#e2e8f0", fontSize: 12, fontWeight: 700, color: "#0f172a" },
+  empty: { color: "#94a3b8", fontSize: 13, padding: "16px 0", textAlign: "center" },
+  error: { color: "#dc2626", background: "#fef2f2", padding: "12px 16px", borderRadius: 8, fontSize: 13, marginBottom: 16 },
 };
 
 export default function BroadsheetPage() {

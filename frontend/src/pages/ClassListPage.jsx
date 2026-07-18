@@ -5,18 +5,18 @@ const API_BASE = import.meta.env.VITE_API_URL;
 const GRADES = ['PP1','PP2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8','Grade 9'];
 
 const styles = {
-  page: { padding: 24, color: '#e5e7eb' },
-  title: { textAlign: 'center', fontSize: 24, fontWeight: 700, marginBottom: 4 },
-  subtitle: { textAlign: 'center', fontSize: 13, color: '#9ca3af', marginBottom: 20 },
+  page: { padding: 24, color: '#0f172a' },
+  title: { textAlign: 'center', fontSize: 24, fontWeight: 700, marginBottom: 4, color: '#0f172a' },
+  subtitle: { textAlign: 'center', fontSize: 13, color: '#64748b', marginBottom: 20 },
   controls: { display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 20, flexWrap: 'wrap' },
-  select: { background: '#1f2937', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 8, padding: '8px 12px' },
-  input: { background: '#1f2937', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 8, padding: '8px 12px', width: 80 },
+  select: { background: '#fff', color: '#0f172a', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px' },
+  input: { background: '#fff', color: '#0f172a', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px', width: 80 },
   button: { background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', cursor: 'pointer' },
-  card: { background: '#0f172a', border: '1px solid #1f2937', borderRadius: 12, padding: 20, maxWidth: 700, margin: '0 auto' },
-  tableHeader: { textAlign: 'left', fontSize: 12, color: '#9ca3af', padding: '6px 8px', borderBottom: '1px solid #1f2937' },
-  tableCell: { padding: '8px', fontSize: 14, borderBottom: '1px solid #1f2937' },
-  error: { color: '#f87171', textAlign: 'center' },
-  loading: { color: '#9ca3af', textAlign: 'center' },
+  card: { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 20, maxWidth: 700, margin: '0 auto', overflowX: 'auto' },
+  tableHeader: { textAlign: 'left', fontSize: 12, color: '#64748b', padding: '6px 8px', borderBottom: '1px solid #e2e8f0' },
+  tableCell: { padding: '8px', fontSize: 14, borderBottom: '1px solid #e2e8f0', color: '#0f172a' },
+  error: { color: '#dc2626', textAlign: 'center' },
+  loading: { color: '#64748b', textAlign: 'center' },
 };
 
 export default function ClassListPage() {
@@ -99,7 +99,7 @@ export default function ClassListPage() {
 
       {searched && !loading && !error && (
         <div style={styles.card}>
-          <div style={{ textAlign: 'center', fontWeight: 700, marginBottom: 16 }}>
+          <div style={{ textAlign: 'center', fontWeight: 700, marginBottom: 16, color: '#0f172a' }}>
             {grade}{stream ? ' Stream ' + stream : ' (All Streams)'} — {learners.length} learner{learners.length !== 1 ? 's' : ''}
           </div>
           {learners.length === 0 ? (

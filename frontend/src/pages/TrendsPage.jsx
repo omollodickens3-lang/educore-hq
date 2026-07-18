@@ -5,23 +5,23 @@ const API_BASE = import.meta.env.VITE_API_URL;
 const GRADES = ['PP1','PP2','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8','Grade 9'];
 
 const styles = {
-  page: { padding: 24, color: '#e5e7eb' },
-  title: { textAlign: 'center', fontSize: 24, fontWeight: 700, marginBottom: 4 },
-  subtitle: { textAlign: 'center', fontSize: 13, color: '#9ca3af', marginBottom: 20 },
+  page: { padding: 24, color: '#0f172a' },
+  title: { textAlign: 'center', fontSize: 24, fontWeight: 700, marginBottom: 4, color: '#0f172a' },
+  subtitle: { textAlign: 'center', fontSize: 13, color: '#64748b', marginBottom: 20 },
   controls: { display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 20, flexWrap: 'wrap' },
-  select: { background: '#1f2937', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 8, padding: '8px 12px' },
-  input: { background: '#1f2937', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 8, padding: '8px 12px', width: 140 },
+  select: { background: '#fff', color: '#0f172a', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px' },
+  input: { background: '#fff', color: '#0f172a', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px', width: 140 },
   button: { background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', cursor: 'pointer' },
-  card: { background: '#0f172a', border: '1px solid #1f2937', borderRadius: 12, padding: 24, maxWidth: 700, margin: '0 auto' },
-  cardTitle: { textAlign: 'center', fontWeight: 700, marginBottom: 20 },
+  card: { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 24, maxWidth: 700, margin: '0 auto' },
+  cardTitle: { textAlign: 'center', fontWeight: 700, marginBottom: 20, color: '#0f172a' },
   barRow: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 },
-  barLabel: { width: 130, fontSize: 13, color: '#9ca3af', flexShrink: 0 },
-  barTrack: { flex: 1, background: '#1f2937', borderRadius: 6, height: 24, position: 'relative', overflow: 'hidden' },
+  barLabel: { width: 130, fontSize: 13, color: '#64748b', flexShrink: 0 },
+  barTrack: { flex: 1, background: '#f1f5f9', borderRadius: 6, height: 24, position: 'relative', overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 6, background: 'linear-gradient(90deg, #2563eb, #60a5fa)', transition: 'width 0.3s' },
-  barValue: { width: 60, fontSize: 13, fontWeight: 600, textAlign: 'right', flexShrink: 0 },
-  empty: { color: '#9ca3af', textAlign: 'center', padding: 20 },
-  error: { color: '#f87171', textAlign: 'center' },
-  trendNote: { textAlign: 'center', fontSize: 13, marginTop: 16, color: '#9ca3af' },
+  barValue: { width: 60, fontSize: 13, fontWeight: 600, textAlign: 'right', flexShrink: 0, color: '#0f172a' },
+  empty: { color: '#64748b', textAlign: 'center', padding: 20 },
+  error: { color: '#dc2626', textAlign: 'center' },
+  trendNote: { textAlign: 'center', fontSize: 13, marginTop: 16, color: '#64748b' },
 };
 
 function trendDirection(trends) {
@@ -29,9 +29,9 @@ function trendDirection(trends) {
   const first = Number(trends[0].avg_score);
   const last = Number(trends[trends.length - 1].avg_score);
   const diff = last - first;
-  if (Math.abs(diff) < 0.5) return { text: 'Stable', color: '#9ca3af' };
-  if (diff > 0) return { text: `Up ${diff.toFixed(1)} points`, color: '#6ee7b7' };
-  return { text: `Down ${Math.abs(diff).toFixed(1)} points`, color: '#fca5a5' };
+  if (Math.abs(diff) < 0.5) return { text: 'Stable', color: '#64748b' };
+  if (diff > 0) return { text: `Up ${diff.toFixed(1)} points`, color: '#15803d' };
+  return { text: `Down ${Math.abs(diff).toFixed(1)} points`, color: '#b91c1c' };
 }
 
 export default function TrendsPage() {

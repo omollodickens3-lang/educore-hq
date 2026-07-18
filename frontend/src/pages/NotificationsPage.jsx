@@ -3,25 +3,25 @@ import { useState, useEffect } from 'react';
 const API_BASE = import.meta.env.VITE_API_URL;
 
 const styles = {
-  page: { padding: 24, color: '#e5e7eb' },
-  title: { textAlign: 'center', fontSize: 24, fontWeight: 700, marginBottom: 4 },
-  subtitle: { textAlign: 'center', fontSize: 13, color: '#9ca3af', marginBottom: 20 },
+  page: { padding: 24, color: '#0f172a' },
+  title: { textAlign: 'center', fontSize: 24, fontWeight: 700, marginBottom: 4, color: '#0f172a' },
+  subtitle: { textAlign: 'center', fontSize: 13, color: '#64748b', marginBottom: 20 },
   statsRow: { display: 'flex', gap: 16, justifyContent: 'center', marginBottom: 20, flexWrap: 'wrap' },
-  statCard: { background: '#0f172a', border: '1px solid #1f2937', borderRadius: 12, padding: '12px 20px', textAlign: 'center', minWidth: 100 },
+  statCard: { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '12px 20px', textAlign: 'center', minWidth: 100 },
   statValue: { fontSize: 22, fontWeight: 700 },
-  statLabel: { fontSize: 11, color: '#9ca3af', marginTop: 2 },
+  statLabel: { fontSize: 11, color: '#64748b', marginTop: 2 },
   controls: { display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 20, flexWrap: 'wrap' },
-  select: { background: '#1f2937', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 8, padding: '8px 12px' },
-  input: { background: '#1f2937', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 8, padding: '8px 12px', width: 160 },
-  card: { background: '#0f172a', border: '1px solid #1f2937', borderRadius: 12, padding: 16, maxWidth: 900, margin: '0 auto' },
-  row: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 8px', borderBottom: '1px solid #1f2937', gap: 12 },
-  learnerName: { fontWeight: 600, fontSize: 14 },
-  meta: { fontSize: 12, color: '#9ca3af', marginTop: 2 },
-  message: { fontSize: 13, marginTop: 6, color: '#d1d5db' },
-  badgeSent: { fontSize: 11, padding: '3px 10px', borderRadius: 999, background: '#065f46', color: '#6ee7b7', whiteSpace: 'nowrap' },
-  badgeFailed: { fontSize: 11, padding: '3px 10px', borderRadius: 999, background: '#7f1d1d', color: '#fca5a5', whiteSpace: 'nowrap' },
-  empty: { color: '#9ca3af', textAlign: 'center', padding: 20 },
-  error: { color: '#f87171', textAlign: 'center' },
+  select: { background: '#fff', color: '#0f172a', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px' },
+  input: { background: '#fff', color: '#0f172a', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px', width: 160 },
+  card: { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 16, maxWidth: 900, margin: '0 auto' },
+  row: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 8px', borderBottom: '1px solid #e2e8f0', gap: 12 },
+  learnerName: { fontWeight: 600, fontSize: 14, color: '#0f172a' },
+  meta: { fontSize: 12, color: '#64748b', marginTop: 2 },
+  message: { fontSize: 13, marginTop: 6, color: '#334155' },
+  badgeSent: { fontSize: 11, padding: '3px 10px', borderRadius: 999, background: '#dcfce7', color: '#15803d', whiteSpace: 'nowrap' },
+  badgeFailed: { fontSize: 11, padding: '3px 10px', borderRadius: 999, background: '#fee2e2', color: '#b91c1c', whiteSpace: 'nowrap' },
+  empty: { color: '#64748b', textAlign: 'center', padding: 20 },
+  error: { color: '#dc2626', textAlign: 'center' },
 };
 
 function timeAgo(dateStr) {
@@ -91,15 +91,15 @@ export default function NotificationsPage() {
       {stats && (
         <div style={styles.statsRow}>
           <div style={styles.statCard}>
-            <div style={{ ...styles.statValue, color: '#6ee7b7' }}>{stats.sent}</div>
+            <div style={{ ...styles.statValue, color: '#15803d' }}>{stats.sent}</div>
             <div style={styles.statLabel}>Sent</div>
           </div>
           <div style={styles.statCard}>
-            <div style={{ ...styles.statValue, color: '#fca5a5' }}>{stats.failed}</div>
+            <div style={{ ...styles.statValue, color: '#b91c1c' }}>{stats.failed}</div>
             <div style={styles.statLabel}>Failed</div>
           </div>
           <div style={styles.statCard}>
-            <div style={styles.statValue}>{stats.absenteeism_alerts}</div>
+            <div style={{ ...styles.statValue, color: '#0f172a' }}>{stats.absenteeism_alerts}</div>
             <div style={styles.statLabel}>Absenteeism Alerts</div>
           </div>
         </div>
@@ -143,7 +143,7 @@ export default function NotificationsPage() {
                 </div>
                 <div style={styles.message}>{n.message}</div>
                 {n.status === 'failed' && n.error && (
-                  <div style={{ ...styles.meta, color: '#fca5a5', marginTop: 4 }}>Error: {n.error}</div>
+                  <div style={{ ...styles.meta, color: '#b91c1c', marginTop: 4 }}>Error: {n.error}</div>
                 )}
               </div>
               <div style={{ textAlign: 'right' }}>
