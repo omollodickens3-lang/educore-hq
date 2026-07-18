@@ -13,6 +13,7 @@ const NAV = [
   { to: '/examinations',icon: '📝', label: 'Examinations' },
   { to: '/analytics', icon: '📊', label: 'Analytics' },
   { to: '/broadsheet', icon: 'clipboard', label: 'Broadsheet' },
+  { to: '/class-list', icon: 'list', label: 'Class Lists' },
   { to: '/reports',     icon: '📋', label: 'Report Forms' },
   { to: '/attendance',  icon: '✅', label: 'Attendance' },
   { to: '/assignments', icon: '📚', label: 'Assignments' },

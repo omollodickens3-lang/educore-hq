@@ -17,6 +17,7 @@ import ParentPortalPage from './pages/ParentPortalPage';
 import ManageClassesPage from './pages/ManageClassesPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import BroadsheetPage from './pages/BroadsheetPage';
+import ClassListPage from './pages/ClassListPage';
 
 const queryClient = new QueryClient();
 
@@ -58,7 +59,7 @@ function AppRoutes() {
         <Route path="learners"     element={<LearnersPage />} />
         <Route path="teachers"     element={<TeachersPage />} />
         <Route path="examinations" element={<ExaminationsPage />} />
-        <Route path="analytics" element={<AnalyticsPage />} /><Route path="broadsheet" element={<BroadsheetPage />} />
+        <Route path="analytics" element={<AnalyticsPage />} /><Route path="broadsheet" element={<BroadsheetPage />} /><Route path="class-list" element={<ClassListPage />} />
         <Route path="reports"       element={<ReportsPage />} />
         <Route path="attendance"    element={<AttendancePage />} />
         <Route path="assignments" element={<AssignmentsPage />} />

@@ -11,6 +11,7 @@ const assignments = require('../controllers/assignmentController');
 const conduct = require('../controllers/conductController');
 const parentPortal = require('../controllers/parentController');
 const classes = require('../controllers/classController');
+const classList = require('../controllers/classListController');
 
 router.get('/health', (req, res) => {
   res.json({ status: 'ok', platform: 'EduCore', version: '1.0.0' });
@@ -34,6 +35,9 @@ router.delete('/learners/:id', authenticate, learners.deleteLearner);
 router.get('/learners/:id/progress', authenticate, learners.getLearnerProgress);
 router.put('/learners/:id/strands', authenticate, learners.updateStrands);
 router.post('/learners/bulk', authenticate, learners.bulkCreateLearners);
+router.get('/learners/class-list', authenticate, classList.getClassList);
+router.get('/learners/class-list/csv', authenticate, classList.exportClassListCSV);
+router.get('/learners/class-list/pdf', authenticate, classList.exportClassListPDF);
 
 router.get('/teachers', authenticate, teachers.getTeachers);
 router.get('/teachers/:id', authenticate, teachers.getTeacherById);
