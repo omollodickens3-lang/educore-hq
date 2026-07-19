@@ -43,11 +43,72 @@ async function listRegistrations(req, res) {
 }
 
 async function approveRegistration(req, res) {
-  res.json({ message: 'Approval pending implementation' });
+  try {
+    const { id } = req.params;
+
+    const regRes = await query("SELECT * FROM school_registrations WHERE id = $1", [id]);
+    if (!regRes.rows.length) return res.status(404).json({ error: "Registration not found" });
+    const reg = regRes.rows[0];
+
+    if (reg.status !== "pending") {
+      return res.status(409).json({ error: "This registration is already " + reg.status });
+    }
+
+    // Create the live school record from the pending registration.
+    const schoolRes = await query(
+      "INSERT INTO schools (id, name, subdomain, county, level) " +
+      "VALUES (uuid_generate_v4(), $1, $2, $3, $4) " +
+      "RETURNING id, name, subdomain",
+      [reg.school_name, reg.subdomain, reg.county, reg.level]
+    );
+    const school = schoolRes.rows[0];
+
+    // Create the first admin user for this school, reusing the password they set at sign-up.
+    const userRes = await query(
+      "INSERT INTO users (id, school_id, email, password_hash, role, full_name, is_active) " +
+      "VALUES (uuid_generate_v4(), $1, $2, $3, 'admin', $4, true) " +
+      "RETURNING id, email, role, full_name",
+      [school.id, reg.contact_email, reg.password_hash, reg.contact_name]
+    );
+    const adminUser = userRes.rows[0];
+
+    await query(
+      "UPDATE school_registrations SET status = 'approved', approved_by = $1, approved_at = NOW() WHERE id = $2",
+      [req.user.id, id]
+    );
+
+    res.json({
+      message: "School approved and activated",
+      school,
+      admin: adminUser,
+    });
+  } catch (err) {
+    console.error("approveRegistration error:", err.message);
+    res.status(500).json({ error: "Failed to approve registration" });
+  }
 }
 
 async function rejectRegistration(req, res) {
-  res.json({ message: 'Rejection pending implementation' });
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const regRes = await query("SELECT status FROM school_registrations WHERE id = $1", [id]);
+    if (!regRes.rows.length) return res.status(404).json({ error: "Registration not found" });
+    if (regRes.rows[0].status !== "pending") {
+      return res.status(409).json({ error: "This registration is already " + regRes.rows[0].status });
+    }
+
+    await query(
+      "UPDATE school_registrations SET status = 'rejected', approved_by = $1, approved_at = NOW(), rejection_note = $2 WHERE id = $3",
+      [req.user.id, reason || null, id]
+    );
+
+    res.json({ message: "Registration rejected" });
+  } catch (err) {
+    console.error("rejectRegistration error:", err.message);
+    res.status(500).json({ error: "Failed to reject registration" });
+  }
 }
 
 async function getPlatformAnalytics(req, res) {

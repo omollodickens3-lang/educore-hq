@@ -128,8 +128,22 @@ async function parentChildOnly(req, res, next) {
   }
 }
 
+// Platform-level check: only the hardcoded EduCore owner account can approve/reject
+// new school registrations. This is deliberately simple (not a DB role) since there is
+// currently no dedicated super_admin role in the users table CHECK constraint.
+const SUPERADMIN_EMAIL = "omollodickens3@gmail.com";
+
+function requireSuperAdmin(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: "Not authenticated" });
+  if ((req.user.email || "").toLowerCase() !== SUPERADMIN_EMAIL.toLowerCase()) {
+    return res.status(403).json({ error: "EduCore admin access only" });
+  }
+  next();
+}
+
 module.exports = {
   authenticate, authorize, authorizeLevel,
   requirePermission, sameSchool, parentChildOnly,
+  requireSuperAdmin,
   ROLE_LEVELS, ROLE_LABELS,
 };
