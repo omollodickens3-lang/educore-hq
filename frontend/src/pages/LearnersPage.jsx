@@ -187,8 +187,8 @@ function parseRows(raw) {
 
     const [firstName, lastName, grade, stream, admissionNo, gender, dateOfBirth, parentName, parentPhone, parentEmail] = cols;
 
-    if (!/^\d+$/.test(admissionNo)) {
-      errors.push(`Row ${i + 1}: admissionNo "${admissionNo}" doesn't look numeric — check column order, row skipped.`);
+    if (!/^\d+$/.test(admissionNo) && !/^\d{4}\/\d+$/.test(admissionNo)) {
+      errors.push(`Row ${i + 1}: admissionNo "${admissionNo}" doesn't match expected format (plain digits or YYYY/NNNN) — check column order, row skipped.`);
       continue;
     }
     if (gender && !['M', 'F'].includes(gender.toUpperCase())) {
