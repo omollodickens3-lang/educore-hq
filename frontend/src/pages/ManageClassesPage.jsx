@@ -244,11 +244,21 @@ function ClassFormModal({ existing, teachers, onClose, onSaved, onError }) {
     setSaving(true);
     setFormErr('');
     try {
+      // DB check constraint "classes_section_check" only allows lowercase 'primary' or 'js' (or null/empty).
+      // Normalize here so the input field can stay case-insensitive for the user.
+      const normalizedSection = form.section ? form.section.trim().toLowerCase() : '';
+      if (normalizedSection && !['primary', 'js'].includes(normalizedSection)) {
+        setFormErr(`Section must be "Primary" or "JS" (got "${form.section}")`);
+        setSaving(false);
+        return;
+      }
+      const payload = { ...form, section: normalizedSection || null };
+
       if (isEdit) {
-        await classesAPI.update(existing.id, form);
+        await classesAPI.update(existing.id, payload);
         onSaved(`${form.grade} ${form.stream} updated`);
       } else {
-        await classesAPI.create(form);
+        await classesAPI.create(payload);
         onSaved(`${form.grade} ${form.stream} created`);
       }
     } catch (err) {
