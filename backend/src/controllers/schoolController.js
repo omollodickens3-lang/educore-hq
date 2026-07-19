@@ -18,7 +18,8 @@ async function registerSchool(req, res) {
     res.status(201).json({ message: 'Registration submitted!', registration: rows[0] });
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ error: 'Subdomain already exists' });
-    res.status(500).json({ error: 'Registration failed' });
+    console.error("registerSchool error:", err.message, err.code, err.detail);
+    res.status(500).json({ error: 'Registration failed', debug: err.message });
   }
 }
 
