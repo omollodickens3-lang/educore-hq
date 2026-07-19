@@ -1,6 +1,6 @@
 ﻿const express = require('express');
 const router = express.Router();
-const { authenticate, authorize } = require('../middleware/auth');
+const { authenticate, authorize, requireSuperAdmin } = require('../middleware/auth');
 const auth = require('../controllers/authController');
 const learners = require('../controllers/learnerController');
 const exams = require('../controllers/examController');
@@ -79,6 +79,10 @@ router.get('/notifications/stats', authenticate, notifications.getNotificationSt
 
 router.post('/schools/register', schools.registerSchool);
 router.get('/schools/check-subdomain', schools.checkSubdomain);
+router.get('/schools/registrations', authenticate, requireSuperAdmin, schools.listRegistrations);
+router.post('/schools/registrations/:id/approve', authenticate, requireSuperAdmin, schools.approveRegistration);
+router.post('/schools/registrations/:id/reject', authenticate, requireSuperAdmin, schools.rejectRegistration);
+router.get('/platform/analytics', authenticate, requireSuperAdmin, schools.getPlatformAnalytics);
 
 module.exports = router;
 
