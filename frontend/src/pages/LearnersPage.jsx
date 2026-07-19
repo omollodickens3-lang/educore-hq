@@ -156,16 +156,46 @@ const TEMPLATE_HEADER = 'firstName,lastName,grade,stream,admissionNo,gender,date
 
 function parseRows(raw) {
   const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
-  if (!lines.length) return [];
-  // Drop header row if it looks like one
-  let start = 0;
-  if (/^firstname/i.test(lines[0])) start = 1;
+  if (!lines.length) return { rows: [], errors: [] };
 
+  const EXPECTED_COLS = 10;
   const delim = lines[0].includes('\t') ? '\t' : ',';
+
+  // Detect a header row anywhere it appears, not just line 0
+  function looksLikeHeaderRow(cols) {
+    const normalized = cols.map(c => c.trim().toLowerCase().replace(/[\s_]+/g, ''));
+    const expected = ['firstname','lastname','grade','stream','admissionno','gender','dateofbirth','parentname','parentphone','parentemail'];
+    const matches = normalized.filter(c => expected.includes(c)).length;
+    return matches >= expected.length - 2;
+  }
+
   const rows = [];
-  for (let i = start; i < lines.length; i++) {
+  const errors = [];
+
+  for (let i = 0; i < lines.length; i++) {
     const cols = lines[i].split(delim).map(c => c.trim());
+
+    if (looksLikeHeaderRow(cols)) {
+      // Skip any header row, wherever it appears (start of paste, or duplicated mid-paste)
+      continue;
+    }
+
+    if (cols.length !== EXPECTED_COLS) {
+      errors.push(`Row ${i + 1}: expected ${EXPECTED_COLS} columns, got ${cols.length} — skipped. (${lines[i].slice(0, 60)})`);
+      continue;
+    }
+
     const [firstName, lastName, grade, stream, admissionNo, gender, dateOfBirth, parentName, parentPhone, parentEmail] = cols;
+
+    if (!/^\d+$/.test(admissionNo)) {
+      errors.push(`Row ${i + 1}: admissionNo "${admissionNo}" doesn't look numeric — check column order, row skipped.`);
+      continue;
+    }
+    if (gender && !['M', 'F'].includes(gender.toUpperCase())) {
+      errors.push(`Row ${i + 1}: gender "${gender}" isn't M/F — check column order, row skipped.`);
+      continue;
+    }
+
     rows.push({
       firstName: firstName || '', lastName: lastName || '', grade: grade || '',
       stream: stream || undefined, admissionNo: admissionNo || undefined,
@@ -174,7 +204,8 @@ function parseRows(raw) {
       parentEmail: parentEmail || undefined,
     });
   }
-  return rows;
+
+  return { rows, errors };
 }
 
 function BulkUploadModal({ onClose, onSaved }) {
@@ -193,9 +224,17 @@ function BulkUploadModal({ onClose, onSaved }) {
   }
 
   async function handleUpload() {
-    const learners = parseRows(raw);
+    const { rows: learners, errors: parseErrors } = parseRows(raw);
+
+    if (parseErrors.length) {
+      toast.error(`${parseErrors.length} row(s) skipped due to formatting problems — see details below`);
+      setResult({ created: [], failed: parseErrors.map(msg => ({ error: msg })) });
+    }
+
     if (!learners.length) {
-      toast.error('No rows to upload — paste data or choose a CSV file');
+      if (!parseErrors.length) {
+        toast.error('No rows to upload — paste data or choose a CSV file');
+      }
       return;
     }
     setUploading(true);
