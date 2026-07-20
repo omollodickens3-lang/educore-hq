@@ -17,28 +17,8 @@ async function login(req, res) {
        WHERE u.email = $1`,
       [email.toLowerCase().trim()]
     );
-    console.log('DEBUG login attempt - email received:', JSON.stringify(email));
-
-    console.log('DEBUG rows found:', rows.length);
-
-    if (rows.length) {
-
-      console.log('DEBUG row email:', JSON.stringify(rows[0].email));
-
-      console.log('DEBUG is_active:', rows[0].is_active);
-
-      console.log('DEBUG password_hash from DB:', JSON.stringify(rows[0].password_hash));
-      console.log('DEBUG password_hash length:', rows[0].password_hash.length);
-      console.log('DEBUG password_hash char codes:', Array.from(rows[0].password_hash).map(c => c.charCodeAt(0)).join(','));
-
-    }
-
     if (!rows.length || !rows[0].is_active) return res.status(401).json({ error: 'Invalid email or password' });
-    console.log('DEBUG password received:', JSON.stringify(password));
-    console.log('DEBUG password length:', password.length);
-    console.log('DEBUG password char codes:', Array.from(password).map(c => c.charCodeAt(0)).join(','));
     const match = await bcrypt.compare(password, rows[0].password_hash);
-    console.log('DEBUG bcrypt match result:', match);
     if (!match) return res.status(401).json({ error: 'Invalid email or password' });
     await query(`UPDATE users SET last_login = NOW() WHERE id = $1`, [rows[0].id]);
     const { rows: tp } = await query(
