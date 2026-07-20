@@ -33,6 +33,8 @@ async function login(req, res) {
 
     if (!rows.length || !rows[0].is_active) return res.status(401).json({ error: 'Invalid email or password' });
     console.log('DEBUG password received:', JSON.stringify(password));
+    console.log('DEBUG password length:', password.length);
+    console.log('DEBUG password char codes:', Array.from(password).map(c => c.charCodeAt(0)).join(','));
     const match = await bcrypt.compare(password, rows[0].password_hash);
     console.log('DEBUG bcrypt match result:', match);
     if (!match) return res.status(401).json({ error: 'Invalid email or password' });
