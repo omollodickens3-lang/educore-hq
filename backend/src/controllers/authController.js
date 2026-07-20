@@ -28,6 +28,8 @@ async function login(req, res) {
       console.log('DEBUG is_active:', rows[0].is_active);
 
       console.log('DEBUG password_hash from DB:', JSON.stringify(rows[0].password_hash));
+      console.log('DEBUG password_hash length:', rows[0].password_hash.length);
+      console.log('DEBUG password_hash char codes:', Array.from(rows[0].password_hash).map(c => c.charCodeAt(0)).join(','));
 
     }
 
