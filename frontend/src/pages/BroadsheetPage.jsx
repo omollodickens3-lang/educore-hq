@@ -117,7 +117,8 @@ export default function BroadsheetPage() {
         ) : rows.length === 0 ? (
           <div style={styles.empty}>No score data yet for this selection.</div>
         ) : (
-          <table style={styles.table}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={styles.table}>
             <thead>
               <tr>
                 <th style={styles.th}>Rank</th>
@@ -145,6 +146,7 @@ export default function BroadsheetPage() {
               ))}
             </tbody>
           </table>
+</div>
         )}
         {rows.length > 0 && (
           <div className="ec-scroll-hint" style={styles.scrollHint}>← Swipe to see all columns →</div>

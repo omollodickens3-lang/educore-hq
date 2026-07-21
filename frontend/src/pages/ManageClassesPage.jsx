@@ -145,7 +145,8 @@ export default function ManageClassesPage() {
                 <h3 style={{ color: '#e2e8f0', margin: 0, fontSize: '16px' }}>{grade}</h3>
                 <span style={{ color: '#94a3b8', fontSize: '13px' }}>{streams.length} stream{streams.length !== 1 ? 's' : ''}</span>
               </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <tbody>
                   {streams.map(c => {
                     const teacher = teachers.find(t => String(t.id) === String(c.classTeacherId));
@@ -179,6 +180,7 @@ export default function ManageClassesPage() {
                   })}
                 </tbody>
               </table>
+</div>
             </div>
           ))}
 

@@ -410,7 +410,8 @@ export default function LearnersPage() {
           background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0',
           overflow: 'hidden',
         }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                 {['Name', 'Admission No.', 'Grade', 'Stream', 'Gender', 'Parent', 'Status', ''].map(h => (
@@ -443,6 +444,7 @@ export default function LearnersPage() {
               ))}
             </tbody>
           </table>
+</div>
         </div>
       )}
 

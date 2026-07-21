@@ -200,7 +200,8 @@ export default function TeachersPage() {
           background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0',
           overflow: 'hidden',
         }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                 {['Name', 'Role', 'Phone', 'Email', 'TSC No.', 'Login', 'Status', ''].map(h => (
@@ -245,6 +246,7 @@ export default function TeachersPage() {
               ))}
             </tbody>
           </table>
+</div>
         </div>
       )}
 

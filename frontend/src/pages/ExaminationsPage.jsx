@@ -492,7 +492,8 @@ function MarkEntryTab({ exam, scores, setScores, onSaved }) {
 
       {/* table */}
       <div style={{ flex: 1, overflowY: "auto" }}>
-        <table style={styles.table}>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={styles.table}>
           <thead>
             <tr>
               <th style={{ ...styles.th, width: 36 }}>#</th>
@@ -565,6 +566,7 @@ function MarkEntryTab({ exam, scores, setScores, onSaved }) {
             })}
           </tbody>
         </table>
+</div>
       </div>
     </div>
   );

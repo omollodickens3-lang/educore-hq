@@ -105,7 +105,8 @@ export default function ClassListPage() {
           {learners.length === 0 ? (
             <div style={styles.loading}>No learners found.</div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
                   <th style={styles.tableHeader}>#</th>
@@ -127,6 +128,7 @@ export default function ClassListPage() {
                 ))}
               </tbody>
             </table>
+</div>
           )}
         </div>
       )}
