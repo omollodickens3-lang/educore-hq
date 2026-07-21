@@ -178,6 +178,9 @@ export default function SignUpPage() {
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Email *</label>
             <input style={inputStyle} type="email" value={form.contactEmail} onChange={handleChange('contactEmail')} placeholder="you@school.ac.ke" />
+            <p style={{ color: '#6b8cba', fontSize: '11px', marginTop: '4px' }}>
+              This becomes your school's EduCore login. We recommend a school or office email rather than a personal one.
+            </p>
           </div>
         </div>
 
