@@ -1,4 +1,5 @@
 const { query, getClient } = require('../config/db');
+const { sendApprovalEmail, sendRejectionEmail } = require('../services/emailService');
 const { v4: uuid } = require('uuid');
 const bcrypt = require('bcryptjs');
 
@@ -82,6 +83,16 @@ async function approveRegistration(req, res) {
 
     await client.query('COMMIT');
 
+    try {
+      await sendApprovalEmail({
+        to: reg.contact_email,
+        schoolName: school.name,
+        contactName: reg.contact_name,
+      });
+    } catch (emailErr) {
+      console.error('Failed to send approval email:', emailErr.message);
+    }
+
     res.json({
       message: "School approved and activated",
       school,
@@ -110,16 +121,28 @@ async function rejectRegistration(req, res) {
     const { id } = req.params;
     const { reason } = req.body;
 
-    const regRes = await query("SELECT status FROM school_registrations WHERE id = $1", [id]);
+    const regRes = await query("SELECT * FROM school_registrations WHERE id = $1", [id]);
     if (!regRes.rows.length) return res.status(404).json({ error: "Registration not found" });
-    if (regRes.rows[0].status !== "pending") {
-      return res.status(409).json({ error: "This registration is already " + regRes.rows[0].status });
+    const reg = regRes.rows[0];
+    if (reg.status !== "pending") {
+      return res.status(409).json({ error: "This registration is already " + reg.status });
     }
 
     await query(
       "UPDATE school_registrations SET status = 'rejected', approved_by = $1, approved_at = NOW(), rejection_note = $2 WHERE id = $3",
       [req.user.id, reason || null, id]
     );
+
+    try {
+      await sendRejectionEmail({
+        to: reg.contact_email,
+        schoolName: reg.school_name,
+        contactName: reg.contact_name,
+        reason: reason || null,
+      });
+    } catch (emailErr) {
+      console.error('Failed to send rejection email:', emailErr.message);
+    }
 
     res.json({ message: "Registration rejected" });
   } catch (err) {
