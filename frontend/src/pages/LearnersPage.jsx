@@ -187,6 +187,15 @@ function parseRows(raw) {
 
     const [firstName, lastName, grade, stream, admissionNo, gender, dateOfBirth, parentName, parentPhone, parentEmail] = cols;
 
+    // Safety net: if a header row wasn't recognized by looksLikeHeaderRow (e.g. it used
+    // different column wording than our template), catch it here by rejecting rows where
+    // key fields look like field-name labels rather than real data.
+    const looksLikeFieldLabel = v => /^(fullname|firstname|lastname|name|grade|stream|admissionno|gender|dateofbirth|parentname|parentphone|parentemail)$/i.test((v || '').replace(/[\s_]+/g, ''));
+    if (looksLikeFieldLabel(firstName) || looksLikeFieldLabel(lastName) || looksLikeFieldLabel(grade) || looksLikeFieldLabel(stream)) {
+      errors.push(`Row ${i + 1}: this looks like an unrecognized header row (check your column names match the template) — row skipped.`);
+      continue;
+    }
+
     if (!/^\d+$/.test(admissionNo) && !/^\d{4}\/\d+$/.test(admissionNo)) {
       errors.push(`Row ${i + 1}: admissionNo "${admissionNo}" doesn't match expected format (plain digits or YYYY/NNNN) — check column order, row skipped.`);
       continue;
