@@ -71,6 +71,10 @@ export default function LoginPage() {
             </button>
           </form>
 
+        <p style={{ textAlign: 'center', marginTop: '16px', color: '#6b8cba', fontSize: '13px' }}>
+          New school? <a href="/register" style={{ color: '#185fa5' }}>Register here</a>
+        </p>
+
           <div style={{ marginTop:'20px', padding:'12px', background:'#0a1628', borderRadius:'8px', border:'0.5px solid #1e3a5f' }}>
             <div style={{ color:'#6b8cba', fontSize:'10px', fontWeight:'500', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:'8px' }}>Demo accounts</div>
             {demoAccounts.map(d => (
