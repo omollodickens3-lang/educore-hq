@@ -9,6 +9,11 @@ async function registerSchool(req, res) {
     if (!schoolName || !subdomain || !contactName || !contactPhone || !contactEmail || !password) {
       return res.status(400).json({ error: 'All fields are required' });
     }
+    const emailCheck = await query("SELECT 1 FROM users WHERE email = $1", [contactEmail.toLowerCase()]);
+    if (emailCheck.rows.length) {
+      return res.status(409).json({ error: "This email is already associated with an EduCore account. Please use a different email, such as a school or office email." });
+    }
+
     const passwordHash = await bcrypt.hash(password, 12);
     const { rows } = await query(`
       INSERT INTO school_registrations
