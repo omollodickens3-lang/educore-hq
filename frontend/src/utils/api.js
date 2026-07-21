@@ -93,3 +93,10 @@ classesAPI.getAll = () => api.get('/classes');
 classesAPI.create = (data) => api.post('/classes', data);
 classesAPI.delete = (id) => api.delete(`/classes/${id}`);
 classesAPI.update = (id, data) => api.put(`/classes/${id}`, data);
+export const schoolsAPI = {
+  register: (data) => api.post('/schools/register', data),
+  checkSubdomain: (subdomain) => api.get('/schools/check-subdomain', { params: { subdomain } }),
+  listRegistrations: () => api.get('/schools/registrations'),
+  approve: (id) => api.post(`/schools/registrations/${id}/approve`),
+  reject: (id, reason) => api.post(`/schools/registrations/${id}/reject`, { reason }),
+};
