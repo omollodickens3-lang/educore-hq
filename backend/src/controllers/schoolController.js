@@ -1,4 +1,4 @@
-const { query } = require('../config/db');
+const { query, getClient } = require('../config/db');
 const { v4: uuid } = require('uuid');
 const bcrypt = require('bcryptjs');
 
@@ -44,10 +44,11 @@ async function listRegistrations(req, res) {
 }
 
 async function approveRegistration(req, res) {
+  const client = await getClient();
   try {
     const { id } = req.params;
 
-    const regRes = await query("SELECT * FROM school_registrations WHERE id = $1", [id]);
+    const regRes = await client.query("SELECT * FROM school_registrations WHERE id = $1", [id]);
     if (!regRes.rows.length) return res.status(404).json({ error: "Registration not found" });
     const reg = regRes.rows[0];
 
@@ -55,8 +56,9 @@ async function approveRegistration(req, res) {
       return res.status(409).json({ error: "This registration is already " + reg.status });
     }
 
-    // Create the live school record from the pending registration.
-    const schoolRes = await query(
+    await client.query('BEGIN');
+
+    const schoolRes = await client.query(
       "INSERT INTO schools (id, name, subdomain, county, level) " +
       "VALUES (uuid_generate_v4(), $1, $2, $3, $4) " +
       "RETURNING id, name, subdomain",
@@ -65,7 +67,7 @@ async function approveRegistration(req, res) {
     const school = schoolRes.rows[0];
 
     // Create the first admin user for this school, reusing the password they set at sign-up.
-    const userRes = await query(
+    const userRes = await client.query(
       "INSERT INTO users (id, school_id, email, password_hash, role, full_name, is_active) " +
       "VALUES (uuid_generate_v4(), $1, $2, $3, 'admin', $4, true) " +
       "RETURNING id, email, role, full_name",
@@ -73,10 +75,12 @@ async function approveRegistration(req, res) {
     );
     const adminUser = userRes.rows[0];
 
-    await query(
+    await client.query(
       "UPDATE school_registrations SET status = 'approved', approved_by = $1, approved_at = NOW() WHERE id = $2",
       [req.user.id, id]
     );
+
+    await client.query('COMMIT');
 
     res.json({
       message: "School approved and activated",
@@ -84,8 +88,20 @@ async function approveRegistration(req, res) {
       admin: adminUser,
     });
   } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
     console.error("approveRegistration error:", err.message);
+    if (err.code === '23505') {
+      if (err.constraint === 'users_email_key') {
+        return res.status(409).json({ error: "A user with this contact email already exists. Use a different admin email for this school, or resolve the existing account first." });
+      }
+      if (err.constraint === 'schools_subdomain_key') {
+        return res.status(409).json({ error: "A school with this subdomain already exists." });
+      }
+      return res.status(409).json({ error: "Duplicate record — this registration conflicts with existing data." });
+    }
     res.status(500).json({ error: "Failed to approve registration" });
+  } finally {
+    client.release();
   }
 }
 
