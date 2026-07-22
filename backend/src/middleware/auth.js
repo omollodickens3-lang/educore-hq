@@ -32,11 +32,16 @@ async function authenticate(req, res, next) {
     const token   = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { rows } = await query(
-      `SELECT id, school_id, email, role, is_active, full_name FROM users WHERE id = $1`,
+      `SELECT u.id, u.school_id, u.email, u.role, u.is_active, u.full_name, s.status AS school_status
+       FROM users u LEFT JOIN schools s ON s.id = u.school_id
+       WHERE u.id = $1`,
       [decoded.userId]
     );
     if (!rows.length || !rows[0].is_active) {
       return res.status(401).json({ error: 'User not found or inactive' });
+    }
+    if (rows[0].role !== 'super_admin' && rows[0].school_status === 'deactivated') {
+      return res.status(403).json({ error: 'This school has been deactivated. Please contact EduCore support.' });
     }
     req.user = {
       ...rows[0],
