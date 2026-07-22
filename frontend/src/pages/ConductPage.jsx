@@ -16,8 +16,16 @@ export default function ConductPage() {
 
   useEffect(() => {
     learnersAPI.getAll().then(res => {
-      setAllLearners(res.data.learners || res.data || []);
-    }).catch(() => {});
+      console.log('ConductPage learnersAPI.getAll() response:', res.data);
+      const list = res.data.learners || res.data || [];
+      setAllLearners(list);
+      if (!list.length) {
+        toast.error('No learners loaded for conduct log — check console for details');
+      }
+    }).catch(err => {
+      console.error('ConductPage learnersAPI.getAll() failed:', err.response?.status, err.response?.data || err.message);
+      toast.error('Failed to load learners: ' + (err.response?.data?.error || err.message));
+    });
     loadLogs();
   }, []);
 
