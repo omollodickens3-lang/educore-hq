@@ -14,6 +14,7 @@ import AssignmentsPage from './pages/AssignmentsPage';
 import AssignmentDetailPage from './pages/AssignmentDetailPage';
 import ConductPage from './pages/ConductPage';
 import ParentPortalPage from './pages/ParentPortalPage';
+import ParentRegisterPage from './pages/ParentRegisterPage';
 import ParentPortalInfoPage from './pages/ParentPortalInfoPage';
 import SignUpPage from './pages/SignUpPage';
 import PendingRegistrationsPage from './pages/PendingRegistrationsPage';
@@ -55,6 +56,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/parent" element={<ParentPortalPage />} />
+      <Route path="/parent/register" element={<ParentRegisterPage />} />
       <Route path="/register" element={<SignUpPage />} />
       <Route path="/" element={
         <ProtectedRoute>

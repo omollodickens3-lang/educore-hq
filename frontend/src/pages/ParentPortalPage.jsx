@@ -70,6 +70,9 @@ export default function ParentPortalPage() {
               {submitting ? 'Logging in...' : 'Log In'}
             </button>
           </form>
+        <div style={{ textAlign: 'center', fontSize: 13, color: '#6b8cba', marginTop: 16 }}>
+          New parent? <a href="/parent/register" style={{ color: '#185fa5' }}>Create an account</a>
+        </div>
         </div>
       </div>
     );
