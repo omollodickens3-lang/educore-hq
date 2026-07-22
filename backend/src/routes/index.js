@@ -73,6 +73,7 @@ router.patch('/assignments/submissions/:submissionId', authenticate, assignments
 router.post('/conduct', authenticate, conduct.createConductLog);
 router.get('/conduct', authenticate, conduct.getConductLogs);
 
+router.post('/parent/register', parentPortal.registerParent);
 router.get('/parent/my-child', authenticate, parentPortal.getMyChild);
 router.get('/notifications', authenticate, notifications.getNotifications);
 router.get('/notifications/stats', authenticate, notifications.getNotificationStats);
