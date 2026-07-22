@@ -14,6 +14,7 @@ import AssignmentsPage from './pages/AssignmentsPage';
 import AssignmentDetailPage from './pages/AssignmentDetailPage';
 import ConductPage from './pages/ConductPage';
 import ParentPortalPage from './pages/ParentPortalPage';
+import ParentPortalInfoPage from './pages/ParentPortalInfoPage';
 import SignUpPage from './pages/SignUpPage';
 import PendingRegistrationsPage from './pages/PendingRegistrationsPage';
 import ManageClassesPage from './pages/ManageClassesPage';
@@ -73,7 +74,7 @@ function AppRoutes() {
           <Route path="classes" element={<ManageClassesPage />} />
         <Route path="registrations" element={<PendingRegistrationsPage />} />
         <Route path="content" element={<ComingSoon title="? Content Gen ?? Coming Soon" />} />
-        <Route path="portal"  element={<ComingSoon title="?? Parent Portal ?? Coming Soon" />} />
+        <Route path="portal" element={<ParentPortalInfoPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
