@@ -12,12 +12,15 @@ async function login(req, res) {
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
     const { rows } = await query(
       `SELECT u.id, u.school_id, u.email, u.password_hash, u.role, u.is_active,
-              s.name AS school_name
+              s.name AS school_name, s.status AS school_status
        FROM users u JOIN schools s ON s.id = u.school_id
        WHERE u.email = $1`,
       [email.toLowerCase().trim()]
     );
     if (!rows.length || !rows[0].is_active) return res.status(401).json({ error: 'Invalid email or password' });
+    if (rows[0].school_status === 'deactivated') {
+      return res.status(403).json({ error: 'This school has been deactivated. Please contact EduCore support.' });
+    }
     const match = await bcrypt.compare(password, rows[0].password_hash);
     if (!match) return res.status(401).json({ error: 'Invalid email or password' });
     await query(`UPDATE users SET last_login = NOW() WHERE id = $1`, [rows[0].id]);
