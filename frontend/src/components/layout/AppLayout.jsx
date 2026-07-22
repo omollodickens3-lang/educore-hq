@@ -19,6 +19,7 @@ const NAV = [
   { to: '/reports',     icon: '📋', label: 'Report Forms' },
   { to: '/attendance',  icon: '✅', label: 'Attendance' },
   { to: '/assignments', icon: '📚', label: 'Assignments' },
+  { to: '/conduct', icon: '⚠️', label: 'Conduct' },
   { section: 'Content' },
   { to: '/content',     icon: '✨', label: 'Content Gen' },
   { to: '/portal',      icon: '👪', label: 'Parent Portal' },
