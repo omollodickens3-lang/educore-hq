@@ -86,6 +86,7 @@ conductAPI.create = (data) => api.post("/conduct", data);
 
 export const parentAPI = {};
 parentAPI.getMyChild = () => api.get('/parent/my-child');
+parentAPI.register = (data) => api.post('/parent/register', data);
 
 
 export const classesAPI = {};
