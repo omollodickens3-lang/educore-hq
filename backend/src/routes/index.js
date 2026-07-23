@@ -59,6 +59,7 @@ router.get('/exams/subject-ranking-by-stream', authenticate, exams.getSubjectRan
 router.get('/exams/broadsheet', authenticate, exams.getBroadsheet);
 router.get('/exams/:examId/scores', authenticate, exams.getScores);
 router.post('/exams/:examId/scores', authenticate, exams.upsertScores);
+router.delete('/exams/:examId', authenticate, exams.deleteExam);
 
 router.get('/attendance', authenticate, attendance.getAttendance);
 router.post('/attendance/bulk', authenticate, attendance.markBulk);

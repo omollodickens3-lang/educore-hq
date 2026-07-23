@@ -318,6 +318,25 @@ async function getBroadsheet(req, res) {
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to fetch broadsheet' }); }
 }
 
-module.exports = { getExams, createExam, getScores, upsertScores, getAnalysis, getTrends, getSchoolOverview, getStreamRanking, getLearnerRanking, getSubjectRankingByStream , getBroadsheet };
+async function deleteExam(req, res) {
+  try {
+    const { examId } = req.params;
+    const check = await query(
+      'SELECT id FROM exams WHERE id = $1 AND school_id = $2',
+      [examId, req.user.school_id]
+    );
+    if (!check.rows.length) return res.status(404).json({ error: 'Exam not found' });
+
+    await query('DELETE FROM scores WHERE exam_id = $1 AND school_id = $2', [examId, req.user.school_id]);
+    await query('DELETE FROM exams WHERE id = $1 AND school_id = $2', [examId, req.user.school_id]);
+
+    res.json({ message: 'Exam and its scores deleted' });
+  } catch (err) {
+    console.error('deleteExam error:', err.message);
+    res.status(500).json({ error: 'Failed to delete exam' });
+  }
+}
+
+module.exports = { getExams, createExam, deleteExam, getScores, upsertScores, getAnalysis, getTrends, getSchoolOverview, getStreamRanking, getLearnerRanking, getSubjectRankingByStream, getBroadsheet };
 
 
