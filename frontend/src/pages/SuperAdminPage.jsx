@@ -13,6 +13,8 @@ export default function SuperAdminPage() {
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
+  const PLATFORM_SCHOOL_ID = '00000000-0000-0000-0000-000000000001';
+
   const load = useCallback(() => {
     setLoading(true);
     superAdminAPI
@@ -144,7 +146,9 @@ export default function SuperAdminPage() {
                 >
                   History
                 </button>
-                {s.status === 'active' ? (
+                {s.id === PLATFORM_SCHOOL_ID ? (
+                  <span style={{ color: '#6b8cba', fontSize: '12px', fontStyle: 'italic' }}>Protected</span>
+                ) : s.status === 'active' ? (
                   <button
                     onClick={() => handleDeactivate(s.id)}
                     disabled={actingId === s.id}
