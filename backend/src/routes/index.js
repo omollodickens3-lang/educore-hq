@@ -85,6 +85,11 @@ router.post('/schools/registrations/:id/approve', authenticate, requireSuperAdmi
 router.post('/schools/registrations/:id/reject', authenticate, requireSuperAdmin, schools.rejectRegistration);
 router.get('/platform/analytics', authenticate, requireSuperAdmin, schools.getPlatformAnalytics);
 
+router.get('/super-admin/schools', authenticate, requireSuperAdmin, schools.listSchoolsStatus);
+router.get('/super-admin/schools/:id/history', authenticate, requireSuperAdmin, schools.getSchoolStatusHistory);
+router.post('/super-admin/schools/:id/deactivate', authenticate, requireSuperAdmin, schools.deactivateSchool);
+router.post('/super-admin/schools/:id/reactivate', authenticate, requireSuperAdmin, schools.reactivateSchool);
+
 module.exports = router;
 
 
