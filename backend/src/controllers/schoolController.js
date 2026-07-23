@@ -156,6 +156,97 @@ async function rejectRegistration(req, res) {
   }
 }
 
+const PLATFORM_SCHOOL_ID = '00000000-0000-0000-0000-000000000001';
+
+async function listSchoolsStatus(req, res) {
+  try {
+    const result = await query(
+      `SELECT id, name, status, created_at FROM schools ORDER BY name ASC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('listSchoolsStatus error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch schools' });
+  }
+}
+
+async function getSchoolStatusHistory(req, res) {
+  try {
+    const { id } = req.params;
+    const result = await query(
+      `SELECT l.id, l.action, l.reason, l.created_at, u.full_name AS performed_by_name
+       FROM school_status_log l
+       JOIN users u ON u.id = l.performed_by
+       WHERE l.school_id = $1
+       ORDER BY l.created_at DESC`,
+      [id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('getSchoolStatusHistory error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch school history' });
+  }
+}
+
+async function deactivateSchool(req, res) {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    if (id === PLATFORM_SCHOOL_ID) {
+      return res.status(400).json({ error: 'The platform school cannot be deactivated.' });
+    }
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({ error: 'A reason is required to deactivate a school.' });
+    }
+
+    const check = await query('SELECT status FROM schools WHERE id = $1', [id]);
+    if (!check.rows.length) return res.status(404).json({ error: 'School not found' });
+    if (check.rows[0].status === 'deactivated') {
+      return res.status(400).json({ error: 'School is already deactivated' });
+    }
+
+    await query('UPDATE schools SET status = $1 WHERE id = $2', ['deactivated', id]);
+    await query(
+      `INSERT INTO school_status_log (school_id, action, reason, performed_by) VALUES ($1, 'deactivate', $2, $3)`,
+      [id, reason.trim(), req.user.id]
+    );
+
+    res.json({ message: 'School deactivated', schoolId: id });
+  } catch (err) {
+    console.error('deactivateSchool error:', err.message);
+    res.status(500).json({ error: 'Failed to deactivate school' });
+  }
+}
+
+async function reactivateSchool(req, res) {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({ error: 'A reason is required to reactivate a school.' });
+    }
+
+    const check = await query('SELECT status FROM schools WHERE id = $1', [id]);
+    if (!check.rows.length) return res.status(404).json({ error: 'School not found' });
+    if (check.rows[0].status === 'active') {
+      return res.status(400).json({ error: 'School is already active' });
+    }
+
+    await query('UPDATE schools SET status = $1 WHERE id = $2', ['active', id]);
+    await query(
+      `INSERT INTO school_status_log (school_id, action, reason, performed_by) VALUES ($1, 'reactivate', $2, $3)`,
+      [id, reason.trim(), req.user.id]
+    );
+
+    res.json({ message: 'School reactivated', schoolId: id });
+  } catch (err) {
+    console.error('reactivateSchool error:', err.message);
+    res.status(500).json({ error: 'Failed to reactivate school' });
+  }
+}
+
 async function getPlatformAnalytics(req, res) {
   res.json({ schools: [] });
 }
@@ -166,5 +257,9 @@ module.exports = {
   listRegistrations,
   approveRegistration,
   rejectRegistration,
-  getPlatformAnalytics
+  getPlatformAnalytics,
+  listSchoolsStatus,
+  getSchoolStatusHistory,
+  deactivateSchool,
+  reactivateSchool
 };
