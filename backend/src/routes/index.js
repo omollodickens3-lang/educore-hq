@@ -1,6 +1,6 @@
 ﻿const express = require('express');
 const router = express.Router();
-const { authenticate, authorize, requireSuperAdmin } = require('../middleware/auth');
+const { authenticate, authorize, requireSuperAdmin, requireExamSubjectAccess, requireClassTeacherAccess, requireLearnerTeacherAccess } = require('../middleware/auth');
 const auth = require('../controllers/authController');
 const learners = require('../controllers/learnerController');
 const exams = require('../controllers/examController');
@@ -58,11 +58,11 @@ router.get('/exams/learner-ranking', authenticate, exams.getLearnerRanking);
 router.get('/exams/subject-ranking-by-stream', authenticate, exams.getSubjectRankingByStream);
 router.get('/exams/broadsheet', authenticate, exams.getBroadsheet);
 router.get('/exams/:examId/scores', authenticate, exams.getScores);
-router.post('/exams/:examId/scores', authenticate, exams.upsertScores);
+router.post('/exams/:examId/scores', authenticate, requireExamSubjectAccess, exams.upsertScores);
 router.delete('/exams/:examId', authenticate, exams.deleteExam);
 
 router.get('/attendance', authenticate, attendance.getAttendance);
-router.post('/attendance/bulk', authenticate, attendance.markBulk);
+router.post('/attendance/bulk', authenticate, requireClassTeacherAccess, attendance.markBulk);
 router.get('/attendance/alerts', authenticate, attendance.getAlerts);
 router.get('/attendance/stats/:learnerId', authenticate, attendance.getLearnerStats);
 
@@ -71,7 +71,7 @@ router.get('/assignments', authenticate, assignments.getAssignments);
 router.get('/assignments/:id', authenticate, assignments.getAssignmentDetail);
 router.patch('/assignments/submissions/:submissionId', authenticate, assignments.updateSubmission);
 
-router.post('/conduct', authenticate, conduct.createConductLog);
+router.post('/conduct', authenticate, requireLearnerTeacherAccess, conduct.createConductLog);
 router.get('/conduct', authenticate, conduct.getConductLogs);
 
 router.post('/parent/register', parentPortal.registerParent);

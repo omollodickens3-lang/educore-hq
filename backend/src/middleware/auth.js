@@ -146,9 +146,129 @@ function requireSuperAdmin(req, res, next) {
   next();
 }
 
+// ─────────────────────────────────────────────
+// TEACHER-SCOPED ACCESS CONTROL
+// Restricts subject_teacher / class_teacher accounts to only the
+// subjects/classes/learners they're actually assigned to.
+// Admin-tier roles (admin, director_of_studies, deputy, hod) and
+// super_admin bypass these checks entirely.
+// ─────────────────────────────────────────────
+const ADMIN_TIER_ROLES = ['admin', 'director_of_studies', 'deputy', 'hod'];
+
+async function getTeacherId(userId, schoolId) {
+  const { rows } = await query(
+    `SELECT id FROM teachers WHERE user_id=$1 AND school_id=$2`,
+    [userId, schoolId]
+  );
+  return rows[0]?.id || null;
+}
+
+// Gate: POST /exams/:examId/scores — only the subject's assigned teacher can enter marks
+async function requireExamSubjectAccess(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
+  if (req.user.isSuperAdmin || ADMIN_TIER_ROLES.includes(req.user.role)) return next();
+  try {
+    const { rows: examRows } = await query(
+      `SELECT subject, grade, stream FROM exams WHERE id=$1 AND school_id=$2`,
+      [req.params.examId, req.user.school_id]
+    );
+    if (!examRows.length) return res.status(404).json({ error: 'Exam not found' });
+    const exam = examRows[0];
+
+    const teacherId = await getTeacherId(req.user.id, req.user.school_id);
+    if (!teacherId) return res.status(403).json({ error: 'No teacher profile linked to this account' });
+
+    const { rows: matchRows } = await query(
+      `SELECT id FROM teacher_subjects
+       WHERE teacher_id=$1 AND school_id=$2 AND subject=$3
+         AND (grade=$4 OR grade IS NULL)
+         AND (stream=$5 OR stream IS NULL OR $5::text IS NULL)`,
+      [teacherId, req.user.school_id, exam.subject, exam.grade, exam.stream]
+    );
+    if (!matchRows.length) {
+      return res.status(403).json({ error: `You are not assigned to teach ${exam.subject} for ${exam.grade}` });
+    }
+    next();
+  } catch (err) {
+    console.error('requireExamSubjectAccess error:', err);
+    res.status(500).json({ error: 'Access check failed' });
+  }
+}
+
+// Gate: POST /attendance/bulk — only the class teacher of the learners' class can mark attendance
+async function requireClassTeacherAccess(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
+  if (req.user.isSuperAdmin || ADMIN_TIER_ROLES.includes(req.user.role)) return next();
+  try {
+    const { records } = req.body;
+    if (!Array.isArray(records) || !records.length) return next();
+
+    const teacherId = await getTeacherId(req.user.id, req.user.school_id);
+    if (!teacherId) return res.status(403).json({ error: 'No teacher profile linked to this account' });
+
+    const learnerIds = [...new Set(records.map(r => r.learnerId))];
+    const { rows: classRows } = await query(
+      `SELECT DISTINCT c.id, c.grade, c.stream, c.class_teacher_id
+       FROM learners l
+       JOIN classes c ON c.id = l.class_id
+       WHERE l.id = ANY($1::uuid[]) AND l.school_id=$2`,
+      [learnerIds, req.user.school_id]
+    );
+    const unauthorized = classRows.filter(c => c.class_teacher_id !== teacherId);
+    if (unauthorized.length) {
+      const names = unauthorized.map(c => `${c.grade} ${c.stream}`).join(', ');
+      return res.status(403).json({ error: `You are not the class teacher for: ${names}` });
+    }
+    next();
+  } catch (err) {
+    console.error('requireClassTeacherAccess error:', err);
+    res.status(500).json({ error: 'Access check failed' });
+  }
+}
+
+// Gate: POST /conduct — class teacher of the learner, or any subject teacher assigned to their grade
+async function requireLearnerTeacherAccess(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
+  if (req.user.isSuperAdmin || ADMIN_TIER_ROLES.includes(req.user.role)) return next();
+  try {
+    const { learnerId } = req.body;
+    if (!learnerId) return next();
+
+    const teacherId = await getTeacherId(req.user.id, req.user.school_id);
+    if (!teacherId) return res.status(403).json({ error: 'No teacher profile linked to this account' });
+
+    const { rows: learnerRows } = await query(
+      `SELECT l.grade, l.stream, c.class_teacher_id
+       FROM learners l LEFT JOIN classes c ON c.id = l.class_id
+       WHERE l.id=$1 AND l.school_id=$2`,
+      [learnerId, req.user.school_id]
+    );
+    if (!learnerRows.length) return res.status(404).json({ error: 'Learner not found' });
+    const l = learnerRows[0];
+
+    if (l.class_teacher_id === teacherId) return next();
+
+    const { rows: subjRows } = await query(
+      `SELECT id FROM teacher_subjects
+       WHERE teacher_id=$1 AND school_id=$2
+         AND (grade=$3 OR grade IS NULL)
+         AND (stream=$4 OR stream IS NULL OR $4::text IS NULL)`,
+      [teacherId, req.user.school_id, l.grade, l.stream]
+    );
+    if (!subjRows.length) {
+      return res.status(403).json({ error: "You are not assigned to this learner's class or subjects" });
+    }
+    next();
+  } catch (err) {
+    console.error('requireLearnerTeacherAccess error:', err);
+    res.status(500).json({ error: 'Access check failed' });
+  }
+}
+
 module.exports = {
   authenticate, authorize, authorizeLevel,
   requirePermission, sameSchool, parentChildOnly,
   requireSuperAdmin,
+  requireExamSubjectAccess, requireClassTeacherAccess, requireLearnerTeacherAccess,
   ROLE_LEVELS, ROLE_LABELS,
 };
