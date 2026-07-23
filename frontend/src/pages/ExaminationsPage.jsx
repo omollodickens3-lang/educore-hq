@@ -872,6 +872,7 @@ export default function ExaminationsPage() {
   const [selected,   setSelected]   = useState(null);
   const [scores,     setScores]     = useState([]);
   const [tab,        setTab]        = useState("overview"); // overview | marks | reports
+  const [deletingExam, setDeletingExam] = useState(false);
   const [loadingExams,  setLoadingExams]  = useState(true);
   const [loadingScores, setLoadingScores] = useState(false);
   const [showCreate, setShowCreate]  = useState(false);
@@ -894,6 +895,25 @@ export default function ExaminationsPage() {
   }, [JSON.stringify(filters)]);
 
   useEffect(() => { loadExams(); }, [loadExams]);
+
+  const handleDeleteExam = async () => {
+    if (!selected) return;
+    const examId = selected.id ?? selected._id;
+    const ok = window.confirm(`Delete "${selected.examName ?? selected.name}"? This also deletes all scores entered for it. This cannot be undone.`);
+    if (!ok) return;
+    setDeletingExam(true);
+    try {
+      await examsAPI.delete(examId);
+      toast.success('Exam deleted');
+      setSelected(null);
+      await loadExams();
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Failed to delete exam');
+    } finally {
+      setDeletingExam(false);
+    }
+  };
+
 
   useEffect(() => {
     if (!selected) return;
@@ -1006,6 +1026,22 @@ export default function ExaminationsPage() {
           {selected && (
             <span style={{ marginLeft: "auto", fontSize: 12, color: "#9CA3AF", alignSelf: "center", paddingRight: 24 }}>
               {selected.examName ?? selected.name} · Max {selected.maxScore ?? 100}
+                <button
+                  onClick={handleDeleteExam}
+                  disabled={deletingExam}
+                  style={{
+                    marginLeft: 12,
+                    padding: '4px 10px',
+                    background: 'transparent',
+                    color: '#dc2626',
+                    border: '1px solid #dc2626',
+                    borderRadius: 6,
+                    fontSize: 11,
+                    cursor: deletingExam ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {deletingExam ? 'Deleting...' : 'Delete Exam'}
+                </button>
             </span>
           )}
         </div>

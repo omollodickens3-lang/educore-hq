@@ -53,6 +53,7 @@ export const examsAPI = {
   getScores: (examId) => api.get(`/exams/${examId}/scores`),
   upsertScores: (examId, scores) => api.post(`/exams/${examId}/scores`, { scores }),
   getAnalysis: (params) => api.get('/exams/analysis', { params }),
+  delete: (examId) => api.delete(`/exams/${examId}`),
 };
 
 teachersAPI.uploadSignature = (id, file) => {
