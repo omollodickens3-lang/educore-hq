@@ -18,6 +18,7 @@ import ParentRegisterPage from './pages/ParentRegisterPage';
 import ParentPortalInfoPage from './pages/ParentPortalInfoPage';
 import SignUpPage from './pages/SignUpPage';
 import PendingRegistrationsPage from './pages/PendingRegistrationsPage';
+import SuperAdminPage from './pages/SuperAdminPage';
 import ManageClassesPage from './pages/ManageClassesPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import BroadsheetPage from './pages/BroadsheetPage';
@@ -75,6 +76,7 @@ function AppRoutes() {
             <Route path="conduct" element={<ConductPage />} />
           <Route path="classes" element={<ManageClassesPage />} />
         <Route path="registrations" element={<PendingRegistrationsPage />} />
+        <Route path="super-admin" element={<SuperAdminPage />} />
         <Route path="content" element={<ComingSoon title="? Content Gen ?? Coming Soon" />} />
         <Route path="portal" element={<ParentPortalInfoPage />} />
       </Route>

@@ -101,3 +101,10 @@ export const schoolsAPI = {
   approve: (id) => api.post(`/schools/registrations/${id}/approve`),
   reject: (id, reason) => api.post(`/schools/registrations/${id}/reject`, { reason }),
 };
+
+export const superAdminAPI = {
+  listSchools: () => api.get('/super-admin/schools'),
+  getSchoolHistory: (id) => api.get(`/super-admin/schools/${id}/history`),
+  deactivateSchool: (id, reason) => api.post(`/super-admin/schools/${id}/deactivate`, { reason }),
+  reactivateSchool: (id, reason) => api.post(`/super-admin/schools/${id}/reactivate`, { reason }),
+};
