@@ -21,12 +21,12 @@ async function getExams(req, res) {
 
 async function createExam(req, res) {
   try {
-    const { name, examType, term, academicYear = '2025/2026', grade, stream, startDate, endDate, subject } = req.body;
+    const { name, examType, term, academicYear = '2025/2026', grade, stream, startDate, endDate, subject, maxScore } = req.body;
     if (!grade || !term || !examType || !subject) return res.status(400).json({ error: 'grade, term, examType and subject required' });
     const { rows } = await query(`
-      INSERT INTO exams (id, school_id, name, exam_type, term, academic_year, grade, stream, start_date, end_date, created_by, subject)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
-      [uuid(), req.user.school_id, name || `${grade} Term ${term} ${examType}`, examType, term, academicYear, grade, stream||null, startDate||null, endDate||null, req.user.id, subject]
+      INSERT INTO exams (id, school_id, name, exam_type, term, academic_year, grade, stream, start_date, end_date, created_by, subject, max_score)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
+      [uuid(), req.user.school_id, name || `${grade} Term ${term} ${examType}`, examType, term, academicYear, grade, stream||null, startDate||null, endDate||null, req.user.id, subject, maxScore ? Number(maxScore) : 100]
     );
     res.status(201).json({ message: 'Exam created', exam: rows[0] });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to create exam' }); }
@@ -75,19 +75,26 @@ async function upsertScores(req, res) {
     if (!Array.isArray(scores)) return res.status(400).json({ error: 'scores array required' });
     await client.query('BEGIN');
     let upserted = 0;
+
+    const { rows: examMaxRows } = await client.query(
+      'SELECT max_score FROM exams WHERE id = $1 AND school_id = $2',
+      [req.params.examId, req.user.school_id]
+    );
+    const examMaxScore = examMaxRows[0]?.max_score || 100;
     for (const item of scores) {
       const { learnerId, subject, score, remarks } = item;
       if (score === null || score === undefined) continue;
-      const pct = Math.min(100, Math.max(0, parseFloat(score)));
+      const rawScore = Math.max(0, parseFloat(score));
+      const pct = Math.min(100, (rawScore / examMaxScore) * 100);
       const { rows: lr } = await client.query(`SELECT section FROM learners WHERE id=$1`, [learnerId]);
       const section = lr[0]?.section || 'primary';
       const gradeLabel = cbcGrade(pct, section);
       await client.query(`
-        INSERT INTO scores (id, exam_id, learner_id, school_id, subject, score, grade_label, remarks, entered_by)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-        ON CONFLICT (exam_id, learner_id, subject) DO UPDATE
-        SET score=$6, grade_label=$7, remarks=$8, entered_by=$9, updated_at=NOW()`,
-        [uuid(), req.params.examId, learnerId, req.user.school_id, subject, pct, gradeLabel, remarks ?? null, req.user.id]
+        INSERT INTO scores (id, exam_id, learner_id, school_id, subject, score, max_score, grade_label, remarks, entered_by)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+      ON CONFLICT (exam_id, learner_id, subject) DO UPDATE
+      SET score=$6, max_score=$7, grade_label=$8, remarks=$9, entered_by=$10, updated_at=NOW()`,
+      [uuid(), req.params.examId, learnerId, req.user.school_id, subject, pct, examMaxScore, gradeLabel, remarks ?? null, req.user.id]
       );
       upserted++;
     }
