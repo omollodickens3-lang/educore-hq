@@ -23,13 +23,7 @@ export default function LoginPage() {
     }
   }
 
-  const demoAccounts = [
-    { role: 'Admin', email: 'admin@westside.ac.ke', pass: 'Admin@2026' },
-    { role: 'Teacher', email: 'teacher@westside.ac.ke', pass: 'Teacher@2026' },
-    { role: 'Parent', email: 'parent@westside.ac.ke', pass: 'Parent@2026' },
-  ];
-
-  return (
+    return (
     <div style={{ minHeight:'100vh', background:'#0a1628', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px', fontFamily:'system-ui,sans-serif' }}>
       <div style={{ width:'100%', maxWidth:'380px' }}>
 
@@ -74,22 +68,6 @@ export default function LoginPage() {
         <p style={{ textAlign: 'center', marginTop: '16px', color: '#6b8cba', fontSize: '13px' }}>
           New school? <a href="/register" style={{ color: '#185fa5' }}>Register here</a>
         </p>
-
-          <div style={{ marginTop:'20px', padding:'12px', background:'#0a1628', borderRadius:'8px', border:'0.5px solid #1e3a5f' }}>
-            <div style={{ color:'#6b8cba', fontSize:'10px', fontWeight:'500', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:'8px' }}>Demo accounts</div>
-            {demoAccounts.map(d => (
-              <div key={d.role} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'5px' }}>
-                <div>
-                  <span style={{ color:'#8faad0', fontSize:'11px' }}>{d.role}: </span>
-                  <span style={{ color:'#c8d8ee', fontSize:'11px' }}>{d.email}</span>
-                </div>
-                <button onClick={() => setForm({ email: d.email, password: d.pass })}
-                  style={{ background:'#185fa5', color:'#e6f1fb', border:'none', borderRadius:'4px', padding:'2px 8px', fontSize:'10px', cursor:'pointer', fontFamily:'inherit' }}>
-                  Use
-                </button>
-              </div>
-            ))}
-          </div>
         </div>
 
         <p style={{ color:'#4a6a94', fontSize:'11px', textAlign:'center', marginTop:'16px' }}>
