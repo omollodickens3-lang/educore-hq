@@ -186,6 +186,17 @@ async function requireExamSubjectAccess(req, res, next) {
       [teacherId, req.user.school_id, exam.subject, exam.grade, exam.stream]
     );
     if (!matchRows.length) {
+      // Grace mode: if this school hasn't configured any subject-teacher assignments yet,
+      // don't lock every teacher out of marks entry — fall back to unrestricted access
+      // until the school actually sets up teacher_subjects.
+      const { rows: anyAssignments } = await query(
+        `SELECT 1 FROM teacher_subjects WHERE school_id=$1 LIMIT 1`,
+        [req.user.school_id]
+      );
+      if (!anyAssignments.length) {
+        console.warn(`[requireExamSubjectAccess] school ${req.user.school_id} has no teacher_subjects configured — allowing unrestricted marks entry`);
+        return next();
+      }
       return res.status(403).json({ error: `You are not assigned to teach ${exam.subject} for ${exam.grade}` });
     }
     next();
@@ -214,7 +225,9 @@ async function requireClassTeacherAccess(req, res, next) {
        WHERE l.id = ANY($1::uuid[]) AND l.school_id=$2`,
       [learnerIds, req.user.school_id]
     );
-    const unauthorized = classRows.filter(c => c.class_teacher_id !== teacherId);
+    // Only enforce for classes that actually have a class teacher assigned —
+    // an unassigned class can't be checked against, so let it through rather than blocking everyone.
+    const unauthorized = classRows.filter(c => c.class_teacher_id && c.class_teacher_id !== teacherId);
     if (unauthorized.length) {
       const names = unauthorized.map(c => `${c.grade} ${c.stream}`).join(', ');
       return res.status(403).json({ error: `You are not the class teacher for: ${names}` });
@@ -256,6 +269,16 @@ async function requireLearnerTeacherAccess(req, res, next) {
       [teacherId, req.user.school_id, l.grade, l.stream]
     );
     if (!subjRows.length) {
+      // Grace mode: if the school hasn't configured any subject-teacher assignments yet
+      // and this learner's class has no class teacher assigned either, don't block staff entirely.
+      const { rows: anyAssignments } = await query(
+        `SELECT 1 FROM teacher_subjects WHERE school_id=$1 LIMIT 1`,
+        [req.user.school_id]
+      );
+      if (!anyAssignments.length && !l.class_teacher_id) {
+        console.warn(`[requireLearnerTeacherAccess] school ${req.user.school_id} has no teacher_subjects configured — allowing unrestricted conduct logging`);
+        return next();
+      }
       return res.status(403).json({ error: "You are not assigned to this learner's class or subjects" });
     }
     next();
