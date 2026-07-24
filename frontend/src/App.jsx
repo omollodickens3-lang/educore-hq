@@ -39,6 +39,20 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+function RequireAdminTier({ children }) {
+  const { isAdminTier } = useAuth();
+  if (!isAdminTier) {
+    return (
+      <div style={{ padding:'40px', fontFamily:'system-ui', textAlign:'center' }}>
+        <div style={{ fontSize:'40px', marginBottom:'12px' }}>🔒</div>
+        <h1 style={{ fontSize:'20px', fontWeight:'600', color:'#0f172a', marginBottom:'8px' }}>Access restricted</h1>
+        <p style={{ color:'#64748b', fontSize:'14px' }}>School-wide analytics is only available to admin-tier staff.</p>
+      </div>
+    );
+  }
+  return children;
+}
+
 function ComingSoon({ title }) {
   return (
     <div style={{ padding:'40px', fontFamily:'system-ui', textAlign:'center' }}>
@@ -68,7 +82,7 @@ function AppRoutes() {
         <Route path="learners"     element={<LearnersPage />} />
         <Route path="teachers"     element={<TeachersPage />} />
         <Route path="examinations" element={<ExaminationsPage />} />
-        <Route path="analytics" element={<AnalyticsPage />} /><Route path="broadsheet" element={<BroadsheetPage />} /><Route path="class-list" element={<ClassListPage />} /><Route path="notifications" element={<NotificationsPage />} /><Route path="trends" element={<TrendsPage />} />
+        <Route path="analytics" element={<RequireAdminTier><AnalyticsPage /></RequireAdminTier>} /><Route path="broadsheet" element={<BroadsheetPage />} /><Route path="class-list" element={<ClassListPage />} /><Route path="notifications" element={<NotificationsPage />} /><Route path="trends" element={<TrendsPage />} />
         <Route path="reports"       element={<ReportsPage />} />
         <Route path="attendance"    element={<AttendancePage />} />
         <Route path="assignments" element={<AssignmentsPage />} />

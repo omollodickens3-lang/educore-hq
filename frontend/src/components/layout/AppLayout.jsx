@@ -11,7 +11,7 @@ const NAV = [
   { to: '/classes',      icon: '🏫', label: 'Manage Classes' },
   { section: 'Academics' },
   { to: '/examinations',icon: '📝', label: 'Examinations' },
-  { to: '/analytics', icon: '📊', label: 'Analytics' },
+  { to: '/analytics', icon: '📊', label: 'Analytics', adminOnly: true },
   { to: '/broadsheet', icon: '🗒️', label: 'Broadsheet' },
   { to: '/class-list', icon: '🧾', label: 'Class Lists' },
   { to: '/notifications', icon: '🔔', label: 'Notifications' },
@@ -26,7 +26,7 @@ const NAV = [
 ];
 
 export default function AppLayout() {
-  const { user, logout, schoolName } = useAuth();
+  const { user, logout, schoolName, isAdminTier } = useAuth();
   const navigate = useNavigate();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -89,7 +89,7 @@ export default function AppLayout() {
         </div>
 
         <nav style={{ flex:1, overflowY:'auto', padding:'8px 0' }}>
-          {NAV.map((item, i) => {
+          {NAV.filter((item) => !item.adminOnly || isAdminTier).map((item, i) => {
             if (item.section) return (
               <div key={i} style={{ color:'#4a6a94', fontSize:'10px', fontWeight:'500', letterSpacing:'0.7px', textTransform:'uppercase', padding:'10px 14px 4px' }}>
                 {item.section}

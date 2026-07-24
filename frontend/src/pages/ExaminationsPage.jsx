@@ -38,6 +38,7 @@ async function apiFetch(path, opts = {}) {
 const api = {
   getExams:    (p = {}) => apiFetch("/exams?" + new URLSearchParams(p)),
   createExam:  (b)      => apiFetch("/exams", { method: "POST", body: JSON.stringify(b) }),
+  updateExam:  (id, b)  => apiFetch(`/exams/${id}`, { method: "PUT", body: JSON.stringify(b) }),
   getAnalysis: (p = {}) => apiFetch("/exams/analysis?" + new URLSearchParams(p)),
   getLearners:  (p = {}) => apiFetch("/learners?" + new URLSearchParams(p)),
   getScores:   (id)     => apiFetch(`/exams/${id}/scores`),
@@ -758,8 +759,18 @@ function Field({ label, children }) {
   );
 }
 
-function CreateExamModal({ onClose, onCreate }) {
-  const [form, setForm] = useState({
+function CreateExamModal({ onClose, onCreate, initialExam }) {
+  const isEdit = !!initialExam;
+  const [form, setForm] = useState(() => initialExam ? {
+    examName: initialExam.examName ?? initialExam.name ?? "",
+    subject: initialExam.subject ?? "",
+    grade: initialExam.grade ?? "",
+    term: String(initialExam.term ?? ""),
+    year: initialExam.academicYear ?? initialExam.academic_year ?? THIS_YEAR,
+    examDate: (initialExam.startDate ?? initialExam.start_date ?? "").slice(0, 10),
+    maxScore: initialExam.maxScore ?? initialExam.max_score ?? 100,
+    examType: initialExam.examType ?? initialExam.exam_type ?? "",
+  } : {
     examName: "", subject: "", grade: "", term: "",
     year: THIS_YEAR, examDate: "", maxScore: 100, examType: "",
   });
@@ -773,13 +784,15 @@ function CreateExamModal({ onClose, onCreate }) {
     }
     setSaving(true); setErr("");
     try {
-      const result = await api.createExam({
+      const payload = {
         ...form,
         name: form.examName,
         academicYear: form.year,
         startDate: form.examDate,
         maxScore: Number(form.maxScore),
-      });
+      };
+      const examId = initialExam?.id ?? initialExam?._id;
+      const result = isEdit ? await api.updateExam(examId, payload) : await api.createExam(payload);
       onCreate(result.exam ?? result);
     } catch (e) { setErr(e.message); }
     finally { setSaving(false); }
@@ -789,7 +802,7 @@ function CreateExamModal({ onClose, onCreate }) {
     <div style={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div style={styles.modal}>
         <div style={styles.modalHeader}>
-          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#111827" }}>New examination</h2>
+          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#111827" }}>{isEdit ? "Edit examination" : "New examination"}</h2>
           <button onClick={onClose} style={styles.iconBtn}>✕</button>
         </div>
         <div style={styles.modalBody}>
@@ -858,7 +871,7 @@ function CreateExamModal({ onClose, onCreate }) {
         <div style={styles.modalFooter}>
           <button onClick={onClose} style={styles.btnGhost}>Cancel</button>
           <button onClick={submit} disabled={saving} style={{ ...styles.btnPrimary, opacity: saving ? 0.6 : 1 }}>
-            {saving ? "Creating…" : "Create exam"}
+            {saving ? (isEdit ? "Saving…" : "Creating…") : (isEdit ? "Save changes" : "Create exam")}
           </button>
         </div>
       </div>
@@ -876,6 +889,7 @@ export default function ExaminationsPage() {
   const [loadingExams,  setLoadingExams]  = useState(true);
   const [loadingScores, setLoadingScores] = useState(false);
   const [showCreate, setShowCreate]  = useState(false);
+  const [editingExam, setEditingExam] = useState(null);
   const [filters,    setFilters]     = useState({ term: "", grade: "", year: THIS_YEAR - 1 });
   const [examErr,    setExamErr]     = useState("");
 
@@ -939,6 +953,12 @@ export default function ExaminationsPage() {
     setScores([]);
     setShowCreate(false);
     setTab("marks");
+  }
+  function handleUpdated(exam) {
+    const examId = exam.id ?? exam._id;
+    setExams((prev) => prev.map((e) => (e.id ?? e._id) === examId ? exam : e));
+    setSelected(exam);
+    setEditingExam(null);
   }
 
   const TABS = [
@@ -1027,6 +1047,21 @@ export default function ExaminationsPage() {
             <span style={{ marginLeft: "auto", fontSize: 12, color: "#9CA3AF", alignSelf: "center", paddingRight: 24 }}>
               {selected.examName ?? selected.name} · Max {selected.maxScore ?? 100}
                 <button
+                  onClick={() => setEditingExam(selected)}
+                  style={{
+                    marginLeft: 12,
+                    padding: '4px 10px',
+                    background: 'transparent',
+                    color: '#3B5BDB',
+                    border: '1px solid #3B5BDB',
+                    borderRadius: 6,
+                    fontSize: 11,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Edit Exam
+                </button>
+                <button
                   onClick={handleDeleteExam}
                   disabled={deletingExam}
                   style={{
@@ -1074,7 +1109,13 @@ export default function ExaminationsPage() {
         {!loadingScores && selected && tab === "reports"   && <ReportCardsTab exam={selected} scores={scores} />}
       </div>
 
-      {showCreate && <CreateExamModal onClose={() => setShowCreate(false)} onCreate={handleCreated} />}
+      {(showCreate || editingExam) && (
+        <CreateExamModal
+          onClose={() => { setShowCreate(false); setEditingExam(null); }}
+          onCreate={editingExam ? handleUpdated : handleCreated}
+          initialExam={editingExam}
+        />
+      )}
     </div>
   );
 }

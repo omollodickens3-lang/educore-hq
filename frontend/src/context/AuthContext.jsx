@@ -34,6 +34,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{
       user, loading, login, logout,
       isAdmin: user?.role === 'admin',
+      isAdminTier: ['admin','director_of_studies','deputy','hod','super_admin'].includes(user?.role),
       isTeacher: ['admin','deputy','director_of_studies','hod','class_teacher','subject_teacher'].includes(user?.role),
       isParent: user?.role === 'parent',
       schoolId: user?.schoolId,

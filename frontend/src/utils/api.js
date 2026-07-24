@@ -50,6 +50,7 @@ export const examsAPI = {
   getSchoolOverview: (params) => api.get('/exams/school-overview', { params }),
   getAll: (params) => api.get('/exams', { params }),
   create: (data) => api.post('/exams', data),
+  update: (examId, data) => api.put(`/exams/${examId}`, data),
   getScores: (examId) => api.get(`/exams/${examId}/scores`),
   upsertScores: (examId, scores) => api.post(`/exams/${examId}/scores`, { scores }),
   getAnalysis: (params) => api.get('/exams/analysis', { params }),
