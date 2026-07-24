@@ -552,6 +552,11 @@ function MarkEntryTab({ exam, scores, setScores, onSaved }) {
                         transition: "border-color .15s, background .15s",
                       }}
                     />
+                    {maxScore !== 100 && row.score !== "" && row.score !== null && row.score !== undefined && !isNaN(Number(row.score)) && (
+                      <div style={{ fontSize: 11, fontWeight: 600, color: "#6B7280", marginTop: 3 }}>
+                        → {Math.round((Number(row.score) / maxScore) * 100)}%
+                      </div>
+                    )}
                   </td>
                   <td style={{ ...styles.td, textAlign: "center" }}>
                     <CBCBadge cbc={cbc} />

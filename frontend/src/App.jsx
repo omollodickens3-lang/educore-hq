@@ -21,6 +21,7 @@ import PendingRegistrationsPage from './pages/PendingRegistrationsPage';
 import SuperAdminPage from './pages/SuperAdminPage';
 import ManageClassesPage from './pages/ManageClassesPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import MyClassOverviewPage from './pages/MyClassOverviewPage';
 import BroadsheetPage from './pages/BroadsheetPage';
 import ClassListPage from './pages/ClassListPage';
 import NotificationsPage from './pages/NotificationsPage';
@@ -82,7 +83,7 @@ function AppRoutes() {
         <Route path="learners"     element={<LearnersPage />} />
         <Route path="teachers"     element={<TeachersPage />} />
         <Route path="examinations" element={<ExaminationsPage />} />
-        <Route path="analytics" element={<RequireAdminTier><AnalyticsPage /></RequireAdminTier>} /><Route path="broadsheet" element={<BroadsheetPage />} /><Route path="class-list" element={<ClassListPage />} /><Route path="notifications" element={<NotificationsPage />} /><Route path="trends" element={<TrendsPage />} />
+        <Route path="analytics" element={<RequireAdminTier><AnalyticsPage /></RequireAdminTier>} /><Route path="my-class" element={<MyClassOverviewPage />} /><Route path="broadsheet" element={<BroadsheetPage />} /><Route path="class-list" element={<ClassListPage />} /><Route path="notifications" element={<NotificationsPage />} /><Route path="trends" element={<TrendsPage />} />
         <Route path="reports"       element={<ReportsPage />} />
         <Route path="attendance"    element={<AttendancePage />} />
         <Route path="assignments" element={<AssignmentsPage />} />

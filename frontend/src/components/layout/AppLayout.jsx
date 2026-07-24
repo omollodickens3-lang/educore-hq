@@ -12,6 +12,7 @@ const NAV = [
   { section: 'Academics' },
   { to: '/examinations',icon: '📝', label: 'Examinations' },
   { to: '/analytics', icon: '📊', label: 'Analytics', adminOnly: true },
+  { to: '/my-class', icon: '🧑‍🎓', label: 'My Class Overview' },
   { to: '/broadsheet', icon: '🗒️', label: 'Broadsheet' },
   { to: '/class-list', icon: '🧾', label: 'Class Lists' },
   { to: '/notifications', icon: '🔔', label: 'Notifications' },
