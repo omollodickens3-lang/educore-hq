@@ -288,10 +288,59 @@ async function requireLearnerTeacherAccess(req, res, next) {
   }
 }
 
+// Gate: GET /exams/stream-ranking, /exams/learner-ranking, /exams/subject-ranking-by-stream
+// Non-admin-tier staff must specify a stream, and must be authorized for it
+// (class teacher of it, or a subject teacher assigned to it).
+async function requireStreamAccess(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
+  if (req.user.isSuperAdmin || ADMIN_TIER_ROLES.includes(req.user.role)) return next();
+  try {
+    const { grade, stream } = req.query;
+    if (!grade || !stream) {
+      return res.status(400).json({ error: 'As a teacher, please select both a grade and a specific stream to view this ranking' });
+    }
+
+    const teacherId = await getTeacherId(req.user.id, req.user.school_id);
+    if (!teacherId) return res.status(403).json({ error: 'No teacher profile linked to this account' });
+
+    const { rows: classRows } = await query(
+      `SELECT class_teacher_id FROM classes WHERE school_id=$1 AND grade=$2 AND stream=$3 ORDER BY academic_year DESC LIMIT 1`,
+      [req.user.school_id, grade, stream]
+    );
+    const classTeacherId = classRows[0]?.class_teacher_id || null;
+    if (classTeacherId && classTeacherId === teacherId) return next();
+
+    const { rows: subjRows } = await query(
+      `SELECT id FROM teacher_subjects
+       WHERE teacher_id=$1 AND school_id=$2
+         AND (grade=$3 OR grade IS NULL)
+         AND (stream=$4 OR stream IS NULL)`,
+      [teacherId, req.user.school_id, grade, stream]
+    );
+    if (subjRows.length) return next();
+
+    // Grace mode: if the school hasn't configured any teacher_subjects and this
+    // class has no class teacher assigned either, don't block staff entirely.
+    const { rows: anyAssignments } = await query(
+      `SELECT 1 FROM teacher_subjects WHERE school_id=$1 LIMIT 1`,
+      [req.user.school_id]
+    );
+    if (!anyAssignments.length && !classTeacherId) {
+      console.warn(`[requireStreamAccess] school ${req.user.school_id} has no assignments configured — allowing unrestricted stream ranking access`);
+      return next();
+    }
+
+    return res.status(403).json({ error: `You are not assigned to ${grade} Stream ${stream}` });
+  } catch (err) {
+    console.error('requireStreamAccess error:', err);
+    res.status(500).json({ error: 'Access check failed' });
+  }
+}
+
 module.exports = {
   authenticate, authorize, authorizeLevel,
   requirePermission, sameSchool, parentChildOnly,
   requireSuperAdmin,
-  requireExamSubjectAccess, requireClassTeacherAccess, requireLearnerTeacherAccess,
+  requireExamSubjectAccess, requireClassTeacherAccess, requireLearnerTeacherAccess, requireStreamAccess,
   ROLE_LEVELS, ROLE_LABELS,
 };

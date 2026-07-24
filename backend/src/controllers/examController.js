@@ -32,6 +32,28 @@ async function createExam(req, res) {
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to create exam' }); }
 }
 
+async function updateExam(req, res) {
+  try {
+    const { examId } = req.params;
+    const { name, examType, term, academicYear, grade, stream, startDate, endDate, subject, maxScore } = req.body;
+    if (!grade || !term || !examType || !subject) return res.status(400).json({ error: 'grade, term, examType and subject required' });
+
+    const check = await query('SELECT id FROM exams WHERE id=$1 AND school_id=$2', [examId, req.user.school_id]);
+    if (!check.rows.length) return res.status(404).json({ error: 'Exam not found' });
+
+    const { rows } = await query(`
+      UPDATE exams SET
+        name=$1, exam_type=$2, term=$3, academic_year=$4, grade=$5, stream=$6,
+        start_date=$7, end_date=$8, subject=$9, max_score=$10
+      WHERE id=$11 AND school_id=$12
+      RETURNING *`,
+      [name || `${grade} Term ${term} ${examType}`, examType, term, academicYear || '2025/2026', grade, stream || null,
+       startDate || null, endDate || null, subject, maxScore ? Number(maxScore) : 100, examId, req.user.school_id]
+    );
+    res.json({ message: 'Exam updated', exam: rows[0] });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to update exam' }); }
+}
+
 async function getScores(req, res) {
   try {
     const { rows: examRows } = await query(
@@ -343,6 +365,6 @@ async function deleteExam(req, res) {
   }
 }
 
-module.exports = { getExams, createExam, deleteExam, getScores, upsertScores, getAnalysis, getTrends, getSchoolOverview, getStreamRanking, getLearnerRanking, getSubjectRankingByStream, getBroadsheet };
+module.exports = { getExams, createExam, updateExam, deleteExam, getScores, upsertScores, getAnalysis, getTrends, getSchoolOverview, getStreamRanking, getLearnerRanking, getSubjectRankingByStream, getBroadsheet };
 
 

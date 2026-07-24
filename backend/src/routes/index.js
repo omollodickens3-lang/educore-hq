@@ -1,6 +1,6 @@
 ﻿const express = require('express');
 const router = express.Router();
-const { authenticate, authorize, requireSuperAdmin, requireExamSubjectAccess, requireClassTeacherAccess, requireLearnerTeacherAccess } = require('../middleware/auth');
+const { authenticate, authorize, requireSuperAdmin, requireExamSubjectAccess, requireClassTeacherAccess, requireLearnerTeacherAccess, requireStreamAccess } = require('../middleware/auth');
 const auth = require('../controllers/authController');
 const learners = require('../controllers/learnerController');
 const exams = require('../controllers/examController');
@@ -50,12 +50,13 @@ router.delete('/teachers/subjects/:subjectId', authenticate, teachers.removeSubj
 
 router.get('/exams', authenticate, exams.getExams);
 router.post('/exams', authenticate, exams.createExam);
+router.put('/exams/:examId', authenticate, exams.updateExam);
 router.get('/exams/analysis', authenticate, exams.getAnalysis);
 router.get('/exams/trends', authenticate, exams.getTrends);
 router.get('/exams/school-overview', authenticate, exams.getSchoolOverview);
-router.get('/exams/stream-ranking', authenticate, exams.getStreamRanking);
-router.get('/exams/learner-ranking', authenticate, exams.getLearnerRanking);
-router.get('/exams/subject-ranking-by-stream', authenticate, exams.getSubjectRankingByStream);
+router.get('/exams/stream-ranking', authenticate, exams.getStreamRanking); // aggregate-only (avg/counts per stream) — safe for all staff to compare
+router.get('/exams/learner-ranking', authenticate, requireStreamAccess, exams.getLearnerRanking);
+router.get('/exams/subject-ranking-by-stream', authenticate, requireStreamAccess, exams.getSubjectRankingByStream);
 router.get('/exams/broadsheet', authenticate, exams.getBroadsheet);
 router.get('/exams/:examId/scores', authenticate, exams.getScores);
 router.post('/exams/:examId/scores', authenticate, requireExamSubjectAccess, exams.upsertScores);
