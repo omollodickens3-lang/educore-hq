@@ -85,4 +85,27 @@ async function updateClass(req, res) {
   }
 }
 
-module.exports = { getClasses, createClass, updateClass, deleteClass };
+async function getMyClass(req, res) {
+  try {
+    const { rows: teacherRows } = await query(
+      `SELECT id FROM teachers WHERE user_id=$1 AND school_id=$2`,
+      [req.user.id, req.user.school_id]
+    );
+    const teacherId = teacherRows[0]?.id || null;
+    if (!teacherId) return res.json({ classes: [] });
+
+    const { rows } = await query(
+      `SELECT id, grade, stream, section, academic_year
+       FROM classes
+       WHERE school_id=$1 AND class_teacher_id=$2
+       ORDER BY academic_year DESC, grade, stream`,
+      [req.user.school_id, teacherId]
+    );
+    res.json({ classes: rows });
+  } catch (err) {
+    console.error("Get my class error:", err.message);
+    res.status(500).json({ error: "Failed to fetch your class" });
+  }
+}
+
+module.exports = { getClasses, createClass, updateClass, deleteClass, getMyClass };

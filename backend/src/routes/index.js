@@ -23,6 +23,7 @@ router.get('/auth/me', authenticate, auth.me);
 router.post('/auth/change-password', authenticate, auth.changePassword);
 
 router.get('/classes', authenticate, classes.getClasses);
+router.get('/classes/mine', authenticate, classes.getMyClass);
 router.post('/classes', authenticate, classes.createClass);
 router.put('/classes/:id', authenticate, classes.updateClass);
 router.delete('/classes/:id', authenticate, classes.deleteClass);
