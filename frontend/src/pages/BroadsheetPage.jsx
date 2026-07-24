@@ -24,6 +24,7 @@ const api = {
 };
 
 const GRADES = ["Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Grade 7","Grade 8","Grade 9","Grade 10","Grade 11","Grade 12"];
+const EXAM_TYPES = [{v:"cat",l:"CAT"},{v:"opener",l:"Opener"},{v:"midterm",l:"Mid Term"},{v:"end_term",l:"End Term"}];
 const THIS_YEAR = new Date().getFullYear();
 
 const styles = {
@@ -44,7 +45,7 @@ const styles = {
 };
 
 export default function BroadsheetPage() {
-  const [filters, setFilters] = useState({ grade: "Grade 7", term: "2", academicYear: (THIS_YEAR - 1) + "/" + THIS_YEAR, stream: "A" });
+  const [filters, setFilters] = useState({ grade: "Grade 7", term: "2", academicYear: (THIS_YEAR - 1) + "/" + THIS_YEAR, stream: "A", examType: "end_term" });
   const [subjects, setSubjects] = useState([]);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -55,11 +56,11 @@ export default function BroadsheetPage() {
   }
 
   async function load() {
-    if (!filters.grade || !filters.term || !filters.stream) return;
+    if (!filters.grade || !filters.term || !filters.stream || !filters.examType) return;
     setLoading(true);
     setErr("");
     try {
-      const params = { grade: filters.grade, term: filters.term, academicYear: filters.academicYear, stream: filters.stream };
+      const params = { grade: filters.grade, term: filters.term, academicYear: filters.academicYear, stream: filters.stream, examType: filters.examType };
       const data = await api.getBroadsheet(params);
       setSubjects(data.subjects || []);
       setRows(data.broadsheet || []);
@@ -70,7 +71,7 @@ export default function BroadsheetPage() {
     }
   }
 
-  useEffect(() => { load(); }, [filters.grade, filters.term, filters.academicYear, filters.stream]);
+  useEffect(() => { load(); }, [filters.grade, filters.term, filters.academicYear, filters.stream, filters.examType]);
 
   return (
     <div style={styles.page}>
@@ -104,13 +105,16 @@ export default function BroadsheetPage() {
           value={filters.stream}
           onChange={(e) => set("stream", e.target.value)}
         />
+        <select style={styles.select} value={filters.examType} onChange={(e) => set("examType", e.target.value)}>
+          {EXAM_TYPES.map((t) => <option key={t.v} value={t.v}>{t.l}</option>)}
+        </select>
       </div>
 
       {err && <div style={styles.error}>Could not load broadsheet: {err}</div>}
 
       <div style={styles.section}>
         <div style={styles.sectionTitle}>
-          {filters.grade} Stream {filters.stream || "-"} - Term {filters.term} {filters.academicYear}
+          {filters.grade} Stream {filters.stream || "-"} - Term {filters.term} {filters.academicYear} - {EXAM_TYPES.find(t => t.v === filters.examType)?.l || filters.examType}
         </div>
         {loading ? (
           <div style={styles.empty}>Loading...</div>

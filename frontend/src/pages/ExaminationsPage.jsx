@@ -800,7 +800,7 @@ function CreateExamModal({ onClose, onCreate }) {
           <Field label="Exam type *">
             <select style={styles.input} value={form.examType} onChange={(e) => set("examType", e.target.value)}>
               <option value="">Select</option>
-              {[{v:"opener",l:"Opener"},{v:"midterm",l:"Mid Term"},{v:"end_term",l:"End Term"}].map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
+              {[{v:"cat",l:"CAT"},{v:"opener",l:"Opener"},{v:"midterm",l:"Mid Term"},{v:"end_term",l:"End Term"}].map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
             </select>
           </Field>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>

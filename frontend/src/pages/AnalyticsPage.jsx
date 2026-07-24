@@ -27,6 +27,7 @@ const api = {
 
 const GRADES = ["Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Grade 7","Grade 8","Grade 9","Grade 10","Grade 11","Grade 12"];
 const SUBJECTS = ["Mathematics","English","Kiswahili","Science","Social Studies","Religious Education","Creative Arts","Physical Education","Agriculture","Home Science","Business Studies","Life Skills","Indigenous Languages"];
+const EXAM_TYPES = [{v:"",l:"All Exam Types"},{v:"cat",l:"CAT"},{v:"opener",l:"Opener"},{v:"midterm",l:"Mid Term"},{v:"end_term",l:"End Term"}];
 const THIS_YEAR = new Date().getFullYear();
 
 const GRADE_COLORS = {
@@ -60,7 +61,7 @@ function GradeBadge({ label, count, colorKey }) {
 }
 
 export default function AnalyticsPage() {
-  const [filters, setFilters] = useState({ grade: "Grade 7", term: "2", academicYear: `${THIS_YEAR}/${THIS_YEAR + 1}`, subject: "", stream: "" });
+  const [filters, setFilters] = useState({ grade: "Grade 7", term: "2", academicYear: `${THIS_YEAR}/${THIS_YEAR + 1}`, subject: "", stream: "", examType: "" });
   const [streamRanking, setStreamRanking] = useState([]);
   const [learnerRanking, setLearnerRanking] = useState([]);
   const [subjectRanking, setSubjectRanking] = useState([]);
@@ -77,6 +78,7 @@ export default function AnalyticsPage() {
       const params = { grade: filters.grade, term: filters.term, academicYear: filters.academicYear };
       if (filters.subject) params.subject = filters.subject;
       if (filters.stream) params.stream = filters.stream;
+      if (filters.examType) params.examType = filters.examType;
 
       const [sr, lr] = await Promise.all([
         api.getStreamRanking(params),
@@ -97,7 +99,7 @@ export default function AnalyticsPage() {
     }
   }
 
-  useEffect(() => { load(); }, [filters.grade, filters.term, filters.academicYear, filters.subject, filters.stream]);
+  useEffect(() => { load(); }, [filters.grade, filters.term, filters.academicYear, filters.subject, filters.stream, filters.examType]);
 
   return (
     <div style={styles.page}>
@@ -130,6 +132,9 @@ export default function AnalyticsPage() {
           value={filters.stream}
           onChange={(e) => set("stream", e.target.value)}
         />
+        <select style={styles.select} value={filters.examType} onChange={(e) => set("examType", e.target.value)}>
+          {EXAM_TYPES.map((t) => <option key={t.v} value={t.v}>{t.l}</option>)}
+        </select>
       </div>
 
       {err && <div style={styles.error}>Could not load analytics: {err}</div>}
