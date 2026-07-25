@@ -752,7 +752,12 @@ function ReportCardsTab({ exam, scores }) {
 // ─── Create Exam Modal ─────────────────────────────────────────────────────────
 const TERMS    = ["Term 1", "Term 2", "Term 3"];
 const GRADES   = ["Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Grade 7","Grade 8","Grade 9","Grade 10","Grade 11","Grade 12"];
-const SUBJECTS = ["Mathematics","English","Kiswahili","Science","Social Studies","Religious Education","Creative Arts","Physical Education","Agriculture","Home Science","Business Studies","Life Skills","Indigenous Languages"];
+const JUNIOR_SECONDARY_SUBJECTS = ["Mathematics","English","Kiswahili","Creative Arts and Sports","Social Studies","Religious Education","Pre-Technical Studies","Integrated Science","Agriculture and Nutrition"];
+const PRIMARY_SUBJECTS = ["Mathematics","English","Kiswahili","Science","Social Studies","Religious Education","Creative Arts","Physical Education","Agriculture","Home Science","Business Studies","Life Skills","Indigenous Languages"];
+const JS_GRADES = ["Grade 7", "Grade 8", "Grade 9"];
+function subjectsForGrade(grade) {
+  return JS_GRADES.includes(grade) ? JUNIOR_SECONDARY_SUBJECTS : PRIMARY_SUBJECTS;
+}
 const THIS_YEAR = new Date().getFullYear();
 
 function Field({ label, children }) {
@@ -771,7 +776,12 @@ function ExamRoundModal({ onClose, onDone }) {
   const [grade, setGrade] = useState("");
   const [deadline, setDeadline] = useState("");
   const [maxScore, setMaxScore] = useState(100);
-  const [selectedSubjects, setSelectedSubjects] = useState(() => new Set(SUBJECTS));
+  const [selectedSubjects, setSelectedSubjects] = useState(() => new Set());
+  const availableSubjects = grade ? subjectsForGrade(grade) : [];
+
+  useEffect(() => {
+    setSelectedSubjects(new Set(subjectsForGrade(grade)));
+  }, [grade]);
   const [creating, setCreating] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [errors, setErrors] = useState([]);
@@ -882,16 +892,20 @@ function ExamRoundModal({ onClose, onDone }) {
 
         <div style={{ padding: "0 24px 8px" }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 8 }}>
-            Subjects ({selectedSubjects.size} of {SUBJECTS.length} selected)
+            Subjects ({selectedSubjects.size} of {availableSubjects.length} selected)
           </div>
+          {!grade ? (
+            <div style={{ fontSize: 12, color: "#9CA3AF", padding: "8px 0" }}>Select a grade above to see its subjects.</div>
+          ) : (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, maxHeight: 180, overflowY: "auto" }}>
-            {SUBJECTS.map((s) => (
+            {availableSubjects.map((s) => (
               <label key={s} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#374151", cursor: "pointer" }}>
                 <input type="checkbox" checked={selectedSubjects.has(s)} onChange={() => toggleSubject(s)} disabled={creating} />
                 {s}
               </label>
             ))}
           </div>
+          )}
         </div>
 
         {err && <div style={{ padding: "0 24px 8px", color: "#DC2626", fontSize: 13 }}>{err}</div>}
@@ -987,7 +1001,7 @@ function CreateExamModal({ onClose, onCreate, initialExam }) {
             <Field label="Subject *">
               <select style={styles.input} value={form.subject} onChange={(e) => set("subject", e.target.value)}>
                 <option value="">Select…</option>
-                {SUBJECTS.map((s) => <option key={s}>{s}</option>)}
+                {subjectsForGrade(form.grade).map((s) => <option key={s}>{s}</option>)}
               </select>
             </Field>
             <Field label="Grade *">
