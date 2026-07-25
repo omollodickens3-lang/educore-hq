@@ -48,6 +48,7 @@ export const teachersAPI = {
 };
 export const examsAPI = {
   getSchoolOverview: (params) => api.get('/exams/school-overview', { params }),
+  getMyActiveExams: () => api.get('/exams/my-active'),
   getAll: (params) => api.get('/exams', { params }),
   create: (data) => api.post('/exams', data),
   update: (examId, data) => api.put(`/exams/${examId}`, data),

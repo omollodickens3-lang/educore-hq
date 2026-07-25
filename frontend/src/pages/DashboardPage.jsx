@@ -32,6 +32,15 @@ export default function DashboardPage() {
   });
   const overview = overviewQuery.data ? overviewQuery.data.overview : null;
 
+  const myActiveExamsQuery = useQuery({
+    queryKey: ['myActiveExams'],
+    queryFn: function () {
+      return examsAPI.getMyActiveExams().then(function (r) { return r.data; });
+    },
+  });
+  const myActiveExams = myActiveExamsQuery.data ? myActiveExamsQuery.data.exams : null;
+  const myActiveRound = myActiveExamsQuery.data ? myActiveExamsQuery.data.round : null;
+
   let overallMean = null;
   let topGrade = null;
   let weakGrade = null;
@@ -82,6 +91,8 @@ export default function DashboardPage() {
     { icon: '💬', label: 'Parent Portal', path: '/portal' },
   ];
 
+  const EXAM_TYPE_LABELS = { cat: 'CAT', opener: 'Opener', midterm: 'Mid Term', end_term: 'End Term' };
+
   const cardStyle = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', minWidth: 0 };
 
   return (
@@ -103,6 +114,26 @@ export default function DashboardPage() {
       <p style={{ fontSize: '13px', color: '#64748b', marginTop: '3px', marginBottom: '20px' }}>
         {schoolName} - Academic Year 2025/2026 - Term 2
       </p>
+
+      {myActiveExams && myActiveExams.length > 0 && (
+        <div style={{ marginBottom: '20px' }}>
+          <div style={{ fontSize: '11px', fontWeight: '500', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px' }}>
+            {myActiveRound ? `${EXAM_TYPE_LABELS[myActiveRound.examType] || myActiveRound.examType} · Term ${myActiveRound.term} · ${myActiveRound.grade}` : 'Your Exams'}
+          </div>
+          <div className="ec-grid-4">
+            {myActiveExams.map(function (exam) {
+              const examId = exam.id ?? exam._id;
+              const link = `/examinations?examId=${examId}&term=${exam.term}&grade=${encodeURIComponent(exam.grade)}&year=${(exam.academic_year || '').split('/')[0]}`;
+              return (
+                <a key={examId} href={link} style={{ ...cardStyle, textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '4px', borderColor: '#185fa5' }}>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>{exam.subject}</span>
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#185fa5' }}>Enter marks →</span>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="ec-grid-4" style={{ marginBottom: '20px' }}>
         <div style={cardStyle}>

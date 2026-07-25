@@ -14,6 +14,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 
 // ─── API ──────────────────────────────────────────────────────────────────────
 const BASE = import.meta.env.VITE_API_URL ?? "/api";
@@ -1067,6 +1068,9 @@ function CreateExamModal({ onClose, onCreate, initialExam }) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function ExaminationsPage() {
+  const [searchParams] = useSearchParams();
+  const deepLinkExamId = searchParams.get("examId");
+
   const [exams,      setExams]      = useState([]);
   const [selected,   setSelected]   = useState(null);
   const [scores,     setScores]     = useState([]);
@@ -1077,7 +1081,15 @@ export default function ExaminationsPage() {
   const [showCreate, setShowCreate]  = useState(false);
   const [showRoundCreate, setShowRoundCreate] = useState(false);
   const [editingExam, setEditingExam] = useState(null);
-  const [filters,    setFilters]     = useState({ term: "", grade: "", year: THIS_YEAR - 1 });
+  const [filters,    setFilters]     = useState(() => {
+    const urlTerm = searchParams.get("term");
+    const urlGrade = searchParams.get("grade");
+    const urlYear = searchParams.get("year");
+    if (urlTerm || urlGrade || urlYear) {
+      return { term: urlTerm || "", grade: urlGrade || "", year: urlYear || THIS_YEAR - 1 };
+    }
+    return { term: "", grade: "", year: THIS_YEAR - 1 };
+  });
   const [examErr,    setExamErr]     = useState("");
 
   const loadExams = useCallback(() => {
@@ -1089,6 +1101,14 @@ export default function ExaminationsPage() {
       .then((data) => {
         const list = Array.isArray(data) ? data : data.exams ?? [];
         setExams(list);
+        if (deepLinkExamId) {
+          const match = list.find((e) => (e.id ?? e._id) === deepLinkExamId);
+          if (match) {
+            setSelected(match);
+            setTab("marks");
+            return;
+          }
+        }
         if (list.length && !selected) setSelected(list[0]);
       })
       .catch((e) => setExamErr(e.message))
