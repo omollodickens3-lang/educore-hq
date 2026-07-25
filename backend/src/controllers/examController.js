@@ -192,6 +192,94 @@ async function getTrends(req, res) {
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to fetch trends' }); }
 }
 
+// Returns the most-recently-created exam round (exam_type+term+year+grade)
+// filtered to the logged-in teacher's assigned subjects — so teachers land
+// straight on "the current exam" instead of hunting through dropdowns.
+async function getMyActiveExams(req, res) {
+  try {
+    if (req.user.isSuperAdmin || ['admin', 'director_of_studies', 'deputy', 'hod'].includes(req.user.role)) {
+      const { rows: latestAdmin } = await query(
+        `SELECT exam_type, term, academic_year, grade, MAX(created_at) AS latest
+         FROM exams WHERE school_id=$1
+         GROUP BY exam_type, term, academic_year, grade
+         ORDER BY latest DESC LIMIT 1`,
+        [req.user.school_id]
+      );
+      if (!latestAdmin.length) return res.json({ exams: [], round: null });
+      const r = latestAdmin[0];
+      const { rows } = await query(
+        `SELECT * FROM exams WHERE school_id=$1 AND exam_type=$2 AND term=$3 AND academic_year=$4 AND grade=$5 ORDER BY subject`,
+        [req.user.school_id, r.exam_type, r.term, r.academic_year, r.grade]
+      );
+      return res.json({ exams: rows, round: { examType: r.exam_type, term: r.term, academicYear: r.academic_year, grade: r.grade } });
+    }
+
+    const { rows: teacherRows } = await query(
+      `SELECT id FROM teachers WHERE user_id=$1 AND school_id=$2`,
+      [req.user.id, req.user.school_id]
+    );
+    const teacherId = teacherRows[0]?.id || null;
+    if (!teacherId) return res.json({ exams: [], round: null });
+
+    const { rows: assignedSubjects } = await query(
+      `SELECT DISTINCT subject FROM teacher_subjects WHERE teacher_id=$1 AND school_id=$2`,
+      [teacherId, req.user.school_id]
+    );
+
+    let latestRows;
+    if (assignedSubjects.length) {
+      const subjects = assignedSubjects.map((s) => s.subject);
+      const { rows } = await query(
+        `SELECT exam_type, term, academic_year, grade, MAX(created_at) AS latest
+         FROM exams WHERE school_id=$1 AND subject = ANY($2::text[])
+         GROUP BY exam_type, term, academic_year, grade
+         ORDER BY latest DESC LIMIT 1`,
+        [req.user.school_id, subjects]
+      );
+      latestRows = rows;
+    } else {
+      // Grace mode: no subject assignments configured yet — fall back to the
+      // school's most recent exam round overall so teachers aren't locked out.
+      const { rows } = await query(
+        `SELECT exam_type, term, academic_year, grade, MAX(created_at) AS latest
+         FROM exams WHERE school_id=$1
+         GROUP BY exam_type, term, academic_year, grade
+         ORDER BY latest DESC LIMIT 1`,
+        [req.user.school_id]
+      );
+      latestRows = rows;
+    }
+
+    if (!latestRows.length) return res.json({ exams: [], round: null });
+    const r = latestRows[0];
+
+    let examRows;
+    if (assignedSubjects.length) {
+      const subjects = assignedSubjects.map((s) => s.subject);
+      const { rows } = await query(
+        `SELECT * FROM exams
+         WHERE school_id=$1 AND exam_type=$2 AND term=$3 AND academic_year=$4 AND grade=$5
+           AND subject = ANY($6::text[])
+         ORDER BY subject`,
+        [req.user.school_id, r.exam_type, r.term, r.academic_year, r.grade, subjects]
+      );
+      examRows = rows;
+    } else {
+      const { rows } = await query(
+        `SELECT * FROM exams WHERE school_id=$1 AND exam_type=$2 AND term=$3 AND academic_year=$4 AND grade=$5 ORDER BY subject`,
+        [req.user.school_id, r.exam_type, r.term, r.academic_year, r.grade]
+      );
+      examRows = rows;
+    }
+
+    res.json({ exams: examRows, round: { examType: r.exam_type, term: r.term, academicYear: r.academic_year, grade: r.grade } });
+  } catch (err) {
+    console.error('getMyActiveExams error:', err);
+    res.status(500).json({ error: 'Failed to fetch your active exams' });
+  }
+}
+
+
 async function getSchoolOverview(req, res) {
   try {
     const { term, academicYear = '2025/2026', examType } = req.query;
@@ -365,6 +453,6 @@ async function deleteExam(req, res) {
   }
 }
 
-module.exports = { getExams, createExam, updateExam, deleteExam, getScores, upsertScores, getAnalysis, getTrends, getSchoolOverview, getStreamRanking, getLearnerRanking, getSubjectRankingByStream, getBroadsheet };
+module.exports = { getExams, createExam, updateExam, deleteExam, getScores, upsertScores, getAnalysis, getTrends, getSchoolOverview, getStreamRanking, getLearnerRanking, getSubjectRankingByStream, getBroadsheet, getMyActiveExams };
 
 

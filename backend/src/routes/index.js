@@ -55,6 +55,7 @@ router.put('/exams/:examId', authenticate, exams.updateExam);
 router.get('/exams/analysis', authenticate, exams.getAnalysis);
 router.get('/exams/trends', authenticate, exams.getTrends);
 router.get('/exams/school-overview', authenticate, exams.getSchoolOverview);
+router.get('/exams/my-active', authenticate, exams.getMyActiveExams);
 router.get('/exams/stream-ranking', authenticate, exams.getStreamRanking); // aggregate-only (avg/counts per stream) — safe for all staff to compare
 router.get('/exams/learner-ranking', authenticate, requireStreamAccess, exams.getLearnerRanking);
 router.get('/exams/subject-ranking-by-stream', authenticate, requireStreamAccess, exams.getSubjectRankingByStream);
