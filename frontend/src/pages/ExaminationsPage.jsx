@@ -764,6 +764,168 @@ function Field({ label, children }) {
   );
 }
 
+function ExamRoundModal({ onClose, onDone }) {
+  const [examType, setExamType] = useState("");
+  const [term, setTerm] = useState("");
+  const [year, setYear] = useState(`${THIS_YEAR - 1}/${THIS_YEAR}`);
+  const [grade, setGrade] = useState("");
+  const [deadline, setDeadline] = useState("");
+  const [maxScore, setMaxScore] = useState(100);
+  const [selectedSubjects, setSelectedSubjects] = useState(() => new Set(SUBJECTS));
+  const [creating, setCreating] = useState(false);
+  const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const [errors, setErrors] = useState([]);
+  const [err, setErr] = useState("");
+
+  const EXAM_TYPE_OPTIONS = [
+    { v: "cat", l: "CAT" },
+    { v: "opener", l: "Opener" },
+    { v: "midterm", l: "Mid Term" },
+    { v: "end_term", l: "End Term" },
+  ];
+  const examTypeLabel = EXAM_TYPE_OPTIONS.find((t) => t.v === examType)?.l ?? "";
+
+  function toggleSubject(s) {
+    setSelectedSubjects((prev) => {
+      const next = new Set(prev);
+      next.has(s) ? next.delete(s) : next.add(s);
+      return next;
+    });
+  }
+
+  async function submit() {
+    if (!examType || !term || !grade || selectedSubjects.size === 0) {
+      setErr("Please select exam type, term, grade, and at least one subject.");
+      return;
+    }
+    setErr("");
+    setErrors([]);
+    setCreating(true);
+    const subjects = [...selectedSubjects];
+    setProgress({ done: 0, total: subjects.length });
+
+    const failures = [];
+    for (let i = 0; i < subjects.length; i++) {
+      const subject = subjects[i];
+      try {
+        await api.createExam({
+          examName: `${examTypeLabel} - ${subject}`,
+          subject,
+          grade,
+          term,
+          year,
+          examDate: deadline || new Date().toISOString().slice(0, 10),
+          endDate: deadline || undefined,
+          maxScore: Number(maxScore),
+          examType,
+        });
+      } catch (e) {
+        failures.push(`${subject}: ${e.message}`);
+      }
+      setProgress({ done: i + 1, total: subjects.length });
+    }
+
+    setCreating(false);
+    if (failures.length) {
+      setErrors(failures);
+    } else {
+      onDone();
+    }
+  }
+
+  return (
+    <div style={styles.overlay} onClick={(e) => e.target === e.currentTarget && !creating && onClose()}>
+      <div style={{ ...styles.modal, maxWidth: 520 }}>
+        <div style={styles.modalHeader}>
+          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#111827" }}>New exam round</h2>
+          <button onClick={onClose} style={styles.iconBtn} disabled={creating}>✕</button>
+        </div>
+        <div style={{ padding: "8px 24px 4px", fontSize: 13, color: "#6B7280" }}>
+          Creates one exam per selected subject, all sharing the same type, term, grade, and deadline — e.g. "Mid Term 2" across all 9 subjects at once.
+        </div>
+
+        <div style={{ ...styles.modalBody, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <Field label="Exam type *">
+            <select style={styles.input} value={examType} onChange={(e) => setExamType(e.target.value)} disabled={creating}>
+              <option value="">Select…</option>
+              {EXAM_TYPE_OPTIONS.map((t) => <option key={t.v} value={t.v}>{t.l}</option>)}
+            </select>
+          </Field>
+          <Field label="Grade *">
+            <select style={styles.input} value={grade} onChange={(e) => setGrade(e.target.value)} disabled={creating}>
+              <option value="">Select…</option>
+              {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </Field>
+          <Field label="Term *">
+            <select style={styles.input} value={term} onChange={(e) => setTerm(e.target.value)} disabled={creating}>
+              <option value="">Select…</option>
+              {TERMS.map((t, i) => <option key={t} value={i + 1}>{t}</option>)}
+            </select>
+          </Field>
+          <Field label="Academic Year">
+            <select style={styles.input} value={year} onChange={(e) => setYear(e.target.value)} disabled={creating}>
+              {[-1, 0, 1].map((offset) => {
+                const y = (THIS_YEAR - 1) + offset;
+                const v = `${y}/${y + 1}`;
+                return <option key={v} value={v}>{v}</option>;
+              })}
+            </select>
+          </Field>
+          <Field label="Marks deadline">
+            <input style={styles.input} type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} disabled={creating} />
+          </Field>
+          <Field label="Max score per subject">
+            <input style={styles.input} type="number" min={1} value={maxScore} onChange={(e) => setMaxScore(e.target.value)} disabled={creating} />
+          </Field>
+        </div>
+
+        <div style={{ padding: "0 24px 8px" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 8 }}>
+            Subjects ({selectedSubjects.size} of {SUBJECTS.length} selected)
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, maxHeight: 180, overflowY: "auto" }}>
+            {SUBJECTS.map((s) => (
+              <label key={s} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#374151", cursor: "pointer" }}>
+                <input type="checkbox" checked={selectedSubjects.has(s)} onChange={() => toggleSubject(s)} disabled={creating} />
+                {s}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {err && <div style={{ padding: "0 24px 8px", color: "#DC2626", fontSize: 13 }}>{err}</div>}
+
+        {creating && (
+          <div style={{ padding: "0 24px 8px", fontSize: 13, color: "#374151" }}>
+            Creating exams… {progress.done} of {progress.total}
+          </div>
+        )}
+
+        {errors.length > 0 && (
+          <div style={{ padding: "0 24px 8px", fontSize: 12, color: "#DC2626" }}>
+            {progress.total - errors.length} of {progress.total} created successfully. Failed:
+            <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
+              {errors.map((e, i) => <li key={i}>{e}</li>)}
+            </ul>
+          </div>
+        )}
+
+        <div style={styles.modalFooter}>
+          <button onClick={onClose} disabled={creating} style={styles.btnGhost}>
+            {errors.length ? "Close" : "Cancel"}
+          </button>
+          {errors.length === 0 && (
+            <button onClick={submit} disabled={creating} style={{ ...styles.btnPrimary, opacity: creating ? 0.6 : 1 }}>
+              {creating ? "Creating…" : `Create ${selectedSubjects.size} exams`}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CreateExamModal({ onClose, onCreate, initialExam }) {
   const isEdit = !!initialExam;
   const [form, setForm] = useState(() => initialExam ? {
@@ -771,13 +933,13 @@ function CreateExamModal({ onClose, onCreate, initialExam }) {
     subject: initialExam.subject ?? "",
     grade: initialExam.grade ?? "",
     term: String(initialExam.term ?? ""),
-    year: initialExam.academicYear ?? initialExam.academic_year ?? THIS_YEAR,
+    year: initialExam.academicYear ?? initialExam.academic_year ?? `${THIS_YEAR - 1}/${THIS_YEAR}`,
     examDate: (initialExam.startDate ?? initialExam.start_date ?? "").slice(0, 10),
     maxScore: initialExam.maxScore ?? initialExam.max_score ?? 100,
     examType: initialExam.examType ?? initialExam.exam_type ?? "",
   } : {
     examName: "", subject: "", grade: "", term: "",
-    year: THIS_YEAR, examDate: "", maxScore: 100, examType: "",
+    year: `${THIS_YEAR - 1}/${THIS_YEAR}`, examDate: "", maxScore: 100, examType: "",
   });
   const [saving, setSaving] = useState(false);
   const [err, setErr]       = useState("");
@@ -840,9 +1002,14 @@ function CreateExamModal({ onClose, onCreate, initialExam }) {
                 {TERMS.map((t, i) => <option key={t} value={i + 1}>{t}</option>)}
               </select>
             </Field>
-            <Field label="Year">
-              <input style={styles.input} type="number" value={form.year} min={2020} max={2040}
-                onChange={(e) => set("year", e.target.value)} />
+            <Field label="Academic Year">
+              <select style={styles.input} value={form.year} onChange={(e) => set("year", e.target.value)}>
+                {[-1, 0, 1].map((offset) => {
+                  const y = (THIS_YEAR - 1) + offset;
+                  const v = `${y}/${y + 1}`;
+                  return <option key={v} value={v}>{v}</option>;
+                })}
+              </select>
             </Field>
             <Field label="Exam date *">
               <input style={styles.input} type="date" value={form.examDate}
@@ -894,6 +1061,7 @@ export default function ExaminationsPage() {
   const [loadingExams,  setLoadingExams]  = useState(true);
   const [loadingScores, setLoadingScores] = useState(false);
   const [showCreate, setShowCreate]  = useState(false);
+  const [showRoundCreate, setShowRoundCreate] = useState(false);
   const [editingExam, setEditingExam] = useState(null);
   const [filters,    setFilters]     = useState({ term: "", grade: "", year: THIS_YEAR - 1 });
   const [examErr,    setExamErr]     = useState("");
@@ -1029,6 +1197,9 @@ export default function ExaminationsPage() {
           </select>
         </div>
 
+        <button onClick={() => setShowRoundCreate(true)} style={{ ...styles.btnGhost, whiteSpace: "nowrap", border: "1px solid #3B5BDB", color: "#3B5BDB" }}>
+          + New exam round
+        </button>
         <button onClick={() => setShowCreate(true)} style={{ ...styles.btnPrimary, whiteSpace: "nowrap" }}>
           + New exam
         </button>
@@ -1119,6 +1290,12 @@ export default function ExaminationsPage() {
           onClose={() => { setShowCreate(false); setEditingExam(null); }}
           onCreate={editingExam ? handleUpdated : handleCreated}
           initialExam={editingExam}
+        />
+      )}
+      {showRoundCreate && (
+        <ExamRoundModal
+          onClose={() => setShowRoundCreate(false)}
+          onDone={() => { setShowRoundCreate(false); loadExams(); }}
         />
       )}
     </div>
