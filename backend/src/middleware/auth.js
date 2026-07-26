@@ -169,23 +169,30 @@ async function requireExamSubjectAccess(req, res, next) {
   if (req.user.isSuperAdmin || ADMIN_TIER_ROLES.includes(req.user.role)) return next();
   try {
     const { rows: examRows } = await query(
-      `SELECT subject, grade, stream FROM exams WHERE id=$1 AND school_id=$2`,
+      `SELECT grade, stream FROM exams WHERE id=$1 AND school_id=$2`,
       [req.params.examId, req.user.school_id]
     );
     if (!examRows.length) return res.status(404).json({ error: 'Exam not found' });
     const exam = examRows[0];
 
+    const { scores } = req.body;
+    const submittedSubjects = [...new Set((Array.isArray(scores) ? scores : []).map((s) => s.subject).filter(Boolean))];
+    if (!submittedSubjects.length) return next(); // nothing to check yet
+
     const teacherId = await getTeacherId(req.user.id, req.user.school_id);
     if (!teacherId) return res.status(403).json({ error: 'No teacher profile linked to this account' });
 
     const { rows: matchRows } = await query(
-      `SELECT id FROM teacher_subjects
-       WHERE teacher_id=$1 AND school_id=$2 AND subject=$3
+      `SELECT DISTINCT subject FROM teacher_subjects
+       WHERE teacher_id=$1 AND school_id=$2 AND subject = ANY($3::text[])
          AND (grade=$4 OR grade IS NULL)
          AND (stream=$5 OR stream IS NULL OR $5::text IS NULL)`,
-      [teacherId, req.user.school_id, exam.subject, exam.grade, exam.stream]
+      [teacherId, req.user.school_id, submittedSubjects, exam.grade, exam.stream]
     );
-    if (!matchRows.length) {
+    const authorizedSubjects = new Set(matchRows.map((r) => r.subject));
+    const unauthorized = submittedSubjects.filter((s) => !authorizedSubjects.has(s));
+
+    if (unauthorized.length) {
       // Grace mode: if this school hasn't configured any subject-teacher assignments yet,
       // don't lock every teacher out of marks entry — fall back to unrestricted access
       // until the school actually sets up teacher_subjects.
@@ -197,7 +204,7 @@ async function requireExamSubjectAccess(req, res, next) {
         console.warn(`[requireExamSubjectAccess] school ${req.user.school_id} has no teacher_subjects configured — allowing unrestricted marks entry`);
         return next();
       }
-      return res.status(403).json({ error: `You are not assigned to teach ${exam.subject} for ${exam.grade}` });
+      return res.status(403).json({ error: `You are not assigned to teach ${unauthorized.join(', ')} for ${exam.grade}` });
     }
     next();
   } catch (err) {

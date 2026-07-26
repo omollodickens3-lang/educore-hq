@@ -21,12 +21,12 @@ async function getExams(req, res) {
 
 async function createExam(req, res) {
   try {
-    const { name, examType, term, academicYear = '2025/2026', grade, stream, startDate, endDate, subject, maxScore } = req.body;
-    if (!grade || !term || !examType || !subject) return res.status(400).json({ error: 'grade, term, examType and subject required' });
+    const { name, examType, term, academicYear = '2025/2026', grade, stream, startDate, endDate, maxScore } = req.body;
+    if (!grade || !term || !examType) return res.status(400).json({ error: 'grade, term and examType required' });
     const { rows } = await query(`
-      INSERT INTO exams (id, school_id, name, exam_type, term, academic_year, grade, stream, start_date, end_date, created_by, subject, max_score)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
-      [uuid(), req.user.school_id, name || `${grade} Term ${term} ${examType}`, examType, term, academicYear, grade, stream||null, startDate||null, endDate||null, req.user.id, subject, maxScore ? Number(maxScore) : 100]
+      INSERT INTO exams (id, school_id, name, exam_type, term, academic_year, grade, stream, start_date, end_date, created_by, max_score)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [uuid(), req.user.school_id, name || `${grade} Term ${term} ${examType}`, examType, term, academicYear, grade, stream||null, startDate||null, endDate||null, req.user.id, maxScore ? Number(maxScore) : 100]
     );
     res.status(201).json({ message: 'Exam created', exam: rows[0] });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to create exam' }); }
@@ -35,8 +35,8 @@ async function createExam(req, res) {
 async function updateExam(req, res) {
   try {
     const { examId } = req.params;
-    const { name, examType, term, academicYear, grade, stream, startDate, endDate, subject, maxScore } = req.body;
-    if (!grade || !term || !examType || !subject) return res.status(400).json({ error: 'grade, term, examType and subject required' });
+    const { name, examType, term, academicYear, grade, stream, startDate, endDate, maxScore } = req.body;
+    if (!grade || !term || !examType) return res.status(400).json({ error: 'grade, term and examType required' });
 
     const check = await query('SELECT id FROM exams WHERE id=$1 AND school_id=$2', [examId, req.user.school_id]);
     if (!check.rows.length) return res.status(404).json({ error: 'Exam not found' });
@@ -44,11 +44,11 @@ async function updateExam(req, res) {
     const { rows } = await query(`
       UPDATE exams SET
         name=$1, exam_type=$2, term=$3, academic_year=$4, grade=$5, stream=$6,
-        start_date=$7, end_date=$8, subject=$9, max_score=$10
-      WHERE id=$11 AND school_id=$12
+        start_date=$7, end_date=$8, max_score=$9
+      WHERE id=$10 AND school_id=$11
       RETURNING *`,
       [name || `${grade} Term ${term} ${examType}`, examType, term, academicYear || '2025/2026', grade, stream || null,
-       startDate || null, endDate || null, subject, maxScore ? Number(maxScore) : 100, examId, req.user.school_id]
+       startDate || null, endDate || null, maxScore ? Number(maxScore) : 100, examId, req.user.school_id]
     );
     res.json({ message: 'Exam updated', exam: rows[0] });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to update exam' }); }
@@ -195,23 +195,61 @@ async function getTrends(req, res) {
 // Returns the most-recently-created exam round (exam_type+term+year+grade)
 // filtered to the logged-in teacher's assigned subjects — so teachers land
 // straight on "the current exam" instead of hunting through dropdowns.
+// Returns which subjects the logged-in teacher may enter for a specific exam's
+// grade — used by MarkEntryTab to build the subject selector. Empty array means
+// "no restriction" (admin-tier, or grace mode with no assignments configured).
+async function getMySubjectsForExam(req, res) {
+  try {
+    if (req.user.isSuperAdmin || ['admin', 'director_of_studies', 'deputy', 'hod'].includes(req.user.role)) {
+      return res.json({ subjects: [], restricted: false });
+    }
+
+    const { rows: examRows } = await query(
+      `SELECT grade FROM exams WHERE id=$1 AND school_id=$2`,
+      [req.params.examId, req.user.school_id]
+    );
+    if (!examRows.length) return res.status(404).json({ error: 'Exam not found' });
+    const grade = examRows[0].grade;
+
+    const { rows: teacherRows } = await query(
+      `SELECT id FROM teachers WHERE user_id=$1 AND school_id=$2`,
+      [req.user.id, req.user.school_id]
+    );
+    const teacherId = teacherRows[0]?.id || null;
+    if (!teacherId) return res.json({ subjects: [], restricted: false });
+
+    const { rows: assignedRows } = await query(
+      `SELECT DISTINCT subject FROM teacher_subjects
+       WHERE teacher_id=$1 AND school_id=$2 AND (grade=$3 OR grade IS NULL)`,
+      [teacherId, req.user.school_id, grade]
+    );
+
+    if (!assignedRows.length) {
+      // Grace mode check: has this school configured teacher_subjects at all?
+      const { rows: anyAssignments } = await query(
+        `SELECT 1 FROM teacher_subjects WHERE school_id=$1 LIMIT 1`,
+        [req.user.school_id]
+      );
+      if (!anyAssignments.length) return res.json({ subjects: [], restricted: false });
+      return res.json({ subjects: [], restricted: true }); // configured for others, just not this teacher
+    }
+
+    res.json({ subjects: assignedRows.map((r) => r.subject), restricted: true });
+  } catch (err) {
+    console.error('getMySubjectsForExam error:', err);
+    res.status(500).json({ error: 'Failed to fetch your subjects for this exam' });
+  }
+}
+
 async function getMyActiveExams(req, res) {
   try {
     if (req.user.isSuperAdmin || ['admin', 'director_of_studies', 'deputy', 'hod'].includes(req.user.role)) {
-      const { rows: latestAdmin } = await query(
-        `SELECT exam_type, term, academic_year, grade, MAX(created_at) AS latest
-         FROM exams WHERE school_id=$1
-         GROUP BY exam_type, term, academic_year, grade
-         ORDER BY latest DESC LIMIT 1`,
+      const { rows } = await query(
+        `SELECT * FROM exams WHERE school_id=$1 ORDER BY created_at DESC LIMIT 1`,
         [req.user.school_id]
       );
-      if (!latestAdmin.length) return res.json({ exams: [], round: null });
-      const r = latestAdmin[0];
-      const { rows } = await query(
-        `SELECT * FROM exams WHERE school_id=$1 AND exam_type=$2 AND term=$3 AND academic_year=$4 AND grade=$5 ORDER BY subject`,
-        [req.user.school_id, r.exam_type, r.term, r.academic_year, r.grade]
-      );
-      return res.json({ exams: rows, round: { examType: r.exam_type, term: r.term, academicYear: r.academic_year, grade: r.grade } });
+      if (!rows.length) return res.json({ exam: null, subjects: [] });
+      return res.json({ exam: rows[0], subjects: [] }); // admins see all subjects, no restriction needed
     }
 
     const { rows: teacherRows } = await query(
@@ -219,66 +257,47 @@ async function getMyActiveExams(req, res) {
       [req.user.id, req.user.school_id]
     );
     const teacherId = teacherRows[0]?.id || null;
-    if (!teacherId) return res.json({ exams: [], round: null });
+    if (!teacherId) return res.json({ exam: null, subjects: [] });
 
-    const { rows: assignedSubjects } = await query(
-      `SELECT DISTINCT subject FROM teacher_subjects WHERE teacher_id=$1 AND school_id=$2`,
+    const { rows: assignedRows } = await query(
+      `SELECT DISTINCT subject, grade FROM teacher_subjects WHERE teacher_id=$1 AND school_id=$2`,
       [teacherId, req.user.school_id]
     );
 
-    let latestRows;
-    if (assignedSubjects.length) {
-      const subjects = assignedSubjects.map((s) => s.subject);
+    let exam;
+    if (assignedRows.length) {
+      // Find the most recent exam for any grade this teacher is assigned to
+      // (grade IS NULL on the assignment means "all grades").
+      const grades = [...new Set(assignedRows.map((r) => r.grade).filter(Boolean))];
       const { rows } = await query(
-        `SELECT exam_type, term, academic_year, grade, MAX(created_at) AS latest
-         FROM exams WHERE school_id=$1 AND subject = ANY($2::text[])
-         GROUP BY exam_type, term, academic_year, grade
-         ORDER BY latest DESC LIMIT 1`,
-        [req.user.school_id, subjects]
+        grades.length
+          ? `SELECT * FROM exams WHERE school_id=$1 AND grade = ANY($2::text[]) ORDER BY created_at DESC LIMIT 1`
+          : `SELECT * FROM exams WHERE school_id=$1 ORDER BY created_at DESC LIMIT 1`,
+        grades.length ? [req.user.school_id, grades] : [req.user.school_id]
       );
-      latestRows = rows;
+      exam = rows[0];
     } else {
       // Grace mode: no subject assignments configured yet — fall back to the
-      // school's most recent exam round overall so teachers aren't locked out.
+      // school's most recent exam overall so teachers aren't locked out.
       const { rows } = await query(
-        `SELECT exam_type, term, academic_year, grade, MAX(created_at) AS latest
-         FROM exams WHERE school_id=$1
-         GROUP BY exam_type, term, academic_year, grade
-         ORDER BY latest DESC LIMIT 1`,
+        `SELECT * FROM exams WHERE school_id=$1 ORDER BY created_at DESC LIMIT 1`,
         [req.user.school_id]
       );
-      latestRows = rows;
+      exam = rows[0];
     }
 
-    if (!latestRows.length) return res.json({ exams: [], round: null });
-    const r = latestRows[0];
+    if (!exam) return res.json({ exam: null, subjects: [] });
 
-    let examRows;
-    if (assignedSubjects.length) {
-      const subjects = assignedSubjects.map((s) => s.subject);
-      const { rows } = await query(
-        `SELECT * FROM exams
-         WHERE school_id=$1 AND exam_type=$2 AND term=$3 AND academic_year=$4 AND grade=$5
-           AND subject = ANY($6::text[])
-         ORDER BY subject`,
-        [req.user.school_id, r.exam_type, r.term, r.academic_year, r.grade, subjects]
-      );
-      examRows = rows;
-    } else {
-      const { rows } = await query(
-        `SELECT * FROM exams WHERE school_id=$1 AND exam_type=$2 AND term=$3 AND academic_year=$4 AND grade=$5 ORDER BY subject`,
-        [req.user.school_id, r.exam_type, r.term, r.academic_year, r.grade]
-      );
-      examRows = rows;
-    }
+    const mySubjects = assignedRows
+      .filter((r) => !r.grade || r.grade === exam.grade)
+      .map((r) => r.subject);
 
-    res.json({ exams: examRows, round: { examType: r.exam_type, term: r.term, academicYear: r.academic_year, grade: r.grade } });
+    res.json({ exam, subjects: [...new Set(mySubjects)] });
   } catch (err) {
     console.error('getMyActiveExams error:', err);
     res.status(500).json({ error: 'Failed to fetch your active exams' });
   }
 }
-
 
 async function getSchoolOverview(req, res) {
   try {
@@ -453,6 +472,6 @@ async function deleteExam(req, res) {
   }
 }
 
-module.exports = { getExams, createExam, updateExam, deleteExam, getScores, upsertScores, getAnalysis, getTrends, getSchoolOverview, getStreamRanking, getLearnerRanking, getSubjectRankingByStream, getBroadsheet, getMyActiveExams };
+module.exports = { getExams, createExam, updateExam, deleteExam, getScores, upsertScores, getAnalysis, getTrends, getSchoolOverview, getStreamRanking, getLearnerRanking, getSubjectRankingByStream, getBroadsheet, getMyActiveExams, getMySubjectsForExam };
 
 
