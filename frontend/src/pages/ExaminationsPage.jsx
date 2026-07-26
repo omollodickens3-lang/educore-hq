@@ -43,6 +43,7 @@ const api = {
   getAnalysis: (p = {}) => apiFetch("/exams/analysis?" + new URLSearchParams(p)),
   getLearners:  (p = {}) => apiFetch("/learners?" + new URLSearchParams(p)),
   getScores:   (id)     => apiFetch(`/exams/${id}/scores`),
+  getMySubjectsForExam: (id) => apiFetch(`/exams/${id}/my-subjects`),
   upsertScores:(id, r)  => apiFetch(`/exams/${id}/scores`, { method: "POST", body: JSON.stringify({ scores: r }) }),
   getTrends: (p = {}) => apiFetch("/exams/trends?" + new URLSearchParams(p)),
 };
@@ -188,7 +189,7 @@ function CBCLadder({ scores, maxScore, examGrade }) {
 }
 
 // ─── Overview Tab ──────────────────────────────────────────────────────────────
-function OverviewTab({ exam, scores }) {
+function OverviewTab({ exam, scores, selectedSubject }) {
   const maxScore = exam.maxScore ?? 100;
   const valid    = scores.filter((s) => s.score !== null && s.score !== "" && s.score !== undefined);
   const mean     = classAvg(scores, maxScore);
@@ -227,6 +228,11 @@ function OverviewTab({ exam, scores }) {
 
   return (
     <div style={{ padding: 24, overflowY: "auto", flex: 1 }}>
+      {selectedSubject && (
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 12 }}>
+          Showing: {selectedSubject}
+        </div>
+      )}
       {/* stat cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
         {statCards.map((c) => (
@@ -244,7 +250,7 @@ function OverviewTab({ exam, scores }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
         <div style={styles.card}>
           <h3 style={styles.cardTitle}>Term-over-term trend</h3>
-          <TrendsChart grade={exam.grade} subject={exam.subject} />
+          <TrendsChart grade={exam.grade} subject={selectedSubject} />
         </div>
 
         {/* CBC Competency Ladder */}
@@ -413,7 +419,7 @@ function TrendsChart({ grade, subject }) {
   );
 }
 
-function MarkEntryTab({ exam, scores, setScores, onSaved }) {
+function MarkEntryTab({ exam, scores, setScores, onSaved, selectedSubject, setSelectedSubject, availableSubjects }) {
   const [saving, setSaving]   = useState(false);
   const [dirty, setDirty]     = useState(false);
   const [toast, setToast]     = useState(null);
@@ -434,14 +440,21 @@ function MarkEntryTab({ exam, scores, setScores, onSaved }) {
     setDirty(true);
   }
 
+  function trySwitchSubject(next) {
+    if (dirty && !window.confirm("You have unsaved changes. Switch subject and discard them?")) return;
+    setSelectedSubject(next);
+    setDirty(false);
+  }
+
   async function save() {
+    if (!selectedSubject) return;
     setSaving(true);
     try {
       await api.upsertScores(
         exam.id ?? exam._id,
         scores.map(({ learnerId, score, remarks }) => ({
           learnerId,
-          subject: exam.subject,
+          subject: selectedSubject,
           score: score === "" || score === undefined ? null : Number(score),
           remarks: remarks ?? "",
         }))
@@ -473,6 +486,14 @@ function MarkEntryTab({ exam, scores, setScores, onSaved }) {
         padding: "12px 24px", borderBottom: "1px solid #F3F4F6",
         background: "#FAFAFA", flexShrink: 0,
       }}>
+        <select
+          style={{ ...styles.input, maxWidth: 200, padding: "7px 10px", fontWeight: 700 }}
+          value={selectedSubject}
+          onChange={(e) => trySwitchSubject(e.target.value)}
+        >
+          {availableSubjects.length === 0 && <option value="">No subjects available</option>}
+          {availableSubjects.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
         <input style={{ ...styles.input, maxWidth: 260, padding: "7px 12px" }}
           placeholder="Search by name or admission no…"
           value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -770,182 +791,10 @@ function Field({ label, children }) {
   );
 }
 
-function ExamRoundModal({ onClose, onDone }) {
-  const [examType, setExamType] = useState("");
-  const [term, setTerm] = useState("");
-  const [year, setYear] = useState(`${THIS_YEAR - 1}/${THIS_YEAR}`);
-  const [grade, setGrade] = useState("");
-  const [deadline, setDeadline] = useState("");
-  const [maxScore, setMaxScore] = useState(100);
-  const [selectedSubjects, setSelectedSubjects] = useState(() => new Set());
-  const availableSubjects = grade ? subjectsForGrade(grade) : [];
-
-  useEffect(() => {
-    setSelectedSubjects(new Set(subjectsForGrade(grade)));
-  }, [grade]);
-  const [creating, setCreating] = useState(false);
-  const [progress, setProgress] = useState({ done: 0, total: 0 });
-  const [errors, setErrors] = useState([]);
-  const [err, setErr] = useState("");
-
-  const EXAM_TYPE_OPTIONS = [
-    { v: "cat", l: "CAT" },
-    { v: "opener", l: "Opener" },
-    { v: "midterm", l: "Mid Term" },
-    { v: "end_term", l: "End Term" },
-  ];
-  const examTypeLabel = EXAM_TYPE_OPTIONS.find((t) => t.v === examType)?.l ?? "";
-
-  function toggleSubject(s) {
-    setSelectedSubjects((prev) => {
-      const next = new Set(prev);
-      next.has(s) ? next.delete(s) : next.add(s);
-      return next;
-    });
-  }
-
-  async function submit() {
-    if (!examType || !term || !grade || selectedSubjects.size === 0) {
-      setErr("Please select exam type, term, grade, and at least one subject.");
-      return;
-    }
-    setErr("");
-    setErrors([]);
-    setCreating(true);
-    const subjects = [...selectedSubjects];
-    setProgress({ done: 0, total: subjects.length });
-
-    const failures = [];
-    for (let i = 0; i < subjects.length; i++) {
-      const subject = subjects[i];
-      try {
-        await api.createExam({
-          examName: `${examTypeLabel} - ${subject}`,
-          subject,
-          grade,
-          term,
-          year,
-          examDate: deadline || new Date().toISOString().slice(0, 10),
-          endDate: deadline || undefined,
-          maxScore: Number(maxScore),
-          examType,
-        });
-      } catch (e) {
-        failures.push(`${subject}: ${e.message}`);
-      }
-      setProgress({ done: i + 1, total: subjects.length });
-    }
-
-    setCreating(false);
-    if (failures.length) {
-      setErrors(failures);
-    } else {
-      onDone();
-    }
-  }
-
-  return (
-    <div style={styles.overlay} onClick={(e) => e.target === e.currentTarget && !creating && onClose()}>
-      <div style={{ ...styles.modal, maxWidth: 520 }}>
-        <div style={styles.modalHeader}>
-          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#111827" }}>New exam round</h2>
-          <button onClick={onClose} style={styles.iconBtn} disabled={creating}>✕</button>
-        </div>
-        <div style={{ padding: "8px 24px 4px", fontSize: 13, color: "#6B7280" }}>
-          Creates one exam per selected subject, all sharing the same type, term, grade, and deadline — e.g. "Mid Term 2" across all 9 subjects at once.
-        </div>
-
-        <div style={{ ...styles.modalBody, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <Field label="Exam type *">
-            <select style={styles.input} value={examType} onChange={(e) => setExamType(e.target.value)} disabled={creating}>
-              <option value="">Select…</option>
-              {EXAM_TYPE_OPTIONS.map((t) => <option key={t.v} value={t.v}>{t.l}</option>)}
-            </select>
-          </Field>
-          <Field label="Grade *">
-            <select style={styles.input} value={grade} onChange={(e) => setGrade(e.target.value)} disabled={creating}>
-              <option value="">Select…</option>
-              {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
-            </select>
-          </Field>
-          <Field label="Term *">
-            <select style={styles.input} value={term} onChange={(e) => setTerm(e.target.value)} disabled={creating}>
-              <option value="">Select…</option>
-              {TERMS.map((t, i) => <option key={t} value={i + 1}>{t}</option>)}
-            </select>
-          </Field>
-          <Field label="Academic Year">
-            <select style={styles.input} value={year} onChange={(e) => setYear(e.target.value)} disabled={creating}>
-              {[-1, 0, 1].map((offset) => {
-                const y = (THIS_YEAR - 1) + offset;
-                const v = `${y}/${y + 1}`;
-                return <option key={v} value={v}>{v}</option>;
-              })}
-            </select>
-          </Field>
-          <Field label="Marks deadline">
-            <input style={styles.input} type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} disabled={creating} />
-          </Field>
-          <Field label="Max score per subject">
-            <input style={styles.input} type="number" min={1} value={maxScore} onChange={(e) => setMaxScore(e.target.value)} disabled={creating} />
-          </Field>
-        </div>
-
-        <div style={{ padding: "0 24px 8px" }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 8 }}>
-            Subjects ({selectedSubjects.size} of {availableSubjects.length} selected)
-          </div>
-          {!grade ? (
-            <div style={{ fontSize: 12, color: "#9CA3AF", padding: "8px 0" }}>Select a grade above to see its subjects.</div>
-          ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, maxHeight: 180, overflowY: "auto" }}>
-            {availableSubjects.map((s) => (
-              <label key={s} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#374151", cursor: "pointer" }}>
-                <input type="checkbox" checked={selectedSubjects.has(s)} onChange={() => toggleSubject(s)} disabled={creating} />
-                {s}
-              </label>
-            ))}
-          </div>
-          )}
-        </div>
-
-        {err && <div style={{ padding: "0 24px 8px", color: "#DC2626", fontSize: 13 }}>{err}</div>}
-
-        {creating && (
-          <div style={{ padding: "0 24px 8px", fontSize: 13, color: "#374151" }}>
-            Creating exams… {progress.done} of {progress.total}
-          </div>
-        )}
-
-        {errors.length > 0 && (
-          <div style={{ padding: "0 24px 8px", fontSize: 12, color: "#DC2626" }}>
-            {progress.total - errors.length} of {progress.total} created successfully. Failed:
-            <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
-              {errors.map((e, i) => <li key={i}>{e}</li>)}
-            </ul>
-          </div>
-        )}
-
-        <div style={styles.modalFooter}>
-          <button onClick={onClose} disabled={creating} style={styles.btnGhost}>
-            {errors.length ? "Close" : "Cancel"}
-          </button>
-          {errors.length === 0 && (
-            <button onClick={submit} disabled={creating} style={{ ...styles.btnPrimary, opacity: creating ? 0.6 : 1 }}>
-              {creating ? "Creating…" : `Create ${selectedSubjects.size} exams`}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function CreateExamModal({ onClose, onCreate, initialExam }) {
   const isEdit = !!initialExam;
   const [form, setForm] = useState(() => initialExam ? {
     examName: initialExam.examName ?? initialExam.name ?? "",
-    subject: initialExam.subject ?? "",
     grade: initialExam.grade ?? "",
     term: String(initialExam.term ?? ""),
     year: initialExam.academicYear ?? initialExam.academic_year ?? `${THIS_YEAR - 1}/${THIS_YEAR}`,
@@ -953,7 +802,7 @@ function CreateExamModal({ onClose, onCreate, initialExam }) {
     maxScore: initialExam.maxScore ?? initialExam.max_score ?? 100,
     examType: initialExam.examType ?? initialExam.exam_type ?? "",
   } : {
-    examName: "", subject: "", grade: "", term: "",
+    examName: "", grade: "", term: "",
     year: `${THIS_YEAR - 1}/${THIS_YEAR}`, examDate: "", maxScore: 100, examType: "",
   });
   const [saving, setSaving] = useState(false);
@@ -961,7 +810,7 @@ function CreateExamModal({ onClose, onCreate, initialExam }) {
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   async function submit() {
-    if (!form.examName || !form.subject || !form.grade || !form.term || !form.examDate || !form.examType) {
+    if (!form.examName || !form.grade || !form.term || !form.examDate || !form.examType) {
       setErr("Please fill in all required fields."); return;
     }
     setSaving(true); setErr("");
@@ -999,12 +848,6 @@ function CreateExamModal({ onClose, onCreate, initialExam }) {
             </select>
           </Field>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <Field label="Subject *">
-              <select style={styles.input} value={form.subject} onChange={(e) => set("subject", e.target.value)}>
-                <option value="">Select…</option>
-                {subjectsForGrade(form.grade).map((s) => <option key={s}>{s}</option>)}
-              </select>
-            </Field>
             <Field label="Grade *">
               <select style={styles.input} value={form.grade} onChange={(e) => set("grade", e.target.value)}>
                 <option value="">Select…</option>
@@ -1074,12 +917,16 @@ export default function ExaminationsPage() {
   const [exams,      setExams]      = useState([]);
   const [selected,   setSelected]   = useState(null);
   const [scores,     setScores]     = useState([]);
+  const [rawScores,  setRawScores]  = useState([]);
+  const [learnerRoster, setLearnerRoster] = useState([]);
+  const [mySubjects, setMySubjects] = useState([]);
+  const [subjectsRestricted, setSubjectsRestricted] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState(() => searchParams.get("subject") || "");
   const [tab,        setTab]        = useState("overview"); // overview | marks | reports
   const [deletingExam, setDeletingExam] = useState(false);
   const [loadingExams,  setLoadingExams]  = useState(true);
   const [loadingScores, setLoadingScores] = useState(false);
   const [showCreate, setShowCreate]  = useState(false);
-  const [showRoundCreate, setShowRoundCreate] = useState(false);
   const [editingExam, setEditingExam] = useState(null);
   const [filters,    setFilters]     = useState(() => {
     const urlTerm = searchParams.get("term");
@@ -1136,24 +983,74 @@ export default function ExaminationsPage() {
   };
 
 
-  useEffect(() => {
+  const loadScores = useCallback(() => {
     if (!selected) return;
+    const examId = selected.id ?? selected._id;
     setLoadingScores(true);
-    api.getScores(selected.id ?? selected._id)
-      .then((data) => {
-        const raw = Array.isArray(data) ? data : data.scores ?? [];
-        const mapped = raw.map((r) => ({
+    Promise.all([
+      api.getScores(examId),
+      api.getMySubjectsForExam(examId).catch(() => ({ subjects: [], restricted: false })),
+    ])
+      .then(([scoresData, subjData]) => {
+        const raw = Array.isArray(scoresData) ? scoresData : scoresData.scores ?? [];
+        const mappedRaw = raw.map((r) => ({
           learnerId: r.learnerId ?? r.learner_id,
           learnerName: r.learnerName ?? [r.first_name, r.last_name].filter(Boolean).join(" "),
           admissionNo: r.admissionNo ?? r.admission_no,
+          subject: r.subject ?? null,
           score: r.score ?? "",
           remarks: r.remarks ?? "",
         }));
-        setScores(mapped);
+        setRawScores(mappedRaw);
+
+        const rosterMap = new Map();
+        mappedRaw.forEach((r) => {
+          if (!rosterMap.has(r.learnerId)) {
+            rosterMap.set(r.learnerId, { learnerId: r.learnerId, learnerName: r.learnerName, admissionNo: r.admissionNo });
+          }
+        });
+        setLearnerRoster([...rosterMap.values()]);
+
+        setMySubjects(subjData.subjects || []);
+        setSubjectsRestricted(!!subjData.restricted);
       })
-      .catch(() => setScores([]))
+      .catch(() => { setRawScores([]); setLearnerRoster([]); setMySubjects([]); setSubjectsRestricted(false); })
       .finally(() => setLoadingScores(false));
   }, [selected?.id ?? selected?._id]);
+
+  useEffect(() => { loadScores(); }, [loadScores]);
+
+  const availableSubjects = selected
+    ? (subjectsRestricted ? mySubjects : subjectsForGrade(selected.grade))
+    : [];
+
+  // Default to the first available subject whenever the exam or the teacher's
+  // subject list changes (e.g. after switching exams or on initial load).
+  useEffect(() => {
+    if (availableSubjects.length && !availableSubjects.includes(selectedSubject)) {
+      setSelectedSubject(availableSubjects[0]);
+    } else if (!availableSubjects.length) {
+      setSelectedSubject("");
+    }
+  }, [selected?.id ?? selected?._id, subjectsRestricted, mySubjects.join(",")]);
+
+  // Derive the editable per-subject view whenever the raw multi-subject data,
+  // learner roster, or selected subject changes.
+  useEffect(() => {
+    if (!selectedSubject) { setScores([]); return; }
+    const derived = learnerRoster.map((learner) => {
+      const match = rawScores.find((r) => r.learnerId === learner.learnerId && r.subject === selectedSubject);
+      return {
+        learnerId: learner.learnerId,
+        learnerName: learner.learnerName,
+        admissionNo: learner.admissionNo,
+        score: match ? match.score : "",
+        remarks: match ? match.remarks : "",
+      };
+    });
+    setScores(derived);
+  }, [rawScores, learnerRoster, selectedSubject]);
+
   function handleCreated(exam) {
     setExams((prev) => [exam, ...prev]);
     setSelected(exam);
@@ -1231,9 +1128,6 @@ export default function ExaminationsPage() {
           </select>
         </div>
 
-        <button onClick={() => setShowRoundCreate(true)} style={{ ...styles.btnGhost, whiteSpace: "nowrap", border: "1px solid #3B5BDB", color: "#3B5BDB" }}>
-          + New exam round
-        </button>
         <button onClick={() => setShowCreate(true)} style={{ ...styles.btnPrimary, whiteSpace: "nowrap" }}>
           + New exam
         </button>
@@ -1312,9 +1206,17 @@ export default function ExaminationsPage() {
           <div style={styles.centred}><Spinner />&nbsp; Loading scores…</div>
         )}
 
-        {!loadingScores && selected && tab === "overview"  && <OverviewTab exam={selected} scores={scores} />}
+        {!loadingScores && selected && tab === "overview"  && <OverviewTab exam={selected} scores={scores} selectedSubject={selectedSubject} />}
         {!loadingScores && selected && tab === "marks"     && (
-          <MarkEntryTab exam={selected} scores={scores} setScores={setScores} onSaved={loadExams} />
+          <MarkEntryTab
+            exam={selected}
+            scores={scores}
+            setScores={setScores}
+            onSaved={() => { loadExams(); loadScores(); }}
+            selectedSubject={selectedSubject}
+            setSelectedSubject={setSelectedSubject}
+            availableSubjects={availableSubjects}
+          />
         )}
         {!loadingScores && selected && tab === "reports"   && <ReportCardsTab exam={selected} scores={scores} />}
       </div>
@@ -1324,12 +1226,6 @@ export default function ExaminationsPage() {
           onClose={() => { setShowCreate(false); setEditingExam(null); }}
           onCreate={editingExam ? handleUpdated : handleCreated}
           initialExam={editingExam}
-        />
-      )}
-      {showRoundCreate && (
-        <ExamRoundModal
-          onClose={() => setShowRoundCreate(false)}
-          onDone={() => { setShowRoundCreate(false); loadExams(); }}
         />
       )}
     </div>

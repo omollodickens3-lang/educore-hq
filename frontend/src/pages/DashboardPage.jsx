@@ -38,8 +38,8 @@ export default function DashboardPage() {
       return examsAPI.getMyActiveExams().then(function (r) { return r.data; });
     },
   });
-  const myActiveExams = myActiveExamsQuery.data ? myActiveExamsQuery.data.exams : null;
-  const myActiveRound = myActiveExamsQuery.data ? myActiveExamsQuery.data.round : null;
+  const myActiveExam = myActiveExamsQuery.data ? myActiveExamsQuery.data.exam : null;
+  const myActiveExamSubjects = myActiveExamsQuery.data ? myActiveExamsQuery.data.subjects : [];
 
   let overallMean = null;
   let topGrade = null;
@@ -115,22 +115,28 @@ export default function DashboardPage() {
         {schoolName} - Academic Year 2025/2026 - Term 2
       </p>
 
-      {myActiveExams && myActiveExams.length > 0 && (
+      {myActiveExam && (
         <div style={{ marginBottom: '20px' }}>
           <div style={{ fontSize: '11px', fontWeight: '500', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px' }}>
-            {myActiveRound ? `${EXAM_TYPE_LABELS[myActiveRound.examType] || myActiveRound.examType} · Term ${myActiveRound.term} · ${myActiveRound.grade}` : 'Your Exams'}
+            {EXAM_TYPE_LABELS[myActiveExam.exam_type] || myActiveExam.exam_type} · Term {myActiveExam.term} · {myActiveExam.grade}
           </div>
           <div className="ec-grid-4">
-            {myActiveExams.map(function (exam) {
-              const examId = exam.id ?? exam._id;
-              const link = `/examinations?examId=${examId}&term=${exam.term}&grade=${encodeURIComponent(exam.grade)}&year=${(exam.academic_year || '').split('/')[0]}`;
+            {myActiveExamSubjects.length > 0 ? myActiveExamSubjects.map(function (subject) {
+              const examId = myActiveExam.id;
+              const link = `/examinations?examId=${examId}&term=${myActiveExam.term}&grade=${encodeURIComponent(myActiveExam.grade)}&year=${(myActiveExam.academic_year || '').split('/')[0]}&subject=${encodeURIComponent(subject)}`;
               return (
-                <a key={examId} href={link} style={{ ...cardStyle, textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '4px', borderColor: '#185fa5' }}>
-                  <span style={{ fontSize: '11px', color: '#64748b' }}>{exam.subject}</span>
+                <a key={subject} href={link} style={{ ...cardStyle, textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '4px', borderColor: '#185fa5' }}>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>{subject}</span>
                   <span style={{ fontSize: '13px', fontWeight: '600', color: '#185fa5' }}>Enter marks →</span>
                 </a>
               );
-            })}
+            }) : (
+              <a href={`/examinations?examId=${myActiveExam.id}&term=${myActiveExam.term}&grade=${encodeURIComponent(myActiveExam.grade)}&year=${(myActiveExam.academic_year || '').split('/')[0]}`}
+                style={{ ...cardStyle, textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '4px', borderColor: '#185fa5' }}>
+                <span style={{ fontSize: '11px', color: '#64748b' }}>All subjects</span>
+                <span style={{ fontSize: '13px', fontWeight: '600', color: '#185fa5' }}>Enter marks →</span>
+              </a>
+            )}
           </div>
         </div>
       )}
