@@ -5,6 +5,136 @@ import { teachersAPI } from '../utils/api';
 
 const ROLES = ['admin', 'deputy', 'hod', 'class_teacher', 'subject_teacher'];
 
+const GRADES = ["Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Grade 7","Grade 8","Grade 9","Grade 10","Grade 11","Grade 12"];
+const JUNIOR_SECONDARY_SUBJECTS = ["Mathematics","English","Kiswahili","Creative Arts and Sports","Social Studies","Religious Education","Pre-Technical Studies","Integrated Science","Agriculture and Nutrition"];
+const PRIMARY_SUBJECTS = ["Mathematics","English","Kiswahili","Science","Social Studies","Religious Education","Creative Arts","Physical Education","Agriculture","Home Science","Business Studies","Life Skills","Indigenous Languages"];
+const JS_GRADES = ["Grade 7", "Grade 8", "Grade 9"];
+function subjectsForGrade(grade) {
+  return JS_GRADES.includes(grade) ? JUNIOR_SECONDARY_SUBJECTS : PRIMARY_SUBJECTS;
+}
+
+function AssignSubjectModal({ teacher, onClose }) {
+  const queryClient = useQueryClient();
+  const [grade, setGrade] = useState('');
+  const [stream, setStream] = useState('');
+  const [subject, setSubject] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const { data: full, isLoading } = useQuery({
+    queryKey: ['teacher', teacher.id],
+    queryFn: () => teachersAPI.getById(teacher.id).then(r => r.data),
+  });
+  const assignments = full?.subjects || [];
+
+  const removeMutation = useMutation({
+    mutationFn: (subjectId) => teachersAPI.removeSubject(subjectId),
+    onSuccess: () => {
+      toast.success('Assignment removed');
+      queryClient.invalidateQueries(['teacher', teacher.id]);
+    },
+    onError: () => toast.error('Failed to remove assignment'),
+  });
+
+  async function handleAssign(e) {
+    e.preventDefault();
+    if (!subject || !grade) {
+      toast.error('Grade and subject are required');
+      return;
+    }
+    setSaving(true);
+    try {
+      await teachersAPI.assignSubjects(teacher.id, [{ subject, grade, stream: stream || null }]);
+      toast.success('Subject assigned');
+      queryClient.invalidateQueries(['teacher', teacher.id]);
+      setSubject('');
+      setStream('');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to assign subject');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const inputStyle = {
+    width: '100%', padding: '10px 12px', borderRadius: '8px',
+    border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0',
+    fontSize: '14px', marginTop: '4px', boxSizing: 'border-box',
+  };
+  const labelStyle = { fontSize: '13px', color: '#94a3b8', fontWeight: 500 };
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+    }}>
+      <div style={{
+        background: '#1e293b', borderRadius: '14px', padding: '28px',
+        width: '460px', maxWidth: '90vw', maxHeight: '85vh', overflowY: 'auto',
+      }}>
+        <h2 style={{ color: '#f1f5f9', fontSize: '19px', marginBottom: '4px', textAlign: 'center' }}>
+          Assign Subject
+        </h2>
+        <p style={{ color: '#94a3b8', fontSize: '13px', textAlign: 'center', marginBottom: '20px' }}>
+          {teacher.first_name} {teacher.last_name}
+        </p>
+
+        {!isLoading && assignments.length > 0 && (
+          <div style={{ marginBottom: '20px' }}>
+            <label style={labelStyle}>Current assignments</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
+              {assignments.map((a) => (
+                <span key={a.id} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  padding: '5px 10px', borderRadius: '8px', background: '#0f172a',
+                  border: '1px solid #334155', fontSize: '12px', color: '#e2e8f0',
+                }}>
+                  {a.subject} · {a.grade || 'All grades'}{a.stream ? ` ${a.stream}` : ''}
+                  <button
+                    onClick={() => removeMutation.mutate(a.id)}
+                    style={{ border: 'none', background: 'transparent', color: '#f87171', cursor: 'pointer', fontSize: '13px', padding: 0 }}
+                  >✕</button>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={handleAssign}>
+          <div style={{ marginBottom: '14px' }}>
+            <label style={labelStyle}>Grade *</label>
+            <select style={inputStyle} value={grade} onChange={(e) => { setGrade(e.target.value); setSubject(''); }}>
+              <option value="">Select…</option>
+              {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </div>
+          <div style={{ marginBottom: '14px' }}>
+            <label style={labelStyle}>Stream (optional — leave blank for all streams)</label>
+            <input style={inputStyle} value={stream} onChange={(e) => setStream(e.target.value)} placeholder="e.g. A" />
+          </div>
+          <div style={{ marginBottom: '20px' }}>
+            <label style={labelStyle}>Subject *</label>
+            <select style={inputStyle} value={subject} onChange={(e) => setSubject(e.target.value)} disabled={!grade}>
+              <option value="">{grade ? 'Select…' : 'Select a grade first'}</option>
+              {subjectsForGrade(grade).map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <button type="button" onClick={onClose} style={{
+              padding: '10px 18px', borderRadius: '8px', border: '1px solid #334155',
+              background: 'transparent', color: '#94a3b8', cursor: 'pointer', fontSize: '14px',
+            }}>Close</button>
+            <button type="submit" disabled={saving} style={{
+              padding: '10px 18px', borderRadius: '8px', border: 'none',
+              background: '#2563eb', color: '#fff', cursor: 'pointer', fontSize: '14px',
+              fontWeight: 600, opacity: saving ? 0.6 : 1,
+            }}>{saving ? 'Assigning...' : 'Assign Subject'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function roleLabel(role) {
   const map = {
     admin: 'Admin',
@@ -152,6 +282,7 @@ function TeacherFormModal({ onClose, onSaved }) {
 
 export default function TeachersPage() {
   const [showModal, setShowModal] = useState(false);
+  const [assigningTeacher, setAssigningTeacher] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: teachers = [], isLoading } = useQuery({
@@ -236,7 +367,11 @@ export default function TeachersPage() {
                     )}
                   </td>
                   <td style={{ padding: '14px 16px', color: '#64748b', textTransform: 'capitalize' }}>{t.status}</td>
-                  <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                  <td style={{ padding: '14px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <button onClick={() => setAssigningTeacher(t)} style={{
+                      border: 'none', background: 'transparent', color: '#2563eb',
+                      cursor: 'pointer', fontSize: '13px', marginRight: '14px',
+                    }}>Assign</button>
                     <button onClick={() => handleDelete(t.id, `${t.first_name} ${t.last_name}`)} style={{
                       border: 'none', background: 'transparent', color: '#dc2626',
                       cursor: 'pointer', fontSize: '13px',
@@ -254,6 +389,12 @@ export default function TeachersPage() {
         <TeacherFormModal
           onClose={() => setShowModal(false)}
           onSaved={() => queryClient.invalidateQueries(['teachers'])}
+        />
+      )}
+      {assigningTeacher && (
+        <AssignSubjectModal
+          teacher={assigningTeacher}
+          onClose={() => setAssigningTeacher(null)}
         />
       )}
     </div>
