@@ -42,6 +42,22 @@ async function generateLearnerReport(req, res) {
     );
     const scores = scoresRes.rows;
 
+    // Rank this learner both within their own stream and across the whole grade
+    // (the exam now covers the whole grade, so both comparisons come from one query).
+    const rankRes = await query(
+      `SELECT l.id AS learner_id,
+        RANK() OVER (PARTITION BY l.stream ORDER BY SUM(s.score) DESC) AS stream_rank,
+        COUNT(*) OVER (PARTITION BY l.stream) AS stream_size,
+        RANK() OVER (ORDER BY SUM(s.score) DESC) AS overall_rank,
+        COUNT(*) OVER () AS overall_size
+       FROM scores s
+       JOIN learners l ON l.id = s.learner_id
+       WHERE s.exam_id = $1
+       GROUP BY l.id, l.stream`,
+      [examId]
+    );
+    const myRank = rankRes.rows.find((r) => r.learner_id === learnerId) || null;
+
     // "teacher" is whoever is actually signing this report — either the person the
     // caller explicitly picked (signedBy), or a head-teacher fallback if none was picked.
     // Their displayed title must reflect their ACTUAL role, never assume Head Teacher.
@@ -66,6 +82,7 @@ async function generateLearnerReport(req, res) {
     doc.pipe(res);
 
     const navy = "#0f172a";
+    const gold = "#d4a94b";
     const blue = "#2563eb";
     const lightBlue = "#eff6ff";
     const gray = "#64748b";
@@ -73,18 +90,15 @@ async function generateLearnerReport(req, res) {
     const cardBg = "#f8fafc";
     const pageWidth = doc.page.width - 80; // minus margins
 
-    // ---- Top accent bar ----
-    doc.rect(0, 0, doc.page.width, 6).fill(blue);
-
-    // ---- Header ----
-    doc.fillColor(navy).fontSize(21).font("Helvetica-Bold")
-      .text(school.name || "School", 40, 34, { align: "center", width: pageWidth });
-    doc.fillColor(blue).fontSize(9).font("Helvetica-Bold")
+    // ---- Header (solid navy block, matching the school-brand report style) ----
+    const headerHeight = 90;
+    doc.rect(0, 0, doc.page.width, headerHeight).fill(navy);
+    doc.fillColor("#ffffff").fontSize(21).font("Helvetica-Bold")
+      .text(school.name || "School", 40, 30, { align: "center", width: pageWidth });
+    doc.fillColor(gold).fontSize(9).font("Helvetica-Bold")
       .text("STUDENT ACADEMIC REPORT  \u00b7  CBC", { align: "center", width: pageWidth, characterSpacing: 1 });
 
-    doc.moveDown(1.2);
-    doc.moveTo(40, doc.y).lineTo(40 + pageWidth, doc.y).strokeColor(lightGray).lineWidth(1).stroke();
-    doc.moveDown(1);
+    doc.y = headerHeight + 24;
 
     // ---- Info card (two columns, rounded card background) ----
     const infoTop = doc.y;
@@ -151,17 +165,31 @@ async function generateLearnerReport(req, res) {
 
     doc.y = y + 24;
 
-    // ---- Overall performance (highlighted card) ----
+    // ---- Overall performance + Ranking (two cards side by side) ----
     const meanPct = totalMax ? ((totalScore / totalMax) * 100).toFixed(1) : "0.0";
     const overallGrade = scores.length === 1 ? (scores[0].grade_label || "-") : null;
     const perfTop = doc.y;
     const perfHeight = 54;
+    const cardGap = 12;
+    const perfWidth = (pageWidth - cardGap) / 2;
 
-    doc.roundedRect(40, perfTop, pageWidth, perfHeight, 8).fill(lightBlue);
+    doc.roundedRect(40, perfTop, perfWidth, perfHeight, 8).fill(lightBlue);
     doc.fillColor(gray).fontSize(7.5).font("Helvetica-Bold")
       .text("OVERALL PERFORMANCE", 40 + pad, perfTop + 12, { characterSpacing: 0.5 });
     doc.fillColor(navy).fontSize(16).font("Helvetica-Bold")
       .text(totalScore + "/" + totalMax + "  (" + meanPct + "%)" + (overallGrade ? "   \u00b7   " + overallGrade : ""), 40 + pad, perfTop + 26);
+
+    const rankX = 40 + perfWidth + cardGap;
+    doc.roundedRect(rankX, perfTop, perfWidth, perfHeight, 8).fill(lightBlue);
+    doc.fillColor(gray).fontSize(7.5).font("Helvetica-Bold")
+      .text("RANKING", rankX + pad, perfTop + 12, { characterSpacing: 0.5 });
+    if (myRank) {
+      doc.fillColor(navy).fontSize(11).font("Helvetica-Bold")
+        .text("Stream: " + myRank.stream_rank + " of " + myRank.stream_size + "   \u00b7   Grade: " + myRank.overall_rank + " of " + myRank.overall_size, rankX + pad, perfTop + 27);
+    } else {
+      doc.fillColor(gray).fontSize(10).font("Helvetica-Oblique")
+        .text("Not yet ranked", rankX + pad, perfTop + 27);
+    }
 
     doc.y = perfTop + perfHeight + 26;
 
