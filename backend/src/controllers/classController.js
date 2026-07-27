@@ -22,6 +22,7 @@ async function getClasses(req, res) {
 async function createClass(req, res) {
   try {
     const { grade, stream, section, academicYear, classTeacherId } = req.body;
+    const resolvedSection = section || (['Grade 7', 'Grade 8', 'Grade 9'].includes(grade) ? 'js' : 'primary');
     if (!grade || !stream) {
       return res.status(400).json({ error: "Grade and stream are required" });
     }
@@ -38,7 +39,7 @@ async function createClass(req, res) {
     await query(
       `INSERT INTO classes (id, school_id, grade, stream, section, class_teacher_id, academic_year)
        VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-      [id, req.user.school_id, grade, stream, section || null, classTeacherId || null, academicYear || null]
+      [id, req.user.school_id, grade, stream, resolvedSection, classTeacherId || null, academicYear || null]
     );
 
     res.status(201).json({ id, grade, stream, section, academicYear, classTeacherId });
@@ -109,3 +110,4 @@ async function getMyClass(req, res) {
 }
 
 module.exports = { getClasses, createClass, updateClass, deleteClass, getMyClass };
+
