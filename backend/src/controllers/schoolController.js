@@ -1,4 +1,4 @@
-const { query, getClient } = require('../config/db');
+﻿const { query, getClient } = require('../config/db');
 const { sendApprovalEmail, sendRejectionEmail } = require('../services/emailService');
 const { v4: uuid } = require('uuid');
 const bcrypt = require('bcryptjs');
@@ -113,7 +113,7 @@ async function approveRegistration(req, res) {
       if (err.constraint === 'schools_subdomain_key') {
         return res.status(409).json({ error: "A school with this subdomain already exists." });
       }
-      return res.status(409).json({ error: "Duplicate record — this registration conflicts with existing data." });
+      return res.status(409).json({ error: "Duplicate record â€” this registration conflicts with existing data." });
     }
     res.status(500).json({ error: "Failed to approve registration" });
   } finally {
@@ -251,6 +251,23 @@ async function getPlatformAnalytics(req, res) {
   res.json({ schools: [] });
 }
 
+
+async function uploadStamp(req, res) {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No stamp image uploaded' });
+    const schoolId = req.user.school_id;
+    const base64 = req.file.buffer.toString('base64');
+    await query(
+      'UPDATE schools SET stamp_data = $1, stamp_mime = $2 WHERE id = $3',
+      [base64, req.file.mimetype, schoolId]
+    );
+    res.json({ message: 'School stamp uploaded successfully' });
+  } catch (err) {
+    console.error('uploadStamp error:', err.message);
+    res.status(500).json({ error: 'Failed to upload school stamp' });
+  }
+}
+
 module.exports = {
   registerSchool,
   checkSubdomain,
@@ -260,6 +277,8 @@ module.exports = {
   getPlatformAnalytics,
   listSchoolsStatus,
   getSchoolStatusHistory,
-  deactivateSchool,
-  reactivateSchool
+  deactivateSchool,  reactivateSchool,
+  uploadStamp,
 };
+
+
