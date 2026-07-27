@@ -107,7 +107,11 @@ async function getStats(req, res) {
   } catch (err) { res.status(500).json({ error: 'Failed to fetch stats' }); }
 }
 
-module.exports = { getLearners, getLearnerById, createLearner, updateLearner, deleteLearner, getLearnerProgress, updateStrands, getStats };
+// Bulk import: unlike createLearner, this retries with a freshly generated
+// admission number if the provided one collides with an existing learner,
+// instead of failing the row outright. Bulk imports from real class lists
+// almost always have messy or duplicate admission numbers, and a
+// non-technical teacher shouldn't have to fix that by hand row by row.
 async function bulkCreateLearners(req, res) {
   const { learners: rows } = req.body;
   if (!Array.isArray(rows) || !rows.length) {
@@ -118,32 +122,65 @@ async function bulkCreateLearners(req, res) {
   const failed = [];
 
   for (const r of rows) {
-    try {
-      const firstName = (r.firstName || '').trim();
-      const lastName = (r.lastName || '').trim();
-      const grade = (r.grade || '').trim();
-      if (!firstName || !lastName || !grade) {
-        failed.push({ row: r, error: 'Missing first name, last name, or grade' });
-        continue;
+    const firstName = (r.firstName || '').trim();
+    const lastName = (r.lastName || '').trim();
+    const grade = (r.grade || '').trim();
+    if (!firstName || !lastName || !grade) {
+      failed.push({ row: r, error: 'Missing first name, last name, or grade' });
+      continue;
+    }
+    const section = ['Grade 7', 'Grade 8', 'Grade 9'].includes(grade) ? 'js' : 'primary';
+
+    const MAX_ATTEMPTS = 5;
+    const providedAdmissionNo = (r.admissionNo || '').trim();
+    let attempt = 0;
+    let lastErr = null;
+
+    while (attempt < MAX_ATTEMPTS) {
+      attempt++;
+      const admissionNo = (attempt === 1 && providedAdmissionNo)
+        ? providedAdmissionNo
+        : `2025/${Date.now().toString().slice(-4)}${created.length}${attempt}`;
+      try {
+        const { rows: inserted } = await query(`
+          INSERT INTO learners (id, school_id, admission_no, first_name, last_name, date_of_birth, gender, grade, stream, section, parent_name, parent_phone, parent_email, notes)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
+          [uuid(), schoolId, admissionNo,
+            firstName, lastName, r.dateOfBirth || null, r.gender || null, grade,
+            r.stream || 'A', section, r.parentName || null, r.parentPhone || null,
+            r.parentEmail || null, r.notes || null]
+        );
+        created.push(inserted[0]);
+        lastErr = null;
+        break;
+      } catch (err) {
+        lastErr = err;
+        if (err.code === '23505') continue; // collision — try again with a fresh number
+        break; // any other error: stop retrying, report it
       }
-      const section = ['Grade 7', 'Grade 8', 'Grade 9'].includes(grade) ? 'js' : 'primary';
-      const { query } = require('../config/db');
-      const { v4: uuid } = require('uuid');
-      const { rows: inserted } = await query(`
-        INSERT INTO learners (id, school_id, admission_no, first_name, last_name, date_of_birth, gender, grade, stream, section, parent_name, parent_phone, parent_email, notes)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
-        [uuid(), schoolId, r.admissionNo || `2025/${Date.now().toString().slice(-4)}${created.length}`,
-         firstName, lastName, r.dateOfBirth || null, r.gender || null, grade,
-         r.stream || 'A', section, r.parentName || null, r.parentPhone || null,
-         r.parentEmail || null, r.notes || null]
-      );
-      created.push(inserted[0]);
-    } catch (err) {
-      failed.push({ row: r, error: err.code === '23505' ? 'Admission number already exists' : err.message });
+    }
+
+    if (lastErr) {
+      failed.push({
+        row: r,
+        error: lastErr.code === '23505'
+          ? 'Could not generate a unique admission number after several attempts'
+          : lastErr.message,
+      });
     }
   }
 
   res.status(201).json({ message: `${created.length} learner(s) created`, created, failed });
 }
 
-module.exports.bulkCreateLearners = bulkCreateLearners;
+module.exports = {
+  getLearners,
+  getLearnerById,
+  createLearner,
+  updateLearner,
+  deleteLearner,
+  getLearnerProgress,
+  updateStrands,
+  getStats,
+  bulkCreateLearners,
+};
