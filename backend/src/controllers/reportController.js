@@ -58,7 +58,7 @@ async function generateLearnerReport(req, res) {
     );
     const myRank = rankRes.rows.find((r) => r.learner_id === learnerId) || null;
 
-    // "teacher" is whoever is actually signing this report — either the person the
+    // "teacher" is whoever is actually signing this report â€” either the person the
     // caller explicitly picked (signedBy), or a head-teacher fallback if none was picked.
     // Their displayed title must reflect their ACTUAL role, never assume Head Teacher.
     let teacher = null;
@@ -217,12 +217,12 @@ async function generateLearnerReport(req, res) {
     const sigTop = doc.y;
     const sigColWidth = pageWidth / 2;
 
-    // Left: class teacher line — always a blank signature line, filled in by hand.
+    // Left: class teacher line â€” always a blank signature line, filled in by hand.
     doc.moveTo(40, sigTop + 40).lineTo(40 + 170, sigTop + 40).strokeColor(lightGray).lineWidth(1).stroke();
     doc.fillColor(navy).fontSize(9).font("Helvetica-Bold").text("Class Teacher", 40, sigTop + 46);
     doc.fillColor(gray).fontSize(7.5).font("Helvetica").text("Signature & date", 40, sigTop + 58);
 
-    // Right: whoever actually signed (teacher), labeled with their REAL role — never
+    // Right: whoever actually signed (teacher), labeled with their REAL role â€” never
     // assumed to be Head Teacher just because that's the fallback lookup.
     const rightX = 40 + sigColWidth;
     if (teacher && teacher.signature_data) {
@@ -236,6 +236,23 @@ async function generateLearnerReport(req, res) {
       doc.fillColor(navy).fontSize(9).font("Helvetica-Bold")
         .text(teacher ? formatRole(teacher.role) : "Head Teacher", rightX, sigTop + 46);
       doc.fillColor(gray).fontSize(7.5).font("Helvetica").text("Signature & date", rightX, sigTop + 58);
+    }
+
+    // ---- School stamp (if uploaded) ----
+    // Centered over the signature area, slightly overlapping both signature lines,
+    // drawn at reduced opacity so it reads as an official stamp rather than a logo.
+    if (school.stamp_data) {
+      try {
+        const stampBuffer = Buffer.from(school.stamp_data, "base64");
+        const stampSize = 90;
+        const stampX = 40 + pageWidth / 2 - stampSize / 2;
+        const stampY = sigTop - 20;
+        doc.opacity(0.82);
+        doc.image(stampBuffer, stampX, stampY, { fit: [stampSize, stampSize] });
+        doc.opacity(1);
+      } catch (stampErr) {
+        console.error("Failed to embed school stamp:", stampErr.message);
+      }
     }
 
     doc.y = sigTop + 90;

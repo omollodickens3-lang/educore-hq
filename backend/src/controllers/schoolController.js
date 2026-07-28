@@ -1,4 +1,4 @@
-﻿const { query, getClient } = require('../config/db');
+const { query, getClient } = require('../config/db');
 const { sendApprovalEmail, sendRejectionEmail } = require('../services/emailService');
 const { v4: uuid } = require('uuid');
 const bcrypt = require('bcryptjs');
@@ -268,6 +268,96 @@ async function uploadStamp(req, res) {
   }
 }
 
+// ---- Term dates ----
+// Lets a school record when each term opens/closes (plus optional opener/midterm/
+// end-term sub-windows), so reports can tell parents exactly when next term begins.
+
+async function getTermDates(req, res) {
+  try {
+    const schoolId = req.user.school_id;
+    const { academicYear, term } = req.query;
+
+    let sql = 'SELECT * FROM term_dates WHERE school_id = $1';
+    const params = [schoolId];
+    if (academicYear) {
+      params.push(academicYear);
+      sql += ` AND academic_year = $${params.length}`;
+    }
+    if (term) {
+      params.push(term);
+      sql += ` AND term = $${params.length}`;
+    }
+    sql += ' ORDER BY academic_year DESC, term ASC';
+
+    const { rows } = await query(sql, params);
+    res.json(rows);
+  } catch (err) {
+    console.error('getTermDates error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch term dates' });
+  }
+}
+
+async function upsertTermDates(req, res) {
+  try {
+    const schoolId = req.user.school_id;
+    const {
+      academicYear, term, openDate, closeDate,
+      openerStart, openerEnd, midtermStart, midtermEnd, endTermStart, endTermEnd,
+    } = req.body;
+
+    if (!academicYear || !term) {
+      return res.status(400).json({ error: 'academicYear and term are required' });
+    }
+
+    const existing = await query(
+      'SELECT id FROM term_dates WHERE school_id = $1 AND academic_year = $2 AND term = $3',
+      [schoolId, academicYear, term]
+    );
+
+    let row;
+    if (existing.rows.length) {
+      const result = await query(
+        `UPDATE term_dates SET
+          open_date = COALESCE($1, open_date),
+          close_date = COALESCE($2, close_date),
+          opener_start = COALESCE($3, opener_start),
+          opener_end = COALESCE($4, opener_end),
+          midterm_start = COALESCE($5, midterm_start),
+          midterm_end = COALESCE($6, midterm_end),
+          end_term_start = COALESCE($7, end_term_start),
+          end_term_end = COALESCE($8, end_term_end)
+         WHERE id = $9
+         RETURNING *`,
+        [
+          openDate || null, closeDate || null, openerStart || null, openerEnd || null,
+          midtermStart || null, midtermEnd || null, endTermStart || null, endTermEnd || null,
+          existing.rows[0].id,
+        ]
+      );
+      row = result.rows[0];
+    } else {
+      const result = await query(
+        `INSERT INTO term_dates
+          (id, school_id, academic_year, term, open_date, close_date,
+           opener_start, opener_end, midterm_start, midterm_end, end_term_start, end_term_end)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+         RETURNING *`,
+        [
+          uuid(), schoolId, academicYear, term, openDate || null, closeDate || null,
+          openerStart || null, openerEnd || null, midtermStart || null, midtermEnd || null,
+          endTermStart || null, endTermEnd || null,
+        ]
+      );
+      row = result.rows[0];
+    }
+
+    res.json({ message: 'Term dates saved', termDates: row });
+  } catch (err) {
+    console.error('upsertTermDates error:', err.message);
+    res.status(500).json({ error: 'Failed to save term dates' });
+  }
+}
+
 module.exports = {
   registerSchool,
   checkSubdomain,
@@ -279,6 +369,6 @@ module.exports = {
   getSchoolStatusHistory,
   deactivateSchool,  reactivateSchool,
   uploadStamp,
+  getTermDates,
+  upsertTermDates,
 };
-
-

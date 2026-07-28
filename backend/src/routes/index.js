@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const router = express.Router();
 const { authenticate, authorize, requireSuperAdmin, requireExamSubjectAccess, requireClassTeacherAccess, requireLearnerTeacherAccess, requireStreamAccess } = require('../middleware/auth');
 const auth = require('../controllers/authController');
@@ -105,3 +105,6 @@ const reports = require("../controllers/reportController");
 router.post("/teachers/:id/signature", authenticate, upload.single("signature"), teachers.uploadSignature);
 router.post("/schools/stamp", authenticate, upload.single("stamp"), schools.uploadStamp);
 router.get("/reports/learner/:learnerId/:examId", authenticate, reports.generateLearnerReport);
+
+router.get("/schools/term-dates", authenticate, schools.getTermDates);
+router.post("/schools/term-dates", authenticate, schools.upsertTermDates);
