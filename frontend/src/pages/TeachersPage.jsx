@@ -1,7 +1,8 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { teachersAPI } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 const ROLES = ['admin', 'deputy', 'hod', 'class_teacher', 'subject_teacher'];
 
@@ -281,6 +282,8 @@ function TeacherFormModal({ onClose, onSaved }) {
 }
 
 export default function TeachersPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [showModal, setShowModal] = useState(false);
   const [assigningTeacher, setAssigningTeacher] = useState(null);
   const queryClient = useQueryClient();
@@ -312,11 +315,13 @@ export default function TeachersPage() {
           <h1 style={{ fontSize: '24px', color: '#0f172a', marginBottom: '4px' }}>Teachers</h1>
           <p style={{ color: '#64748b', fontSize: '14px' }}>Manage teaching staff and roles</p>
         </div>
-        <button onClick={() => setShowModal(true)} style={{
-          padding: '11px 20px', borderRadius: '10px', border: 'none',
-          background: '#2563eb', color: '#fff', fontWeight: 600,
-          cursor: 'pointer', fontSize: '14px',
-        }}>+ Add Teacher</button>
+        {isAdmin && (
+          <button onClick={() => setShowModal(true)} style={{
+            padding: '11px 20px', borderRadius: '10px', border: 'none',
+            background: '#2563eb', color: '#fff', fontWeight: 600,
+            cursor: 'pointer', fontSize: '14px',
+          }}>+ Add Teacher</button>
+        )}
       </div>
 
       {isLoading ? (
@@ -368,10 +373,12 @@ export default function TeachersPage() {
                   </td>
                   <td style={{ padding: '14px 16px', color: '#64748b', textTransform: 'capitalize' }}>{t.status}</td>
                   <td style={{ padding: '14px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    <button onClick={() => setAssigningTeacher(t)} style={{
-                      border: 'none', background: 'transparent', color: '#2563eb',
-                      cursor: 'pointer', fontSize: '13px', marginRight: '14px',
-                    }}>Assign</button>
+                    {isAdmin && (
+                      <button onClick={() => setAssigningTeacher(t)} style={{
+                        border: 'none', background: 'transparent', color: '#2563eb',
+                        cursor: 'pointer', fontSize: '13px', marginRight: '14px',
+                      }}>Assign</button>
+                    )}
                     <button onClick={() => handleDelete(t.id, `${t.first_name} ${t.last_name}`)} style={{
                       border: 'none', background: 'transparent', color: '#dc2626',
                       cursor: 'pointer', fontSize: '13px',
