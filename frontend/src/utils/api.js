@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
   timeout: 15000,
@@ -103,6 +103,12 @@ export const schoolsAPI = {
   listRegistrations: () => api.get('/schools/registrations'),
   approve: (id) => api.post(`/schools/registrations/${id}/approve`),
   reject: (id, reason) => api.post(`/schools/registrations/${id}/reject`, { reason }),
+};
+
+schoolsAPI.uploadStamp = (file) => {
+  const formData = new FormData();
+  formData.append('stamp', file);
+  return api.post('/schools/stamp', formData);
 };
 
 export const superAdminAPI = {
