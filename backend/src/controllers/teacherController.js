@@ -1,4 +1,4 @@
-﻿const { query } = require('../config/db');
+const { query } = require('../config/db');
 const bcrypt = require('bcryptjs');
 const { v4: uuid } = require('uuid');
 
@@ -181,9 +181,42 @@ async function removeSubject(req, res) {
   }
 }
 
+// Admin-only: resets a teacher's login password directly, without needing
+// their current password (that's the whole point — this is for when a
+// teacher is locked out or the admin needs to set a fresh password for them).
+// Route-level authorize('admin') is what actually enforces who can call this;
+// this function just needs the teacher to have a linked login account.
+async function resetPassword(req, res) {
+  try {
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters' });
+    }
+
+    const { rows: teacherRows } = await query(
+      `SELECT id, user_id, first_name, last_name FROM teachers WHERE id = $1 AND school_id = $2`,
+      [req.params.id, req.user.school_id]
+    );
+    if (!teacherRows.length) return res.status(404).json({ error: 'Teacher not found' });
+    const teacher = teacherRows[0];
+
+    if (!teacher.user_id) {
+      return res.status(400).json({ error: 'This teacher has no login account to reset' });
+    }
+
+    const hash = await bcrypt.hash(newPassword, 12);
+    await query(`UPDATE users SET password_hash = $1 WHERE id = $2`, [hash, teacher.user_id]);
+
+    res.json({ message: `Password reset for ${teacher.first_name} ${teacher.last_name}` });
+  } catch (err) {
+    console.error('resetPassword error:', err.message);
+    res.status(500).json({ error: 'Failed to reset password' });
+  }
+}
+
 module.exports = {
   getTeachers, getTeacherById, createTeacher, updateTeacher, deleteTeacher,
-  assignSubjects, removeSubject
+  assignSubjects, removeSubject, resetPassword
 };
 
 async function uploadSignature(req, res) {
