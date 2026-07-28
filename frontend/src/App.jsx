@@ -10,6 +10,7 @@ import TeachersPage from './pages/TeachersPage';
 import LearnersPage from './pages/LearnersPage';
 import ExaminationsPage from './pages/ExaminationsPage';
 import SuperAdminPage from './pages/SuperAdminPage';
+import PendingRegistrationsPage from './pages/PendingRegistrationsPage';
 
 const queryClient = new QueryClient();
 
@@ -57,6 +58,7 @@ function AppRoutes() {
         <Route path="content"      element={<ComingSoon title="✏️ Content Generation" />} />
         <Route path="portal"       element={<ComingSoon title="💬 Parent Portal" />} />
         <Route path="super-admin"  element={<SuperAdminPage />} />
+        <Route path="pending-registrations" element={<PendingRegistrationsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
