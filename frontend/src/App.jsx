@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
+import SignUpPage from './pages/SignUpPage';
 import DashboardPage from './pages/DashboardPage';
 import AppLayout from './components/layout/AppLayout';
 import TeachersPage from './pages/TeachersPage';
@@ -39,6 +40,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<SignUpPage />} />
       <Route path="/" element={
         <ProtectedRoute>
           <AppLayout />
