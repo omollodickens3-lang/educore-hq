@@ -48,6 +48,7 @@ router.put('/teachers/:id', authenticate, teachers.updateTeacher);
 router.delete('/teachers/:id', authenticate, teachers.deleteTeacher);
 router.post('/teachers/:id/subjects', authenticate, authorize('admin'), teachers.assignSubjects);
 router.delete('/teachers/subjects/:subjectId', authenticate, authorize('admin'), teachers.removeSubject);
+router.post('/teachers/:id/reset-password', authenticate, authorize('admin'), teachers.resetPassword);
 
 router.get('/exams', authenticate, exams.getExams);
 router.post('/exams', authenticate, exams.createExam);
