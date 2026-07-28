@@ -12,6 +12,9 @@ import ExaminationsPage from './pages/ExaminationsPage';
 import SuperAdminPage from './pages/SuperAdminPage';
 import PendingRegistrationsPage from './pages/PendingRegistrationsPage';
 import AttendancePage from './pages/AttendancePage';
+import ParentPortalPage from './pages/ParentPortalPage';
+import ParentPortalInfoPage from './pages/ParentPortalInfoPage';
+import ParentRegisterPage from './pages/ParentRegisterPage';
 
 const queryClient = new QueryClient();
 
@@ -44,6 +47,8 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<SignUpPage />} />
+      <Route path="/parent" element={<ParentPortalPage />} />
+      <Route path="/parent/register" element={<ParentRegisterPage />} />
       <Route path="/" element={
         <ProtectedRoute>
           <AppLayout />
@@ -55,9 +60,9 @@ function AppRoutes() {
         <Route path="examinations" element={<ExaminationsPage />} />
         <Route path="reports"      element={<ComingSoon title="📄 Report Forms" />} />
         <Route path="attendance"   element={<AttendancePage />} />
+        <Route path="portal"       element={<ParentPortalInfoPage />} />
         <Route path="assignments"  element={<ComingSoon title="📚 Assignments" />} />
         <Route path="content"      element={<ComingSoon title="✏️ Content Generation" />} />
-        <Route path="portal"       element={<ComingSoon title="💬 Parent Portal" />} />
         <Route path="super-admin"  element={<SuperAdminPage />} />
         <Route path="pending-registrations" element={<PendingRegistrationsPage />} />
       </Route>
