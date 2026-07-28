@@ -24,8 +24,8 @@ router.post('/auth/change-password', authenticate, auth.changePassword);
 
 router.get('/classes', authenticate, classes.getClasses);
 router.get('/classes/mine', authenticate, classes.getMyClass);
-router.post('/classes', authenticate, classes.createClass);
-router.put('/classes/:id', authenticate, classes.updateClass);
+router.post('/classes', authenticate, authorize('admin'), classes.createClass);
+router.put('/classes/:id', authenticate, authorize('admin'), classes.updateClass);
 router.delete('/classes/:id', authenticate, classes.deleteClass);
 
 router.get('/learners', authenticate, learners.getLearners);
@@ -43,11 +43,11 @@ router.post('/learners/bulk', authenticate, authorize('admin', 'class_teacher'),
 
 router.get('/teachers', authenticate, teachers.getTeachers);
 router.get('/teachers/:id', authenticate, teachers.getTeacherById);
-router.post('/teachers', authenticate, teachers.createTeacher);
+router.post('/teachers', authenticate, authorize('admin'), teachers.createTeacher);
 router.put('/teachers/:id', authenticate, teachers.updateTeacher);
 router.delete('/teachers/:id', authenticate, teachers.deleteTeacher);
-router.post('/teachers/:id/subjects', authenticate, teachers.assignSubjects);
-router.delete('/teachers/subjects/:subjectId', authenticate, teachers.removeSubject);
+router.post('/teachers/:id/subjects', authenticate, authorize('admin'), teachers.assignSubjects);
+router.delete('/teachers/subjects/:subjectId', authenticate, authorize('admin'), teachers.removeSubject);
 
 router.get('/exams', authenticate, exams.getExams);
 router.post('/exams', authenticate, exams.createExam);
