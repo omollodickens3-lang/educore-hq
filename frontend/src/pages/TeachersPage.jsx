@@ -308,6 +308,21 @@ export default function TeachersPage() {
     }
   }
 
+  async function handleResetPassword(id, name) {
+    const newPassword = window.prompt(`Set a new password for ${name} (at least 6 characters):`);
+    if (!newPassword) return;
+    if (newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+    try {
+      await teachersAPI.resetPassword(id, newPassword);
+      toast.success(`Password reset for ${name}`);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to reset password');
+    }
+  }
+
   return (
     <div style={{ padding: '32px', fontFamily: 'system-ui' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -378,6 +393,12 @@ export default function TeachersPage() {
                         border: 'none', background: 'transparent', color: '#2563eb',
                         cursor: 'pointer', fontSize: '13px', marginRight: '14px',
                       }}>Assign</button>
+                    )}
+                    {isAdmin && t.login_email && (
+                      <button onClick={() => handleResetPassword(t.id, `${t.first_name} ${t.last_name}`)} style={{
+                        border: 'none', background: 'transparent', color: '#7c3aed',
+                        cursor: 'pointer', fontSize: '13px', marginRight: '14px',
+                      }}>Reset Password</button>
                     )}
                     <button onClick={() => handleDelete(t.id, `${t.first_name} ${t.last_name}`)} style={{
                       border: 'none', background: 'transparent', color: '#dc2626',
