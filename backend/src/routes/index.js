@@ -34,12 +34,12 @@ router.get('/learners/class-list', authenticate, classList.getClassList);
 router.get('/learners/class-list/csv', authenticate, classList.exportClassListCSV);
 router.get('/learners/class-list/pdf', authenticate, classList.exportClassListPDF);
 router.get('/learners/:id', authenticate, learners.getLearnerById);
-router.post('/learners', authenticate, learners.createLearner);
+router.post('/learners', authenticate, authorize('admin', 'class_teacher'), learners.createLearner);
 router.put('/learners/:id', authenticate, learners.updateLearner);
 router.delete('/learners/:id', authenticate, learners.deleteLearner);
 router.get('/learners/:id/progress', authenticate, learners.getLearnerProgress);
 router.put('/learners/:id/strands', authenticate, learners.updateStrands);
-router.post('/learners/bulk', authenticate, learners.bulkCreateLearners);
+router.post('/learners/bulk', authenticate, authorize('admin', 'class_teacher'), learners.bulkCreateLearners);
 
 router.get('/teachers', authenticate, teachers.getTeachers);
 router.get('/teachers/:id', authenticate, teachers.getTeacherById);
@@ -57,7 +57,7 @@ router.get('/exams/trends', authenticate, exams.getTrends);
 router.get('/exams/school-overview', authenticate, exams.getSchoolOverview);
 router.get('/exams/my-active', authenticate, exams.getMyActiveExams);
 router.get('/exams/:examId/my-subjects', authenticate, exams.getMySubjectsForExam);
-router.get('/exams/stream-ranking', authenticate, exams.getStreamRanking); // aggregate-only (avg/counts per stream) — safe for all staff to compare
+router.get('/exams/stream-ranking', authenticate, exams.getStreamRanking);
 router.get('/exams/learner-ranking', authenticate, requireStreamAccess, exams.getLearnerRanking);
 router.get('/exams/subject-ranking-by-stream', authenticate, requireStreamAccess, exams.getSubjectRankingByStream);
 router.get('/exams/broadsheet', authenticate, exams.getBroadsheet);
