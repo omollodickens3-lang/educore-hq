@@ -420,12 +420,59 @@ function TrendsChart({ grade, subject }) {
 }
 
 function MarkEntryTab({ exam, scores, setScores, onSaved, selectedSubject, setSelectedSubject, availableSubjects }) {
-  const [saving, setSaving]   = useState(false);
-  const [dirty, setDirty]     = useState(false);
-  const [toast, setToast]     = useState(null);
+  const [saveStatus, setSaveStatus] = useState("idle"); // idle | pending | saving | saved | error
+  const [saveError, setSaveError]   = useState("");
   const [search, setSearch]   = useState("");
   const maxScore = exam.maxScore ?? 100;
-  const toastTimer = useRef();
+  const autosaveTimer = useRef();
+  const scoresRef = useRef(scores);
+  const subjectRef = useRef(selectedSubject);
+  const dirtyRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => { scoresRef.current = scores; }, [scores]);
+  useEffect(() => { subjectRef.current = selectedSubject; }, [selectedSubject]);
+  useEffect(() => () => {
+    mountedRef.current = false;
+    clearTimeout(autosaveTimer.current);
+    if (dirtyRef.current && subjectRef.current) {
+      // Fire-and-forget: the component is unmounting (tab switch, etc.), but we
+      // still want the last edits to actually reach the server rather than be
+      // silently discarded just because the debounce hadn't fired yet.
+      api.upsertScores(
+        exam.id ?? exam._id,
+        scoresRef.current.map(({ learnerId, score, remarks }) => ({
+          learnerId,
+          subject: subjectRef.current,
+          score: score === "" || score === undefined ? null : Number(score),
+          remarks: remarks ?? "",
+        }))
+      ).catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function doSave() {
+    clearTimeout(autosaveTimer.current);
+    if (!dirtyRef.current || !subjectRef.current) return;
+    if (mountedRef.current) setSaveStatus("saving");
+    try {
+      await api.upsertScores(
+        exam.id ?? exam._id,
+        scoresRef.current.map(({ learnerId, score, remarks }) => ({
+          learnerId,
+          subject: subjectRef.current,
+          score: score === "" || score === undefined ? null : Number(score),
+          remarks: remarks ?? "",
+        }))
+      );
+      dirtyRef.current = false;
+      if (mountedRef.current) setSaveStatus("saved");
+      if (onSaved) onSaved();
+    } catch (e) {
+      if (mountedRef.current) { setSaveStatus("error"); setSaveError(e.message); }
+    }
+  }
 
   function update(learnerId, field, value) {
     setScores((prev) => prev.map((r) => {
@@ -437,38 +484,15 @@ function MarkEntryTab({ exam, scores, setScores, onSaved, selectedSubject, setSe
       }
       return updated;
     }));
-    setDirty(true);
+    dirtyRef.current = true;
+    setSaveStatus("pending");
+    clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = setTimeout(doSave, 1500);
   }
 
-  function trySwitchSubject(next) {
-    if (dirty && !window.confirm("You have unsaved changes. Switch subject and discard them?")) return;
+  async function trySwitchSubject(next) {
+    if (dirtyRef.current) await doSave();
     setSelectedSubject(next);
-    setDirty(false);
-  }
-
-  async function save() {
-    if (!selectedSubject) return;
-    setSaving(true);
-    try {
-      await api.upsertScores(
-        exam.id ?? exam._id,
-        scores.map(({ learnerId, score, remarks }) => ({
-          learnerId,
-          subject: selectedSubject,
-          score: score === "" || score === undefined ? null : Number(score),
-          remarks: remarks ?? "",
-        }))
-      );
-      setDirty(false);
-      setToast({ ok: true, msg: "Scores saved." });
-      if (onSaved) onSaved();
-    } catch (e) {
-      setToast({ ok: false, msg: e.message });
-    } finally {
-      setSaving(false);
-      clearTimeout(toastTimer.current);
-      toastTimer.current = setTimeout(() => setToast(null), 3500);
-    }
   }
 
   const visible = scores.filter((r) =>
@@ -501,15 +525,25 @@ function MarkEntryTab({ exam, scores, setScores, onSaved, selectedSubject, setSe
           {entered} / {scores.length} entered
         </span>
         <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center" }}>
-          {toast && (
-            <span style={{ fontSize: 13, color: toast.ok ? "#059669" : "#DC2626" }}>
-              {toast.ok ? "✓ " : "✕ "}{toast.msg}
+          {saveStatus === "pending" && (
+            <span style={{ fontSize: 13, color: "#9CA3AF" }}>Unsaved changes…</span>
+          )}
+          {saveStatus === "saving" && (
+            <span style={{ fontSize: 13, color: "#3B5BDB", display: "flex", alignItems: "center", gap: 6 }}>
+              <Spinner size={12} /> Saving…
             </span>
           )}
-          <button onClick={save} disabled={!dirty || saving}
-            style={{ ...styles.btnPrimary, opacity: !dirty || saving ? 0.45 : 1, cursor: !dirty || saving ? "default" : "pointer" }}>
-            {saving ? <><Spinner size={12} />&nbsp; Saving…</> : "Save scores"}
-          </button>
+          {saveStatus === "saved" && (
+            <span style={{ fontSize: 13, color: "#059669" }}>✓ All changes saved</span>
+          )}
+          {saveStatus === "error" && (
+            <>
+              <span style={{ fontSize: 13, color: "#DC2626" }}>✕ Couldn't save: {saveError}</span>
+              <button onClick={doSave} style={{ ...styles.btnPrimary, padding: "6px 14px", fontSize: 13 }}>
+                Retry
+              </button>
+            </>
+          )}
         </div>
       </div>
 
