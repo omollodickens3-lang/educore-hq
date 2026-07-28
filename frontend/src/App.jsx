@@ -9,6 +9,7 @@ import AppLayout from './components/layout/AppLayout';
 import TeachersPage from './pages/TeachersPage';
 import LearnersPage from './pages/LearnersPage';
 import ExaminationsPage from './pages/ExaminationsPage';
+import SuperAdminPage from './pages/SuperAdminPage';
 
 const queryClient = new QueryClient();
 
@@ -55,6 +56,7 @@ function AppRoutes() {
         <Route path="assignments"  element={<ComingSoon title="📚 Assignments" />} />
         <Route path="content"      element={<ComingSoon title="✏️ Content Generation" />} />
         <Route path="portal"       element={<ComingSoon title="💬 Parent Portal" />} />
+        <Route path="super-admin"  element={<SuperAdminPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
