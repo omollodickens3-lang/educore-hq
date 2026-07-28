@@ -15,6 +15,7 @@ import AttendancePage from './pages/AttendancePage';
 import ParentPortalPage from './pages/ParentPortalPage';
 import ParentPortalInfoPage from './pages/ParentPortalInfoPage';
 import ParentRegisterPage from './pages/ParentRegisterPage';
+import ReportsPage from './pages/ReportsPage';
 
 const queryClient = new QueryClient();
 
@@ -58,7 +59,7 @@ function AppRoutes() {
         <Route path="learners"     element={<LearnersPage />} />
         <Route path="teachers"     element={<TeachersPage />} />
         <Route path="examinations" element={<ExaminationsPage />} />
-        <Route path="reports"      element={<ComingSoon title="📄 Report Forms" />} />
+        <Route path="reports"      element={<ReportsPage />} />
         <Route path="attendance"   element={<AttendancePage />} />
         <Route path="portal"       element={<ParentPortalInfoPage />} />
         <Route path="assignments"  element={<ComingSoon title="📚 Assignments" />} />
