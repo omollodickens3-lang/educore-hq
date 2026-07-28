@@ -45,6 +45,7 @@ export const teachersAPI = {
   delete: (id) => api.delete(`/teachers/${id}`),
   assignSubjects: (id, subjects) => api.post(`/teachers/${id}/subjects`, { subjects }),
   removeSubject: (subjectId) => api.delete(`/teachers/subjects/${subjectId}`),
+  resetPassword: (id, newPassword) => api.post(`/teachers/${id}/reset-password`, { newPassword }),
 };
 export const examsAPI = {
   getSchoolOverview: (params) => api.get('/exams/school-overview', { params }),
