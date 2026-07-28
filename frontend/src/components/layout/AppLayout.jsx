@@ -21,6 +21,7 @@ const NAV_ITEMS = [
 
   { section: 'Platform' },
   { to: '/super-admin',  icon: '🛡️', label: 'Super Admin',       visible: (a) => a.user?.role === 'super_admin' },
+  { to: '/pending-registrations', icon: '📥', label: 'Pending Registrations', visible: (a) => a.user?.role === 'super_admin' },
 ];
 
 function buildNav(auth) {
