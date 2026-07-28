@@ -18,6 +18,9 @@ const NAV_ITEMS = [
   { to: '/content',      icon: '✏️', label: 'Content Generation', visible: (a) => a.isAdminTier },
   { to: '/portal',       icon: '💬', label: 'Parent Portal',      visible: (a) => a.isAdminTier },
   { to: '/teachers',     icon: '👩‍🏫', label: 'Teachers',          visible: (a) => a.isAdminTier },
+
+  { section: 'Platform' },
+  { to: '/super-admin',  icon: '🛡️', label: 'Super Admin',       visible: (a) => a.user?.role === 'super_admin' },
 ];
 
 function buildNav(auth) {
@@ -25,7 +28,6 @@ function buildNav(auth) {
   for (let i = 0; i < NAV_ITEMS.length; i++) {
     const item = NAV_ITEMS[i];
     if (item.section) {
-      // find the slice of items until the next section header
       let end = i + 1;
       while (end < NAV_ITEMS.length && !NAV_ITEMS[end].section) end++;
       const children = NAV_ITEMS.slice(i + 1, end);
