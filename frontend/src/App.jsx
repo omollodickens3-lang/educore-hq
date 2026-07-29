@@ -17,6 +17,7 @@ import AssignmentDetailPage from './pages/AssignmentDetailPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import BroadsheetPage from './pages/BroadsheetPage';
 import ConductPage from './pages/ConductPage';
+import NotificationsPage from './pages/NotificationsPage';
 import ParentPortalPage from './pages/ParentPortalPage';
 import ParentPortalInfoPage from './pages/ParentPortalInfoPage';
 import ParentRegisterPage from './pages/ParentRegisterPage';
@@ -72,6 +73,7 @@ function AppRoutes() {
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="broadsheet" element={<BroadsheetPage />} />
         <Route path="conduct" element={<ConductPage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
         <Route path="content"      element={<ComingSoon title="✏️ Content Generation" />} />
         <Route path="super-admin"  element={<SuperAdminPage />} />
         <Route path="pending-registrations" element={<PendingRegistrationsPage />} />
