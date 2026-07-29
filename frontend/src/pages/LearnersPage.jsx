@@ -257,6 +257,7 @@ function buildPreviewRows(raw, defaults = {}) {
 
     if (!firstName || !lastName) issues.push('Missing name');
     if (!grade) issues.push('No grade set');
+    if (!stream) issues.push('No stream set — this learner won\'t show correctly in broadsheets/analytics until a stream is assigned');
     if (admissionNo && !ADMISSION_NO_PATTERN.test(admissionNo) && !ADMISSION_NO_PATTERN_YEAR.test(admissionNo)) {
       issues.push('Admission No. format looks unusual (will still be saved)');
     }
@@ -286,6 +287,7 @@ function revalidateRow(row) {
   const issues = [];
   if (!row.firstName.trim() || !row.lastName.trim()) issues.push('Missing name');
   if (!row.grade.trim()) issues.push('No grade set');
+  if (!row.stream.trim()) issues.push('No stream set — this learner won\'t show correctly in broadsheets/analytics until a stream is assigned');
   if (row.admissionNo && !ADMISSION_NO_PATTERN.test(row.admissionNo) && !ADMISSION_NO_PATTERN_YEAR.test(row.admissionNo)) {
     issues.push('Admission No. format looks unusual (will still be saved)');
   }
