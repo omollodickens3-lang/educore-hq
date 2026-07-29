@@ -25,7 +25,7 @@ import ParentPortalPage from './pages/ParentPortalPage';
 import ParentPortalInfoPage from './pages/ParentPortalInfoPage';
 import ParentRegisterPage from './pages/ParentRegisterPage';
 import ReportsPage from './pages/ReportsPage';
-
+import HelpPage from './pages/HelpPage';
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }) {
@@ -80,6 +80,7 @@ function AppRoutes() {
         <Route path="classes" element={<ManageClassesPage />} />
         <Route path="class-list" element={<ClassListPage />} />
         <Route path="my-class" element={<MyClassOverviewPage />} />
+        <Route path="help" element={<HelpPage />} />
         <Route path="content"      element={<ComingSoon title="✏️ Content Generation" />} />
         <Route path="super-admin"  element={<SuperAdminPage />} />
         <Route path="pending-registrations" element={<PendingRegistrationsPage />} />
