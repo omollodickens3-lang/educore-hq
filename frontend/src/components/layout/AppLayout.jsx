@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
+import { authAPI } from '../../utils/api';
 
 const NAV_ITEMS = [
   { section: 'Overview' },
@@ -64,6 +65,91 @@ function useIsMobile() {
   return isMobile;
 }
 
+function ChangePasswordModal({ onClose }) {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setErr('');
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setErr('Please fill in all fields.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setErr('New password must be at least 6 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setErr('New password and confirmation do not match.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await authAPI.changePassword(currentPassword, newPassword);
+      toast.success('Password updated successfully');
+      onClose();
+    } catch (e) {
+      setErr(e.response?.data?.error || 'Failed to update password');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const inputStyle = {
+    width: '100%', padding: '10px 12px', borderRadius: '8px',
+    border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0',
+    fontSize: '14px', marginTop: '4px', boxSizing: 'border-box',
+  };
+  const labelStyle = { fontSize: '13px', color: '#94a3b8', fontWeight: 500 };
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
+    }} onClick={onClose}>
+      <div style={{
+        background: '#1e293b', borderRadius: '14px', padding: '28px',
+        width: '380px', maxWidth: '92vw', border: '1px solid #334155',
+      }} onClick={(e) => e.stopPropagation()}>
+        <h2 style={{ color: '#e2e8f0', fontSize: '18px', marginBottom: '18px' }}>Change Password</h2>
+        <form onSubmit={handleSubmit}>
+          <label style={labelStyle}>Current password
+            <input style={inputStyle} type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
+          </label>
+          <div style={{ height: '12px' }} />
+          <label style={labelStyle}>New password
+            <input style={inputStyle} type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="At least 6 characters" />
+          </label>
+          <div style={{ height: '12px' }} />
+          <label style={labelStyle}>Confirm new password
+            <input style={inputStyle} type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+          </label>
+
+          {err && (
+            <p style={{ color: '#f87171', fontSize: '13px', marginTop: '14px', marginBottom: 0 }}>{err}</p>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+            <button type="button" onClick={onClose} style={{
+              padding: '9px 16px', borderRadius: '8px', border: '1px solid #334155',
+              background: 'transparent', color: '#94a3b8', cursor: 'pointer', fontSize: '14px',
+            }}>Cancel</button>
+            <button type="submit" disabled={saving} style={{
+              padding: '9px 16px', borderRadius: '8px', border: 'none',
+              background: '#185fa5', color: '#fff', cursor: 'pointer', fontSize: '14px',
+              fontWeight: 600, opacity: saving ? 0.6 : 1,
+            }}>{saving ? 'Saving...' : 'Update Password'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function AppLayout() {
   const auth = useAuth();
   const { user, logout, schoolName } = auth;
@@ -72,6 +158,7 @@ export default function AppLayout() {
   const NAV = buildNav(auth);
   const isMobile = useIsMobile();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   // Close the drawer automatically whenever the route changes (i.e. after
   // tapping a nav link on mobile), so it doesn't stay open over the new page.
@@ -163,9 +250,18 @@ export default function AppLayout() {
             </div>
             <div style={{ color:'#8496C4', fontSize:'10px', textTransform:'capitalize' }}>{user?.role?.replace('_',' ')}</div>
           </div>
+          <button
+            onClick={() => setShowChangePassword(true)}
+            title="Change password"
+            style={{ background:'none', border:'none', color:'#8496C4', cursor:'pointer', fontSize:'16px' }}
+          >🔑</button>
           <button onClick={handleLogout} style={{ background:'none', border:'none', color:'#8496C4', cursor:'pointer', fontSize:'16px' }}>🚪</button>
         </div>
       </div>
+
+      {showChangePassword && (
+        <ChangePasswordModal onClose={() => setShowChangePassword(false)} />
+      )}
 
       <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', background:'#F4F5F9', minWidth: 0 }}>
         <div style={{ background:'#fff', borderBottom:'2px solid #D4AF37', padding:'0 12px', height:'50px', display:'flex', alignItems:'center', gap: '10px', justifyContent:'space-between', flexShrink:0 }}>
