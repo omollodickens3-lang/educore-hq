@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { to: '/content',      icon: '✏️', label: 'Content Generation', visible: (a) => a.isAdminTier },
   { to: '/portal',       icon: '💬', label: 'Parent Portal',      visible: (a) => a.isAdminTier },
   { to: '/teachers',     icon: '👩‍🏫', label: 'Teachers',          visible: (a) => a.isAdminTier },
+  { to: '/analytics',    icon: '📊', label: 'Analytics',         visible: (a) => a.isAdminTier },
 
   { section: 'Platform' },
   { to: '/super-admin',  icon: '🛡️', label: 'Super Admin',       visible: (a) => a.user?.role === 'super_admin' },
