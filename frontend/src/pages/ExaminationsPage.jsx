@@ -15,6 +15,8 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import toast from "react-hot-toast";
 
 // ─── API ──────────────────────────────────────────────────────────────────────
 const BASE = import.meta.env.VITE_API_URL ?? "/api";
@@ -46,6 +48,7 @@ const api = {
   getMySubjectsForExam: (id) => apiFetch(`/exams/${id}/my-subjects`),
   upsertScores:(id, r)  => apiFetch(`/exams/${id}/scores`, { method: "POST", body: JSON.stringify({ scores: r }) }),
   getTrends: (p = {}) => apiFetch("/exams/trends?" + new URLSearchParams(p)),
+  deleteExam: (id) => apiFetch(`/exams/${id}`, { method: "DELETE" }),
 };
 
 // ─── CBC grading ───────────────────────────────────────────────────────────────
@@ -1070,6 +1073,8 @@ function CreateExamModal({ onClose, onCreate, initialExam }) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function ExaminationsPage() {
+  const { user } = useAuth();
+  const canDeleteExam = ['admin', 'director_of_studies', 'deputy', 'super_admin'].includes(user?.role);
   const [searchParams] = useSearchParams();
   const deepLinkExamId = searchParams.get("examId");
 
@@ -1130,12 +1135,13 @@ export default function ExaminationsPage() {
     if (!ok) return;
     setDeletingExam(true);
     try {
-      await examsAPI.delete(examId);
+      await api.deleteExam(examId);
       toast.success('Exam deleted');
       setSelected(null);
       await loadExams();
     } catch (e) {
-      toast.error(e.response?.data?.error || 'Failed to delete exam');
+      console.error('Delete exam failed:', e);
+      toast.error(e.message || 'Failed to delete exam');
     } finally {
       setDeletingExam(false);
     }
@@ -1324,6 +1330,7 @@ export default function ExaminationsPage() {
                 >
                   Edit Exam
                 </button>
+                {canDeleteExam && (
                 <button
                   onClick={handleDeleteExam}
                   disabled={deletingExam}
@@ -1340,6 +1347,7 @@ export default function ExaminationsPage() {
                 >
                   {deletingExam ? 'Deleting...' : 'Delete Exam'}
                 </button>
+                )}
             </span>
           )}
         </div>
