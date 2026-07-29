@@ -22,6 +22,7 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (email, password) => api.post('/auth/login', { email, password }),
   me: () => api.get('/auth/me'),
+  changePassword: (currentPassword, newPassword) => api.post('/auth/change-password', { currentPassword, newPassword }),
 };
 export const learnersAPI = {
   getAll: (params) => api.get('/learners', { params }),
