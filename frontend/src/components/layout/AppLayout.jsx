@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { to: '/conduct',      icon: '🧭', label: 'Conduct',       visible: () => true },
   { to: '/reports',      icon: '📄', label: 'Report Forms', visible: (a) => a.isAdminTier || a.user?.role === 'class_teacher' },
   { to: '/broadsheet',   icon: '📊', label: 'Broadsheet',     visible: (a) => a.isAdminTier || a.user?.role === 'class_teacher' },
+  { to: '/notifications', icon: '🔔', label: 'Notifications',   visible: (a) => a.isAdminTier || a.user?.role === 'class_teacher' },
 
   { section: 'Admin' },
   { to: '/content',      icon: '✏️', label: 'Content Generation', visible: (a) => a.isAdminTier },
