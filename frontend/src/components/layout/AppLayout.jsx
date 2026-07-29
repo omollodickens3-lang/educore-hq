@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { to: '/attendance',   icon: '✅', label: 'Attendance',   visible: (a) => a.isAdminTier || a.user?.role === 'class_teacher' },
   { to: '/assignments',  icon: '📚', label: 'Assignments',  visible: () => true },
   { to: '/reports',      icon: '📄', label: 'Report Forms', visible: (a) => a.isAdminTier || a.user?.role === 'class_teacher' },
+  { to: '/broadsheet',   icon: '📊', label: 'Broadsheet',     visible: (a) => a.isAdminTier || a.user?.role === 'class_teacher' },
 
   { section: 'Admin' },
   { to: '/content',      icon: '✏️', label: 'Content Generation', visible: (a) => a.isAdminTier },
