@@ -63,7 +63,7 @@ router.get('/exams/subject-ranking-by-stream', authenticate, requireStreamAccess
 router.get('/exams/broadsheet', authenticate, exams.getBroadsheet);
 router.get('/exams/:examId/scores', authenticate, exams.getScores);
 router.post('/exams/:examId/scores', authenticate, requireExamSubjectAccess, exams.upsertScores);
-router.delete('/exams/:examId', authenticate, exams.deleteExam);
+router.delete('/exams/:examId', authenticate, authorize('admin', 'director_of_studies', 'deputy'), exams.deleteExam);
 
 router.get('/attendance', authenticate, attendance.getAttendance);
 router.post('/attendance/bulk', authenticate, requireClassTeacherAccess, attendance.markBulk);
