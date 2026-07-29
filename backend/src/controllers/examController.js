@@ -3,6 +3,7 @@ const { v4: uuid } = require('uuid');
 
 const { termToInt, cbcGrade } = require('../utils/examUtils');
 const { notify } = require('../services/notificationService');
+const { getTeacherId } = require('../middleware/auth');
 
 async function getExams(req, res) {
   try {
@@ -473,6 +474,106 @@ async function deleteExam(req, res) {
   }
 }
 
-module.exports = { getExams, createExam, updateExam, deleteExam, getScores, upsertScores, getAnalysis, getTrends, getSchoolOverview, getStreamRanking, getLearnerRanking, getSubjectRankingByStream, getBroadsheet, getMyActiveExams, getMySubjectsForExam };
+// Teacher submits a subject's marks for admin review. Resubmitting after
+// a rejection is allowed (resets status back to 'pending').
+async function submitMarks(req, res) {
+  try {
+    const { examId } = req.params;
+    const { subject } = req.body;
+    if (!subject) return res.status(400).json({ error: 'subject is required' });
+
+    const { rows: examRows } = await query(
+      `SELECT id FROM exams WHERE id=$1 AND school_id=$2`,
+      [examId, req.user.school_id]
+    );
+    if (!examRows.length) return res.status(404).json({ error: 'Exam not found' });
+
+    const teacherId = await getTeacherId(req.user.id, req.user.school_id);
+
+    const { rows } = await query(
+      `INSERT INTO mark_submissions (school_id, exam_id, subject, status, submitted_by, submitted_at, reviewed_by, reviewed_at, review_note)
+       VALUES ($1, $2, $3, 'pending', $4, NOW(), NULL, NULL, NULL)
+       ON CONFLICT (exam_id, subject)
+       DO UPDATE SET status='pending', submitted_by=$4, submitted_at=NOW(), reviewed_by=NULL, reviewed_at=NULL, review_note=NULL
+       RETURNING *`,
+      [req.user.school_id, examId, subject, teacherId]
+    );
+    res.json({ submission: rows[0] });
+  } catch (err) {
+    console.error('submitMarks error:', err.message);
+    res.status(500).json({ error: 'Failed to submit marks' });
+  }
+}
+
+// Fetch submission status for every subject on an exam (used by both the
+// submitting teacher's status banner and the admin review panel).
+async function listSubmissions(req, res) {
+  try {
+    const { examId } = req.params;
+    const { rows } = await query(
+      `SELECT ms.*, t1.first_name AS submitted_by_first, t1.last_name AS submitted_by_last,
+              t2.first_name AS reviewed_by_first, t2.last_name AS reviewed_by_last
+       FROM mark_submissions ms
+       LEFT JOIN teachers t1 ON t1.id = ms.submitted_by
+       LEFT JOIN teachers t2 ON t2.id = ms.reviewed_by
+       WHERE ms.exam_id=$1 AND ms.school_id=$2
+       ORDER BY ms.submitted_at DESC`,
+      [examId, req.user.school_id]
+    );
+    res.json({ submissions: rows });
+  } catch (err) {
+    console.error('listSubmissions error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch submissions' });
+  }
+}
+
+// Admin-tier approves a pending submission. Route-level authorize()
+// middleware already restricts who can call this.
+async function approveSubmission(req, res) {
+  try {
+    const { examId } = req.params;
+    const { subject } = req.body;
+    if (!subject) return res.status(400).json({ error: 'subject is required' });
+
+    const reviewerId = await getTeacherId(req.user.id, req.user.school_id);
+    const { rows } = await query(
+      `UPDATE mark_submissions
+       SET status='approved', reviewed_by=$1, reviewed_at=NOW(), review_note=NULL
+       WHERE exam_id=$2 AND subject=$3 AND school_id=$4
+       RETURNING *`,
+      [reviewerId, examId, subject, req.user.school_id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Submission not found' });
+    res.json({ submission: rows[0] });
+  } catch (err) {
+    console.error('approveSubmission error:', err.message);
+    res.status(500).json({ error: 'Failed to approve submission' });
+  }
+}
+
+// Admin-tier rejects a pending submission, re-opening it for editing.
+async function rejectSubmission(req, res) {
+  try {
+    const { examId } = req.params;
+    const { subject, note } = req.body;
+    if (!subject) return res.status(400).json({ error: 'subject is required' });
+
+    const reviewerId = await getTeacherId(req.user.id, req.user.school_id);
+    const { rows } = await query(
+      `UPDATE mark_submissions
+       SET status='rejected', reviewed_by=$1, reviewed_at=NOW(), review_note=$2
+       WHERE exam_id=$3 AND subject=$4 AND school_id=$5
+       RETURNING *`,
+      [reviewerId, note || null, examId, subject, req.user.school_id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Submission not found' });
+    res.json({ submission: rows[0] });
+  } catch (err) {
+    console.error('rejectSubmission error:', err.message);
+    res.status(500).json({ error: 'Failed to reject submission' });
+  }
+}
+
+module.exports = { getExams, createExam, updateExam, deleteExam, getScores, upsertScores, getAnalysis, getTrends, getSchoolOverview, getStreamRanking, getLearnerRanking, getSubjectRankingByStream, getBroadsheet, getMyActiveExams, getMySubjectsForExam, submitMarks, listSubmissions, approveSubmission, rejectSubmission };
 
 

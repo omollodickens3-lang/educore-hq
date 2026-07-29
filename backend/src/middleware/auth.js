@@ -206,6 +206,19 @@ async function requireExamSubjectAccess(req, res, next) {
       }
       return res.status(403).json({ error: `You are not assigned to teach ${unauthorized.join(', ')} for ${exam.grade}` });
     }
+
+    // Once a subject's marks are submitted for review (pending or already
+    // approved), lock them from further edits by regular teachers.
+    const { rows: lockRows } = await query(
+      `SELECT subject, status FROM mark_submissions
+       WHERE exam_id=$1 AND subject = ANY($2::text[]) AND status IN ('pending','approved')`,
+      [req.params.examId, submittedSubjects]
+    );
+    if (lockRows.length) {
+      const locked = lockRows.map(r => `${r.subject} (${r.status})`).join(', ');
+      return res.status(403).json({ error: `These subjects are locked pending review: ${locked}` });
+    }
+
     next();
   } catch (err) {
     console.error('requireExamSubjectAccess error:', err);
@@ -349,5 +362,6 @@ module.exports = {
   requirePermission, sameSchool, parentChildOnly,
   requireSuperAdmin,
   requireExamSubjectAccess, requireClassTeacherAccess, requireLearnerTeacherAccess, requireStreamAccess,
-  ROLE_LEVELS, ROLE_LABELS,
+  ROLE_LEVELS, ROLE_LABELS, ADMIN_TIER_ROLES,
+  getTeacherId,
 };

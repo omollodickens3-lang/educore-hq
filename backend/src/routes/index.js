@@ -65,6 +65,12 @@ router.get('/exams/:examId/scores', authenticate, exams.getScores);
 router.post('/exams/:examId/scores', authenticate, requireExamSubjectAccess, exams.upsertScores);
 router.delete('/exams/:examId', authenticate, authorize('admin', 'director_of_studies', 'deputy'), exams.deleteExam);
 
+// Mark submission / approval workflow
+router.post('/exams/:examId/submit', authenticate, exams.submitMarks);
+router.get('/exams/:examId/submissions', authenticate, exams.listSubmissions);
+router.post('/exams/:examId/submissions/approve', authenticate, authorize('admin', 'director_of_studies', 'deputy', 'hod'), exams.approveSubmission);
+router.post('/exams/:examId/submissions/reject', authenticate, authorize('admin', 'director_of_studies', 'deputy', 'hod'), exams.rejectSubmission);
+
 router.get('/attendance', authenticate, attendance.getAttendance);
 router.post('/attendance/bulk', authenticate, requireClassTeacherAccess, attendance.markBulk);
 router.get('/attendance/alerts', authenticate, attendance.getAlerts);
