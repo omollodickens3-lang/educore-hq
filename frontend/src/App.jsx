@@ -12,6 +12,8 @@ import ExaminationsPage from './pages/ExaminationsPage';
 import SuperAdminPage from './pages/SuperAdminPage';
 import PendingRegistrationsPage from './pages/PendingRegistrationsPage';
 import AttendancePage from './pages/AttendancePage';
+import AssignmentsPage from './pages/AssignmentsPage';
+import AssignmentDetailPage from './pages/AssignmentDetailPage';
 import ParentPortalPage from './pages/ParentPortalPage';
 import ParentPortalInfoPage from './pages/ParentPortalInfoPage';
 import ParentRegisterPage from './pages/ParentRegisterPage';
@@ -62,7 +64,8 @@ function AppRoutes() {
         <Route path="reports"      element={<ReportsPage />} />
         <Route path="attendance"   element={<AttendancePage />} />
         <Route path="portal"       element={<ParentPortalInfoPage />} />
-        <Route path="assignments"  element={<ComingSoon title="📚 Assignments" />} />
+        <Route path="assignments"  element={<AssignmentsPage />} />
+        <Route path="assignments/:id" element={<AssignmentDetailPage />} />
         <Route path="content"      element={<ComingSoon title="✏️ Content Generation" />} />
         <Route path="super-admin"  element={<SuperAdminPage />} />
         <Route path="pending-registrations" element={<PendingRegistrationsPage />} />
