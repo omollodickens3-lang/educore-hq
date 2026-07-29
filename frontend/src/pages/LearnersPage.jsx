@@ -812,7 +812,7 @@ export default function LearnersPage() {
           onChange={e => setGradeFilter(e.target.value)}
           style={{
             padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0',
-            fontSize: '14px', background: '#fff',
+            fontSize: '14px', background: '#fff', color: '#0f172a',
           }}
         >
           <option value="">All Grades</option>
@@ -823,7 +823,7 @@ export default function LearnersPage() {
           onChange={e => setStreamFilter(e.target.value)}
           style={{
             padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0',
-            fontSize: '14px', background: '#fff',
+            fontSize: '14px', background: '#fff', color: '#0f172a',
           }}
         >
           <option value="">All Streams</option>
