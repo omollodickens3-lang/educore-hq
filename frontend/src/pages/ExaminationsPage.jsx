@@ -15,6 +15,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 // ─── API ──────────────────────────────────────────────────────────────────────
 const BASE = import.meta.env.VITE_API_URL ?? "/api";
@@ -945,6 +946,8 @@ function CreateExamModal({ onClose, onCreate, initialExam }) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function ExaminationsPage() {
+  const { user } = useAuth();
+  const canDeleteExam = ['admin', 'director_of_studies', 'deputy', 'super_admin'].includes(user?.role);
   const [searchParams] = useSearchParams();
   const deepLinkExamId = searchParams.get("examId");
 
@@ -1199,6 +1202,7 @@ export default function ExaminationsPage() {
                 >
                   Edit Exam
                 </button>
+                {canDeleteExam && (
                 <button
                   onClick={handleDeleteExam}
                   disabled={deletingExam}
@@ -1215,6 +1219,7 @@ export default function ExaminationsPage() {
                 >
                   {deletingExam ? 'Deleting...' : 'Delete Exam'}
                 </button>
+                )}
             </span>
           )}
         </div>
