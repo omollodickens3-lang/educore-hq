@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ExaminationsPage.jsx  –  EduCore CBC Examinations Module
  *
  * Grading system
@@ -15,8 +15,6 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import toast from "react-hot-toast";
 
 // ─── API ──────────────────────────────────────────────────────────────────────
 const BASE = import.meta.env.VITE_API_URL ?? "/api";
@@ -48,7 +46,6 @@ const api = {
   getMySubjectsForExam: (id) => apiFetch(`/exams/${id}/my-subjects`),
   upsertScores:(id, r)  => apiFetch(`/exams/${id}/scores`, { method: "POST", body: JSON.stringify({ scores: r }) }),
   getTrends: (p = {}) => apiFetch("/exams/trends?" + new URLSearchParams(p)),
-  deleteExam: (id) => apiFetch(`/exams/${id}`, { method: "DELETE" }),
 };
 
 // ─── CBC grading ───────────────────────────────────────────────────────────────
@@ -422,10 +419,102 @@ function TrendsChart({ grade, subject }) {
   );
 }
 
+// ─── Bulk Paste Modal ───────────────────────────────────────────────────────────
+// Lets a teacher paste rows copied from Excel/Sheets ("admission_no<TAB>score"
+// or "admission_no,score", one per line) and match them against the current
+// roster in one shot. Matched rows flow through the exact same `update()` path
+// as typing a score by hand, so the existing debounced autosave still owns the
+// actual save — this just fills in many rows at once instead of one at a time.
+function BulkPasteModal({ onClose, onApply, scores }) {
+  const [text, setText] = useState("");
+  const [preview, setPreview] = useState(null); // { matched: [], unmatched: [] }
+
+  function parseAndPreview(value) {
+    setText(value);
+    const lines = value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const matched = [];
+    const unmatched = [];
+    lines.forEach((line) => {
+      const parts = line.split(/\t|,/).map((p) => p.trim()).filter((p) => p !== "");
+      if (parts.length < 2) { unmatched.push({ line, reason: "Couldn't read admission no. and score" }); return; }
+      const [admNo, scoreRaw] = parts;
+      const scoreNum = Number(scoreRaw);
+      if (Number.isNaN(scoreNum)) { unmatched.push({ line, reason: "Score isn't a number" }); return; }
+      const learner = scores.find(
+        (r) => (r.admissionNo ?? "").toString().trim().toLowerCase() === admNo.toLowerCase()
+      );
+      if (!learner) { unmatched.push({ line, reason: `No learner with admission no. "${admNo}"` }); return; }
+      matched.push({ learnerId: learner.learnerId, learnerName: learner.learnerName, admissionNo: admNo, score: scoreNum });
+    });
+    setPreview({ matched, unmatched });
+  }
+
+  return (
+    <div style={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div style={{ ...styles.modal, width: 620 }}>
+        <div style={styles.modalHeader}>
+          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#111827" }}>Bulk paste scores</h2>
+          <button onClick={onClose} style={styles.iconBtn}>✕</button>
+        </div>
+        <div style={styles.modalBody}>
+          <p style={{ margin: 0, fontSize: 13, color: "#6B7280" }}>
+            Paste rows copied from Excel or Google Sheets — one learner per line, admission number
+            then score, separated by a tab or comma. Example:
+          </p>
+          <pre style={{
+            margin: 0, background: "#F8F9FB", border: "1px solid #E5E7EB", borderRadius: 8,
+            padding: "10px 14px", fontSize: 12, color: "#374151", lineHeight: 1.6,
+          }}>{`2025/004\t78\n2025/012\t65\n2025/019\t91`}</pre>
+          <textarea
+            value={text}
+            onChange={(e) => parseAndPreview(e.target.value)}
+            placeholder="Paste admission_no + score rows here…"
+            rows={8}
+            style={{ ...styles.input, fontFamily: "monospace", fontSize: 13, resize: "vertical" }}
+          />
+          {preview && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#059669" }}>
+                ✓ {preview.matched.length} learner{preview.matched.length !== 1 ? "s" : ""} matched
+              </p>
+              {preview.unmatched.length > 0 && (
+                <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "10px 14px" }}>
+                  <p style={{ margin: "0 0 6px", fontSize: 12, fontWeight: 700, color: "#DC2626" }}>
+                    {preview.unmatched.length} row{preview.unmatched.length !== 1 ? "s" : ""} couldn't be matched:
+                  </p>
+                  {preview.unmatched.slice(0, 6).map((u, i) => (
+                    <p key={i} style={{ margin: "2px 0", fontSize: 11, color: "#991B1B" }}>
+                      "{u.line}" — {u.reason}
+                    </p>
+                  ))}
+                  {preview.unmatched.length > 6 && (
+                    <p style={{ margin: "2px 0", fontSize: 11, color: "#991B1B" }}>…and {preview.unmatched.length - 6} more</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <div style={styles.modalFooter}>
+          <button onClick={onClose} style={styles.btnGhost}>Cancel</button>
+          <button
+            onClick={() => onApply(preview?.matched ?? [])}
+            disabled={!preview || preview.matched.length === 0}
+            style={{ ...styles.btnPrimary, opacity: !preview || preview.matched.length === 0 ? 0.5 : 1 }}
+          >
+            Apply {preview?.matched.length ? `${preview.matched.length} score${preview.matched.length !== 1 ? "s" : ""}` : "scores"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function MarkEntryTab({ exam, scores, setScores, onSaved, selectedSubject, setSelectedSubject, availableSubjects }) {
   const [saveStatus, setSaveStatus] = useState("idle"); // idle | pending | saving | saved | error
   const [saveError, setSaveError]   = useState("");
   const [search, setSearch]   = useState("");
+  const [showBulkPaste, setShowBulkPaste] = useState(false);
   const maxScore = exam.maxScore ?? 100;
   const autosaveTimer = useRef();
   const scoresRef = useRef(scores);
@@ -493,6 +582,25 @@ function MarkEntryTab({ exam, scores, setScores, onSaved, selectedSubject, setSe
     autosaveTimer.current = setTimeout(doSave, 1500);
   }
 
+  // Applies every matched row from the Bulk Paste modal in one go, then saves
+  // immediately (no need to wait on the usual per-keystroke debounce) since
+  // this is already a deliberate, reviewed, one-time batch action.
+  function applyBulkScores(matched) {
+    if (!matched.length) { setShowBulkPaste(false); return; }
+    setScores((prev) => prev.map((r) => {
+      const hit = matched.find((m) => m.learnerId === r.learnerId);
+      if (!hit) return r;
+      const cbc = getCBC(hit.score, maxScore, exam.grade);
+      return { ...r, score: hit.score, remarks: autoRemark(cbc) };
+    }));
+    dirtyRef.current = true;
+    setSaveStatus("pending");
+    setShowBulkPaste(false);
+    clearTimeout(autosaveTimer.current);
+    // Give React a tick to flush the state update above into scoresRef before saving.
+    autosaveTimer.current = setTimeout(doSave, 50);
+  }
+
   async function trySwitchSubject(next) {
     if (dirtyRef.current) await doSave();
     setSelectedSubject(next);
@@ -524,6 +632,12 @@ function MarkEntryTab({ exam, scores, setScores, onSaved, selectedSubject, setSe
         <input style={{ ...styles.input, maxWidth: 260, padding: "7px 12px" }}
           placeholder="Search by name or admission no…"
           value={search} onChange={(e) => setSearch(e.target.value)} />
+        <button
+          onClick={() => setShowBulkPaste(true)}
+          style={{ ...styles.btnGhost, padding: "7px 14px", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}
+        >
+          📋 Bulk paste scores
+        </button>
         <span style={{ fontSize: 12, color: "#9CA3AF", marginLeft: 4 }}>
           {entered} / {scores.length} entered
         </span>
@@ -633,6 +747,14 @@ function MarkEntryTab({ exam, scores, setScores, onSaved, selectedSubject, setSe
         </table>
 </div>
       </div>
+
+      {showBulkPaste && (
+        <BulkPasteModal
+          scores={scores}
+          onClose={() => setShowBulkPaste(false)}
+          onApply={applyBulkScores}
+        />
+      )}
     </div>
   );
 }
@@ -948,8 +1070,6 @@ function CreateExamModal({ onClose, onCreate, initialExam }) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function ExaminationsPage() {
-  const { user } = useAuth();
-  const canDeleteExam = ['admin', 'director_of_studies', 'deputy', 'super_admin'].includes(user?.role);
   const [searchParams] = useSearchParams();
   const deepLinkExamId = searchParams.get("examId");
 
@@ -1010,13 +1130,12 @@ export default function ExaminationsPage() {
     if (!ok) return;
     setDeletingExam(true);
     try {
-      await api.deleteExam(examId);
+      await examsAPI.delete(examId);
       toast.success('Exam deleted');
       setSelected(null);
       await loadExams();
     } catch (e) {
-      console.error('Delete exam failed:', e);
-      toast.error(e.message || 'Failed to delete exam');
+      toast.error(e.response?.data?.error || 'Failed to delete exam');
     } finally {
       setDeletingExam(false);
     }
@@ -1205,7 +1324,6 @@ export default function ExaminationsPage() {
                 >
                   Edit Exam
                 </button>
-                {canDeleteExam && (
                 <button
                   onClick={handleDeleteExam}
                   disabled={deletingExam}
@@ -1222,7 +1340,6 @@ export default function ExaminationsPage() {
                 >
                   {deletingExam ? 'Deleting...' : 'Delete Exam'}
                 </button>
-                )}
             </span>
           )}
         </div>

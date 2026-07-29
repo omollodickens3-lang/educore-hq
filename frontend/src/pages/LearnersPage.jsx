@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import * as pdfjsLib from 'pdfjs-dist';
 import { learnersAPI } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
@@ -160,9 +161,6 @@ function LearnerFormModal({ onClose, onSaved }) {
 // Bulk upload: parsing + friendly review-before-upload flow
 // ─────────────────────────────────────────────────────────────────────────
 
-// Recognized header names, normalized (lowercase, no spaces/underscores/periods),
-// mapped to the canonical field they represent. This lets uploads work regardless
-// of column order or exact header wording.
 const HEADER_ALIASES = {
   name: 'name', fullname: 'name', studentname: 'name', learnername: 'name',
   firstname: 'firstName', fname: 'firstName', givenname: 'firstName',
@@ -195,12 +193,9 @@ function splitFullName(full) {
   return { firstName: parts.slice(0, -1).join(' '), lastName: parts[parts.length - 1] };
 }
 
-// Template shown to the user as a guide (still accepted as-is with no header row).
 const TEMPLATE_HEADER = 'firstName,lastName,grade,stream,admissionNo,gender,dateOfBirth,parentName,parentPhone,parentEmail';
 const STRICT_COLUMN_ORDER = ['firstName', 'lastName', 'grade', 'stream', 'admissionNo', 'gender', 'dateOfBirth', 'parentName', 'parentPhone', 'parentEmail'];
 
-// Tries to build a header -> field map from the first row. Returns null if the
-// first row doesn't look like a recognizable header (i.e. it's probably data).
 function detectHeaderMap(cols) {
   const fieldMap = {};
   let recognizedCount = 0;
@@ -220,12 +215,6 @@ function detectHeaderMap(cols) {
 const ADMISSION_NO_PATTERN = /^\d+$/;
 const ADMISSION_NO_PATTERN_YEAR = /^\d{4}\/\d+$/;
 
-// Parses raw pasted/file text into a list of *editable preview rows*. Nothing
-// is silently dropped here — every non-blank line becomes a row so a teacher
-// can see and fix problems in the UI, rather than guessing from an error list
-// after the fact. Each row carries an `issues` list; `blocking` issues (no
-// name, no grade) must be resolved before that row can be uploaded, while
-// everything else is just a heads-up.
 function buildPreviewRows(raw, defaults = {}) {
   const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
   if (!lines.length) return [];
@@ -248,16 +237,12 @@ function buildPreviewRows(raw, defaults = {}) {
         if (field) record[field] = val;
       });
     } else {
-      // No recognizable header row: assume the template's fixed column order.
-      // Pad/truncate rather than dropping the row, so a mismatched line still
-      // shows up for the teacher to fix by hand.
       if (cols.length !== STRICT_COLUMN_ORDER.length) {
         issues.push(`Expected ${STRICT_COLUMN_ORDER.length} columns, found ${cols.length} — check this row carefully`);
       }
       STRICT_COLUMN_ORDER.forEach((field, idx) => { record[field] = (cols[idx] || '').trim(); });
     }
 
-    // Combined "Name" column: split into first/last automatically.
     if (record.name && !record.firstName && !record.lastName) {
       const { firstName, lastName } = splitFullName(record.name);
       record.firstName = firstName;
@@ -308,8 +293,6 @@ function revalidateRow(row) {
   return { ...row, issues, blocking, include: blocking ? false : row.include };
 }
 
-// Reads an .xlsx/.xls file and converts the first sheet into the same
-// comma-separated text format the paste box already expects.
 function extractCsvFromExcel(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -330,11 +313,6 @@ function extractCsvFromExcel(file) {
   });
 }
 
-// Best-effort PDF table extraction: groups text items into lines by their
-// vertical position, then joins items on each line using a comma when the
-// horizontal gap between them looks like a column break. Not perfect for
-// every layout, so the result lands in the reviewable preview table, not
-// uploaded automatically.
 async function extractTextFromPdf(file) {
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -395,7 +373,7 @@ function IssueBadge({ text, blocking }) {
 }
 
 function BulkUploadModal({ onClose, onSaved }) {
-  const [step, setStep] = useState('input'); // 'input' | 'preview'
+  const [step, setStep] = useState('input');
   const [raw, setRaw] = useState('');
   const [fileName, setFileName] = useState('');
   const [parsingFile, setParsingFile] = useState(false);
@@ -499,15 +477,11 @@ function BulkUploadModal({ onClose, onSaved }) {
       if (failed.length) {
         toast.error(`${failed.length} row(s) could not be saved — see details below`);
       }
-      // Drop successfully-created rows from the preview so the teacher can
-      // fix and retry just the ones that failed, without re-entering everyone.
       if (created.length && !failed.length) {
         const createdKeys = new Set(readyRows.map(r => r._key));
         setPreviewRows(rows => rows.filter(r => !createdKeys.has(r._key)));
       } else if (created.length && failed.length) {
-        // Mixed result: the API doesn't tell us which specific rows succeeded
-        // vs failed, so keep the full set visible and let the teacher retry —
-        // safer than guessing and silently re-submitting a duplicate.
+        // keep full set visible for retry
       }
     } catch (err) {
       toast.error(err.response?.data?.error || 'Bulk upload failed');
@@ -751,6 +725,8 @@ function PreviewRowWithRemove({ row, onChange, onRemove }) {
 }
 
 export default function LearnersPage() {
+  const { user } = useAuth();
+  const canAddLearners = user?.role === 'admin' || user?.role === 'class_teacher';
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [gradeFilter, setGradeFilter] = useState('');
@@ -788,18 +764,20 @@ export default function LearnersPage() {
           <h1 style={{ fontSize: '24px', color: '#0f172a', marginBottom: '4px' }}>Learners</h1>
           <p style={{ color: '#64748b', fontSize: '14px' }}>Manage learner records and admissions</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={() => setShowBulkModal(true)} style={{
-            padding: '11px 20px', borderRadius: '10px', border: '1px solid #2563eb',
-            background: '#fff', color: '#2563eb', fontWeight: 600,
-            cursor: 'pointer', fontSize: '14px',
-          }}>Bulk Upload</button>
-          <button onClick={() => setShowAddModal(true)} style={{
-            padding: '11px 20px', borderRadius: '10px', border: 'none',
-            background: '#2563eb', color: '#fff', fontWeight: 600,
-            cursor: 'pointer', fontSize: '14px',
-          }}>+ Add Learner</button>
-        </div>
+        {canAddLearners && (
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button onClick={() => setShowBulkModal(true)} style={{
+              padding: '11px 20px', borderRadius: '10px', border: '1px solid #2563eb',
+              background: '#fff', color: '#2563eb', fontWeight: 600,
+              cursor: 'pointer', fontSize: '14px',
+            }}>Bulk Upload</button>
+            <button onClick={() => setShowAddModal(true)} style={{
+              padding: '11px 20px', borderRadius: '10px', border: 'none',
+              background: '#2563eb', color: '#fff', fontWeight: 600,
+              cursor: 'pointer', fontSize: '14px',
+            }}>+ Add Learner</button>
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>

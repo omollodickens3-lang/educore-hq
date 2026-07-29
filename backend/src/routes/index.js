@@ -24,8 +24,8 @@ router.post('/auth/change-password', authenticate, auth.changePassword);
 
 router.get('/classes', authenticate, classes.getClasses);
 router.get('/classes/mine', authenticate, classes.getMyClass);
-router.post('/classes', authenticate, classes.createClass);
-router.put('/classes/:id', authenticate, classes.updateClass);
+router.post('/classes', authenticate, authorize('admin'), classes.createClass);
+router.put('/classes/:id', authenticate, authorize('admin'), classes.updateClass);
 router.delete('/classes/:id', authenticate, classes.deleteClass);
 
 router.get('/learners', authenticate, learners.getLearners);
@@ -34,20 +34,21 @@ router.get('/learners/class-list', authenticate, classList.getClassList);
 router.get('/learners/class-list/csv', authenticate, classList.exportClassListCSV);
 router.get('/learners/class-list/pdf', authenticate, classList.exportClassListPDF);
 router.get('/learners/:id', authenticate, learners.getLearnerById);
-router.post('/learners', authenticate, learners.createLearner);
+router.post('/learners', authenticate, authorize('admin', 'class_teacher'), learners.createLearner);
 router.put('/learners/:id', authenticate, learners.updateLearner);
 router.delete('/learners/:id', authenticate, learners.deleteLearner);
 router.get('/learners/:id/progress', authenticate, learners.getLearnerProgress);
 router.put('/learners/:id/strands', authenticate, learners.updateStrands);
-router.post('/learners/bulk', authenticate, learners.bulkCreateLearners);
+router.post('/learners/bulk', authenticate, authorize('admin', 'class_teacher'), learners.bulkCreateLearners);
 
 router.get('/teachers', authenticate, teachers.getTeachers);
 router.get('/teachers/:id', authenticate, teachers.getTeacherById);
-router.post('/teachers', authenticate, teachers.createTeacher);
+router.post('/teachers', authenticate, authorize('admin'), teachers.createTeacher);
 router.put('/teachers/:id', authenticate, teachers.updateTeacher);
 router.delete('/teachers/:id', authenticate, teachers.deleteTeacher);
-router.post('/teachers/:id/subjects', authenticate, teachers.assignSubjects);
-router.delete('/teachers/subjects/:subjectId', authenticate, teachers.removeSubject);
+router.post('/teachers/:id/subjects', authenticate, authorize('admin'), teachers.assignSubjects);
+router.delete('/teachers/subjects/:subjectId', authenticate, authorize('admin'), teachers.removeSubject);
+router.post('/teachers/:id/reset-password', authenticate, authorize('admin'), teachers.resetPassword);
 
 router.get('/exams', authenticate, exams.getExams);
 router.post('/exams', authenticate, exams.createExam);
@@ -57,7 +58,7 @@ router.get('/exams/trends', authenticate, exams.getTrends);
 router.get('/exams/school-overview', authenticate, exams.getSchoolOverview);
 router.get('/exams/my-active', authenticate, exams.getMyActiveExams);
 router.get('/exams/:examId/my-subjects', authenticate, exams.getMySubjectsForExam);
-router.get('/exams/stream-ranking', authenticate, exams.getStreamRanking); // aggregate-only (avg/counts per stream) — safe for all staff to compare
+router.get('/exams/stream-ranking', authenticate, exams.getStreamRanking);
 router.get('/exams/learner-ranking', authenticate, requireStreamAccess, exams.getLearnerRanking);
 router.get('/exams/subject-ranking-by-stream', authenticate, requireStreamAccess, exams.getSubjectRankingByStream);
 router.get('/exams/broadsheet', authenticate, exams.getBroadsheet);
