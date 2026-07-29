@@ -16,12 +16,14 @@ const NAV_ITEMS = [
   { to: '/reports',      icon: '📄', label: 'Report Forms', visible: (a) => a.isAdminTier || a.user?.role === 'class_teacher' },
   { to: '/broadsheet',   icon: '📊', label: 'Broadsheet',     visible: (a) => a.isAdminTier || a.user?.role === 'class_teacher' },
   { to: '/notifications', icon: '🔔', label: 'Notifications',   visible: (a) => a.isAdminTier || a.user?.role === 'class_teacher' },
+  { to: '/class-list',   icon: '📋', label: 'Class Lists',      visible: (a) => a.isAdminTier || a.user?.role === 'class_teacher' },
 
   { section: 'Admin' },
   { to: '/content',      icon: '✏️', label: 'Content Generation', visible: (a) => a.isAdminTier },
   { to: '/portal',       icon: '💬', label: 'Parent Portal',      visible: (a) => a.isAdminTier },
   { to: '/teachers',     icon: '👩‍🏫', label: 'Teachers',          visible: (a) => a.isAdminTier },
   { to: '/analytics',    icon: '📊', label: 'Analytics',         visible: (a) => a.isAdminTier },
+  { to: '/classes',      icon: '🏫', label: 'Manage Classes',    visible: (a) => a.isAdminTier },
 
   { section: 'Platform' },
   { to: '/super-admin',  icon: '🛡️', label: 'Super Admin',       visible: (a) => a.user?.role === 'super_admin' },
