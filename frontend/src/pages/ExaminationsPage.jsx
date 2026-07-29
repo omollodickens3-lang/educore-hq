@@ -1014,7 +1014,13 @@ export default function ExaminationsPage() {
       setSelected(null);
       await loadExams();
     } catch (e) {
-      toast.error(e.response?.data?.error || 'Failed to delete exam');
+      console.error('Delete exam failed:', {
+        status: e.response?.status,
+        data: e.response?.data,
+        message: e.message,
+        code: e.code,
+      });
+      toast.error(e.response?.data?.error || `Failed to delete exam (${e.response?.status || e.code || 'no response'})`);
     } finally {
       setDeletingExam(false);
     }
