@@ -1,4 +1,4 @@
-import ContactSupport from '../components/ContactSupport';
+import ContactSupport from '../components/layout/ContactSupport';
 
 export default function HelpPage() {
   return (
