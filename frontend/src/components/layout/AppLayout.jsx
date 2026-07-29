@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { to: '/examinations', icon: '📝', label: 'Examinations', visible: () => true },
   { to: '/learners',     icon: '🧑‍🎓', label: 'Learners',    visible: (a) => a.isAdminTier || a.user?.role === 'class_teacher' },
   { to: '/attendance',   icon: '✅', label: 'Attendance',   visible: (a) => a.isAdminTier || a.user?.role === 'class_teacher' },
+  { to: '/my-class',     icon: '🎒', label: 'My Class',     visible: (a) => a.user?.role === 'class_teacher' },
   { to: '/assignments',  icon: '📚', label: 'Assignments',  visible: () => true },
   { to: '/conduct',      icon: '🧭', label: 'Conduct',       visible: () => true },
   { to: '/reports',      icon: '📄', label: 'Report Forms', visible: (a) => a.isAdminTier || a.user?.role === 'class_teacher' },
