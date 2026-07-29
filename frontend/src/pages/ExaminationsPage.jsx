@@ -16,6 +16,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import toast from "react-hot-toast";
 
 // ─── API ──────────────────────────────────────────────────────────────────────
 const BASE = import.meta.env.VITE_API_URL ?? "/api";
