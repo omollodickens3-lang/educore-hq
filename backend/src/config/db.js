@@ -20,6 +20,12 @@ const pool = new Pool(
 pool.on('connect', () => console.log('✅ PostgreSQL connected'));
 pool.on('error', (err) => console.error('❌ Database error:', err.message));
 
+// Prevent silent-forever hangs: cap pool size and fail fast if no
+// connection becomes available, instead of queuing requests indefinitely.
+pool.options.max = pool.options.max || 20;
+pool.options.idleTimeoutMillis = pool.options.idleTimeoutMillis || 30000;
+pool.options.connectionTimeoutMillis = pool.options.connectionTimeoutMillis || 10000;
+
 const query = (text, params) => pool.query(text, params);
 const getClient = () => pool.connect();
 

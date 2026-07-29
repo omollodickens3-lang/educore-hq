@@ -104,6 +104,7 @@ async function approveRegistration(req, res) {
       admin: adminUser,
     });
   } catch (err) {
+    client._hadError = true;
     await client.query('ROLLBACK').catch(() => {});
     console.error("approveRegistration error:", err.message);
     if (err.code === '23505') {
@@ -117,7 +118,7 @@ async function approveRegistration(req, res) {
     }
     res.status(500).json({ error: "Failed to approve registration" });
   } finally {
-    client.release();
+    client.release(client._hadError === true);
   }
 }
 

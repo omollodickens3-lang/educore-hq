@@ -152,9 +152,10 @@ async function upsertScores(req, res) {
     res.json({ message: `${upserted} scores saved`, upserted });
   } catch (err) {
     console.error(err);
-    await client.query('ROLLBACK');
+    await client.query('ROLLBACK').catch(() => {});
     res.status(500).json({ error: 'Failed to save scores' });
-  } finally { client.release(); }
+    client._hadError = true;
+  } finally { client.release(client._hadError === true); }
 }
 
 async function getAnalysis(req, res) {

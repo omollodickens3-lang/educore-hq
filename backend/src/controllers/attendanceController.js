@@ -72,9 +72,10 @@ async function markBulk(req, res) {
     }
     res.json({ message: `${marked} records saved`, marked });
   } catch (err) {
-    await client.query('ROLLBACK');
+    await client.query('ROLLBACK').catch(() => {});
     res.status(500).json({ error: 'Failed to mark attendance' });
-  } finally { client.release(); }
+    client._hadError = true;
+  } finally { client.release(client._hadError === true); }
 }
 
 async function getLearnerStats(req, res) {
