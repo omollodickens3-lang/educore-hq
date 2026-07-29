@@ -51,8 +51,15 @@ function ModalShell({ title, onClose, width = '480px', children }) {
   );
 }
 
-function LearnerFormModal({ onClose, onSaved }) {
-  const [form, setForm] = useState({
+function LearnerFormModal({ onClose, onSaved, learner }) {
+  const isEdit = !!learner;
+  const [form, setForm] = useState(() => learner ? {
+    firstName: learner.first_name || '', lastName: learner.last_name || '',
+    admissionNo: learner.admission_no || '', dateOfBirth: (learner.date_of_birth || '').slice(0, 10),
+    gender: learner.gender || '', grade: learner.grade || 'Grade 7', stream: learner.stream || '',
+    parentName: learner.parent_name || '', parentPhone: learner.parent_phone || '',
+    parentEmail: learner.parent_email || '', notes: learner.notes || '',
+  } : {
     firstName: '', lastName: '', admissionNo: '', dateOfBirth: '', gender: '',
     grade: 'Grade 7', stream: 'A', parentName: '', parentPhone: '', parentEmail: '', notes: '',
   });
@@ -67,19 +74,24 @@ function LearnerFormModal({ onClose, onSaved }) {
     }
     setSaving(true);
     try {
-      await learnersAPI.create(form);
-      toast.success('Learner added');
+      if (isEdit) {
+        await learnersAPI.update(learner.id, form);
+        toast.success('Learner updated');
+      } else {
+        await learnersAPI.create(form);
+        toast.success('Learner added');
+      }
       onSaved();
       onClose();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to add learner');
+      toast.error(err.response?.data?.error || `Failed to ${isEdit ? 'update' : 'add'} learner`);
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <ModalShell title="Add Learner" onClose={onClose}>
+    <ModalShell title={isEdit ? 'Edit Learner' : 'Add Learner'} onClose={onClose}>
       <form onSubmit={handleSubmit}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
           <label style={labelStyle}>First Name *
@@ -150,7 +162,7 @@ function LearnerFormModal({ onClose, onSaved }) {
             padding: '10px 18px', borderRadius: '8px', border: 'none',
             background: '#2563eb', color: '#fff', cursor: 'pointer', fontSize: '14px',
             fontWeight: 600, opacity: saving ? 0.6 : 1,
-          }}>{saving ? 'Saving...' : 'Add Learner'}</button>
+          }}>{saving ? 'Saving...' : (isEdit ? 'Save Changes' : 'Add Learner')}</button>
         </div>
       </form>
     </ModalShell>
@@ -731,14 +743,17 @@ export default function LearnersPage() {
   const canAddLearners = user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'class_teacher';
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBulkModal, setShowBulkModal] = useState(false);
+  const [editingLearner, setEditingLearner] = useState(null);
   const [gradeFilter, setGradeFilter] = useState('');
+  const [streamFilter, setStreamFilter] = useState('');
   const [search, setSearch] = useState('');
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ['learners', gradeFilter, search],
+    queryKey: ['learners', gradeFilter, streamFilter, search],
     queryFn: () => learnersAPI.getAll({
       grade: gradeFilter || undefined,
+      stream: streamFilter || undefined,
       search: search || undefined,
     }).then(r => r.data),
   });
@@ -803,6 +818,17 @@ export default function LearnersPage() {
           <option value="">All Grades</option>
           {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
         </select>
+        <select
+          value={streamFilter}
+          onChange={e => setStreamFilter(e.target.value)}
+          style={{
+            padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0',
+            fontSize: '14px', background: '#fff',
+          }}
+        >
+          <option value="">All Streams</option>
+          {STREAM_OPTIONS.map(s => <option key={s} value={s}>Stream {s}</option>)}
+        </select>
       </div>
 
       {isLoading ? (
@@ -842,6 +868,10 @@ export default function LearnersPage() {
                     <td style={{ padding: '14px 16px', color: '#64748b' }}>{l.parent_name || '—'}</td>
                     <td style={{ padding: '14px 16px' }}>{statusBadge(l.status)}</td>
                     <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                      <button onClick={() => setEditingLearner(l)} style={{
+                        border: 'none', background: 'transparent', color: '#2563eb',
+                        cursor: 'pointer', fontSize: '13px', marginRight: '14px',
+                      }}>Edit</button>
                       <button onClick={() => handleDelete(l.id, `${l.first_name} ${l.last_name}`)} style={{
                         border: 'none', background: 'transparent', color: '#dc2626',
                         cursor: 'pointer', fontSize: '13px',
@@ -858,6 +888,13 @@ export default function LearnersPage() {
       {showAddModal && (
         <LearnerFormModal
           onClose={() => setShowAddModal(false)}
+          onSaved={() => queryClient.invalidateQueries(['learners'])}
+        />
+      )}
+      {editingLearner && (
+        <LearnerFormModal
+          learner={editingLearner}
+          onClose={() => setEditingLearner(null)}
           onSaved={() => queryClient.invalidateQueries(['learners'])}
         />
       )}
