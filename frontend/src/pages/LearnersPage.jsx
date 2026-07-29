@@ -726,7 +726,7 @@ function PreviewRowWithRemove({ row, onChange, onRemove }) {
 
 export default function LearnersPage() {
   const { user } = useAuth();
-  const canAddLearners = user?.role === 'admin' || user?.role === 'class_teacher';
+  const canAddLearners = user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'class_teacher';
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [gradeFilter, setGradeFilter] = useState('');
