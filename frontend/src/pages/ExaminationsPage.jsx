@@ -48,6 +48,7 @@ const api = {
   getMySubjectsForExam: (id) => apiFetch(`/exams/${id}/my-subjects`),
   upsertScores:(id, r)  => apiFetch(`/exams/${id}/scores`, { method: "POST", body: JSON.stringify({ scores: r }) }),
   getTrends: (p = {}) => apiFetch("/exams/trends?" + new URLSearchParams(p)),
+  deleteExam: (id) => apiFetch(`/exams/${id}`, { method: "DELETE" }),
 };
 
 // ─── CBC grading ───────────────────────────────────────────────────────────────
@@ -1009,18 +1010,13 @@ export default function ExaminationsPage() {
     if (!ok) return;
     setDeletingExam(true);
     try {
-      await examsAPI.delete(examId);
+      await api.deleteExam(examId);
       toast.success('Exam deleted');
       setSelected(null);
       await loadExams();
     } catch (e) {
-      console.error('Delete exam failed:', {
-        status: e.response?.status,
-        data: e.response?.data,
-        message: e.message,
-        code: e.code,
-      });
-      toast.error(e.response?.data?.error || `Failed to delete exam (${e.response?.status || e.code || 'no response'})`);
+      console.error('Delete exam failed:', e);
+      toast.error(e.message || 'Failed to delete exam');
     } finally {
       setDeletingExam(false);
     }
