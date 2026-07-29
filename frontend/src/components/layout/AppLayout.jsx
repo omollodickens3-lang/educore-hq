@@ -3,20 +3,49 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
-const ADMIN_NAV = [
+const NAV_ITEMS = [
+  { section: 'Overview' },
+  { to: '/',             icon: '🏠', label: 'Dashboard',    visible: () => true },
+
   { section: 'Academics' },
-  { to: '/examinations', icon: '📝', label: 'Examinations' },
-  { to: '/learners',     icon: '🧑‍🎓', label: 'Learners' },
-  { to: '/reports',      icon: '📋', label: 'Report Forms' },
-  { to: '/classes',      icon: '🏫', label: 'Manage Classes' },
-  { section: 'Staff' },
-  { to: '/teachers',     icon: '👩‍🏫', label: 'Teachers' },
+  { to: '/examinations', icon: '📝', label: 'Examinations', visible: () => true },
+  { to: '/learners',     icon: '🧑‍🎓', label: 'Learners',    visible: (a) => a.isAdminTier || a.user?.role === 'class_teacher' },
+  { to: '/attendance',   icon: '✅', label: 'Attendance',   visible: (a) => a.isAdminTier || a.user?.role === 'class_teacher' },
+  { to: '/assignments',  icon: '📚', label: 'Assignments',  visible: () => true },
+  { to: '/reports',      icon: '📄', label: 'Report Forms', visible: (a) => a.isAdminTier || a.user?.role === 'class_teacher' },
+
+  { section: 'Admin' },
+  { to: '/content',      icon: '✏️', label: 'Content Generation', visible: (a) => a.isAdminTier },
+  { to: '/portal',       icon: '💬', label: 'Parent Portal',      visible: (a) => a.isAdminTier },
+  { to: '/teachers',     icon: '👩‍🏫', label: 'Teachers',          visible: (a) => a.isAdminTier },
+
+  { section: 'Platform' },
+  { to: '/super-admin',  icon: '🛡️', label: 'Super Admin',       visible: (a) => a.user?.role === 'super_admin' },
+  { to: '/pending-registrations', icon: '📥', label: 'Pending Registrations', visible: (a) => a.user?.role === 'super_admin' },
 ];
 
+function buildNav(auth) {
+  const result = [];
+  for (let i = 0; i < NAV_ITEMS.length; i++) {
+    const item = NAV_ITEMS[i];
+    if (item.section) {
+      let end = i + 1;
+      while (end < NAV_ITEMS.length && !NAV_ITEMS[end].section) end++;
+      const children = NAV_ITEMS.slice(i + 1, end);
+      const hasVisibleChild = children.some(child => child.visible(auth));
+      if (hasVisibleChild) result.push(item);
+    } else if (item.visible(auth)) {
+      result.push(item);
+    }
+  }
+  return result;
+}
+
 export default function AppLayout() {
-  const { user, logout, schoolName, isAdmin } = useAuth();
+  const auth = useAuth();
+  const { user, logout, schoolName } = auth;
   const navigate = useNavigate();
-  const NAV = isAdmin ? ADMIN_NAV : ADMIN_NAV.filter(item => item.section || item.to !== '/teachers');
+  const NAV = buildNav(auth);
 
   function handleLogout() {
     logout();
