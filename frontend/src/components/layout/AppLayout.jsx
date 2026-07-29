@@ -26,7 +26,8 @@ const NAV_ITEMS = [
   { to: '/teachers',     icon: '👩‍🏫', label: 'Teachers',          visible: (a) => a.isAdminTier },
   { to: '/analytics',    icon: '📊', label: 'Analytics',         visible: (a) => a.isAdminTier },
   { to: '/classes',      icon: '🏫', label: 'Manage Classes',    visible: (a) => a.isAdminTier },
-
+{ section: 'Support' },
+{ to: '/help',         icon: '💬', label: 'Help & Support', visible: () => true },
   { section: 'Platform' },
   { to: '/super-admin',  icon: '🛡️', label: 'Super Admin',       visible: (a) => a.user?.role === 'super_admin' },
   { to: '/pending-registrations', icon: '📥', label: 'Pending Registrations', visible: (a) => a.user?.role === 'super_admin' },
