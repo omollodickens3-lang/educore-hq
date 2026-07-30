@@ -430,7 +430,7 @@ async function getBroadsheet(req, res) {
        FROM scores s
        JOIN exams e ON e.id = s.exam_id
        JOIN learners l ON l.id = s.learner_id
-       WHERE s.school_id=$1 AND e.grade=$2 AND e.term=$3 AND e.academic_year=$4 AND l.stream=$5 AND e.exam_type=$6
+       WHERE s.school_id=$1 AND e.grade=$2 AND e.term=$3 AND e.academic_year=$4 AND l.stream=$5 AND e.exam_type=$6 AND l.grade=$2
        ORDER BY s.subject`,
       [req.user.school_id, grade, termToInt(term), academicYear, stream, examType]
     );
@@ -445,7 +445,7 @@ async function getBroadsheet(req, res) {
        FROM scores s
        JOIN exams e ON e.id = s.exam_id
        JOIN learners l ON l.id = s.learner_id
-       WHERE s.school_id=$1 AND e.grade=$2 AND e.term=$3 AND e.academic_year=$4 AND l.stream=$5 AND e.exam_type=$6
+       WHERE s.school_id=$1 AND e.grade=$2 AND e.term=$3 AND e.academic_year=$4 AND l.stream=$5 AND e.exam_type=$6 AND l.grade=$2
        GROUP BY l.id, l.first_name, l.last_name, l.admission_no
        ORDER BY total DESC`,
       [req.user.school_id, grade, termToInt(term), academicYear, stream, examType]
