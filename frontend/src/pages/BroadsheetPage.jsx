@@ -1,4 +1,5 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import * as XLSX from "xlsx";
 
 const BASE = import.meta.env.VITE_API_URL ?? "/api";
 
@@ -42,6 +43,8 @@ const styles = {
   rankBadge: { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, borderRadius: "50%", background: "#e2e8f0", fontSize: 12, fontWeight: 700, color: "#0f172a" },
   empty: { color: "#94a3b8", fontSize: 13, padding: "16px 0", textAlign: "center" },
   error: { color: "#dc2626", background: "#fef2f2", padding: "12px 16px", borderRadius: 8, fontSize: 13, marginBottom: 16 },
+  downloadBtn: { background: "#fff", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" },
+  downloadBar: { display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 12 },
 };
 
 export default function BroadsheetPage() {
@@ -72,6 +75,64 @@ export default function BroadsheetPage() {
   }
 
   useEffect(() => { load(); }, [filters.grade, filters.term, filters.academicYear, filters.stream, filters.examType]);
+
+  const sheetTitle = `${filters.grade} Stream ${filters.stream || "-"} - Term ${filters.term} ${filters.academicYear}`;
+
+  function downloadExcel() {
+    if (!rows.length) return;
+    const header = ["Rank", "Learner", "Adm. No", ...subjects, "Total", "Average"];
+    const body = rows.map((row) => [
+      row.rank,
+      `${row.first_name} ${row.last_name}`,
+      row.admission_no,
+      ...subjects.map((s) => (row.subjects[s] ? `${row.subjects[s].score} (${row.subjects[s].grade_label})` : "-")),
+      row.total,
+      `${row.average}%`,
+    ]);
+    const ws = XLSX.utils.aoa_to_sheet([[sheetTitle], [], header, ...body]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Broadsheet");
+    XLSX.writeFile(wb, `Broadsheet_${filters.grade}_${filters.stream}_Term${filters.term}.xlsx`.replace(/\s+/g, "_"));
+  }
+
+  function downloadPDF() {
+    if (!rows.length) return;
+    const tableRows = rows.map((row) => `
+      <tr>
+        <td>${row.rank}</td>
+        <td>${row.first_name} ${row.last_name}</td>
+        <td>${row.admission_no}</td>
+        ${subjects.map((s) => `<td>${row.subjects[s] ? `${row.subjects[s].score} (${row.subjects[s].grade_label})` : "-"}</td>`).join("")}
+        <td>${row.total}</td>
+        <td>${row.average}%</td>
+      </tr>`).join("");
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${sheetTitle}</title>
+      <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 24px; color: #0f172a; }
+        h1 { font-size: 18px; margin-bottom: 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; white-space: nowrap; }
+        th { background: #f1f5f9; font-weight: 700; text-transform: uppercase; font-size: 10px; }
+        @media print { body { padding: 0; } }
+      </style></head><body>
+      <h1>${sheetTitle}</h1>
+      <table>
+        <thead><tr>
+          <th>Rank</th><th>Learner</th><th>Adm. No</th>
+          ${subjects.map((s) => `<th>${s}</th>`).join("")}
+          <th>Total</th><th>Average</th>
+        </tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </body></html>`;
+
+    const win = window.open("", "_blank");
+    win.document.write(html);
+    win.document.close();
+    setTimeout(() => win.print(), 500);
+  }
 
   return (
     <div style={styles.page}>
@@ -111,6 +172,13 @@ export default function BroadsheetPage() {
       </div>
 
       {err && <div style={styles.error}>Could not load broadsheet: {err}</div>}
+
+      {rows.length > 0 && (
+        <div style={styles.downloadBar}>
+          <button style={styles.downloadBtn} onClick={downloadExcel}>⬇ Download Excel</button>
+          <button style={styles.downloadBtn} onClick={downloadPDF}>⬇ Download PDF</button>
+        </div>
+      )}
 
       <div style={styles.section}>
         <div style={styles.sectionTitle}>

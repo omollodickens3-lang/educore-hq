@@ -283,7 +283,7 @@ function TeacherFormModal({ onClose, onSaved }) {
 
 export default function TeachersPage() {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const [showModal, setShowModal] = useState(false);
   const [assigningTeacher, setAssigningTeacher] = useState(null);
   const queryClient = useQueryClient();

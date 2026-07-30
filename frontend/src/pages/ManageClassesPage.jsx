@@ -1,5 +1,6 @@
-﻿import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { classesAPI, teachersAPI } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 const GRADES = ['PP1', 'PP2', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9'];
 
@@ -47,6 +48,8 @@ function normalize(c) {
 }
 
 export default function ManageClassesPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const [classesList, setClassesList] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -110,10 +113,12 @@ export default function ManageClassesPage() {
           <h2 style={{ color: '#e2e8f0', margin: 0 }}>Manage Classes</h2>
           <p style={{ color: '#94a3b8', margin: '6px 0 0' }}>Create Grade + Stream combinations with no cap.</p>
         </div>
-        <button onClick={openAdd} style={{
-          background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px',
-          padding: '10px 18px', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
-        }}>+ Add Class</button>
+        {isAdmin && (
+          <button onClick={openAdd} style={{
+            background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px',
+            padding: '10px 18px', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+          }}>+ Add Class</button>
+        )}
       </div>
 
       {msg && (
@@ -132,10 +137,12 @@ export default function ManageClassesPage() {
       ) : classesList.length === 0 ? (
         <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '40px', textAlign: 'center' }}>
           <p style={{ color: '#94a3b8', marginBottom: '16px' }}>No classes yet. Add your first grade + stream combination.</p>
-          <button onClick={openAdd} style={{
-            background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px',
-            padding: '10px 18px', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
-          }}>+ Add Class</button>
+          {isAdmin && (
+            <button onClick={openAdd} style={{
+              background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px',
+              padding: '10px 18px', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+            }}>+ Add Class</button>
+          )}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -166,10 +173,12 @@ export default function ManageClassesPage() {
                         </td>
                         <td style={{ padding: '14px 18px', color: '#94a3b8', fontSize: '13px' }}>{c.academicYear || '—'}</td>
                         <td style={{ padding: '14px 18px', textAlign: 'right' }}>
-                          <button onClick={() => openEdit(c)} style={{
-                            border: 'none', background: 'transparent', color: '#60a5fa',
-                            cursor: 'pointer', fontSize: '13px', marginRight: '14px',
-                          }}>Edit</button>
+                          {isAdmin && (
+                            <button onClick={() => openEdit(c)} style={{
+                              border: 'none', background: 'transparent', color: '#60a5fa',
+                              cursor: 'pointer', fontSize: '13px', marginRight: '14px',
+                            }}>Edit</button>
+                          )}
                           <button onClick={() => handleDelete(c.id, `${grade} ${c.stream}`)} style={{
                             border: 'none', background: 'transparent', color: '#dc2626',
                             cursor: 'pointer', fontSize: '13px',
@@ -195,7 +204,9 @@ export default function ManageClassesPage() {
                     <tr key={c.id} style={{ borderBottom: '1px solid #24344a' }}>
                       <td style={{ padding: '14px 18px', color: '#e2e8f0' }}>{c.grade} — {c.stream}</td>
                       <td style={{ padding: '14px 18px', textAlign: 'right' }}>
-                        <button onClick={() => openEdit(c)} style={{ border: 'none', background: 'transparent', color: '#60a5fa', cursor: 'pointer', fontSize: '13px', marginRight: '14px' }}>Edit</button>
+                        {isAdmin && (
+                          <button onClick={() => openEdit(c)} style={{ border: 'none', background: 'transparent', color: '#60a5fa', cursor: 'pointer', fontSize: '13px', marginRight: '14px' }}>Edit</button>
+                        )}
                         <button onClick={() => handleDelete(c.id, `${c.grade} ${c.stream}`)} style={{ border: 'none', background: 'transparent', color: '#dc2626', cursor: 'pointer', fontSize: '13px' }}>Remove</button>
                       </td>
                     </tr>
@@ -246,8 +257,6 @@ function ClassFormModal({ existing, teachers, onClose, onSaved, onError }) {
     setSaving(true);
     setFormErr('');
     try {
-      // DB check constraint "classes_section_check" only allows lowercase 'primary' or 'js' (or null/empty).
-      // Normalize here so the input field can stay case-insensitive for the user.
       const normalizedSection = form.section ? form.section.trim().toLowerCase() : '';
       if (normalizedSection && !['primary', 'js'].includes(normalizedSection)) {
         setFormErr(`Section must be "Primary" or "JS" (got "${form.section}")`);
