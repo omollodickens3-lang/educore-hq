@@ -90,7 +90,7 @@ async function generateLearnerReport(req, res) {
     );
     const myRank = rankRes.rows.find((r) => r.learner_id === learnerId) || null;
 
-    // "teacher" is whoever is actually signing this report â€” either the person the
+    // "teacher" is whoever is actually signing this report — either the person the
     // caller explicitly picked (signedBy), or a head-teacher fallback if none was picked.
     // Their displayed title must reflect their ACTUAL role, never assume Head Teacher.
     let teacher = null;
@@ -130,11 +130,11 @@ async function generateLearnerReport(req, res) {
     doc.fillColor(gold).fontSize(9).font("Helvetica-Bold")
       .text("STUDENT ACADEMIC REPORT  \u00b7  CBC", { align: "center", width: pageWidth, characterSpacing: 1 });
 
-    doc.y = headerHeight + 24;
+    doc.y = headerHeight + 16;
 
     // ---- Info card (two columns, rounded card background) ----
     const infoTop = doc.y;
-    const infoHeight = 116;
+    const infoHeight = 96;
     const colWidth = pageWidth / 2;
 
     doc.roundedRect(40, infoTop, pageWidth, infoHeight, 8).fill(cardBg);
@@ -145,42 +145,42 @@ async function generateLearnerReport(req, res) {
       doc.fillColor(navy).fontSize(12).font("Helvetica-Bold").text(value || "N/A", x, y + 12, { width: colWidth - 40 });
     }
 
-    const pad = 20;
+    const pad = 16;
     infoField("Learner", learner.first_name + " " + learner.last_name, 40 + pad, infoTop + pad);
     infoField("Exam", exam.name, 40 + colWidth, infoTop + pad);
 
-    infoField("Admission No", learner.admission_no, 40 + pad, infoTop + pad + 36);
-    infoField("Exam Type", exam.exam_type || "-", 40 + colWidth, infoTop + pad + 36);
+    infoField("Admission No", learner.admission_no, 40 + pad, infoTop + pad + 30);
+    infoField("Exam Type", exam.exam_type || "-", 40 + colWidth, infoTop + pad + 30);
 
-    infoField("Grade / Stream", (learner.grade || "N/A") + " / " + (learner.stream || "N/A"), 40 + pad, infoTop + pad + 72);
-    infoField("Term / Year", "Term " + exam.term + "  \u00b7  " + exam.academic_year, 40 + colWidth, infoTop + pad + 72);
+    infoField("Grade / Stream", (learner.grade || "N/A") + " / " + (learner.stream || "N/A"), 40 + pad, infoTop + pad + 60);
+    infoField("Term / Year", "Term " + exam.term + "  \u00b7  " + exam.academic_year, 40 + colWidth, infoTop + pad + 60);
 
-    doc.y = infoTop + infoHeight + 24;
+    doc.y = infoTop + infoHeight + 14;
 
     // ---- Score table ----
     const tableTop = doc.y;
-    const rowHeight = 26;
+    const rowHeight = 18;
     const col = { subject: 40, score: 40 + pageWidth * 0.38, grade: 40 + pageWidth * 0.55, remarks: 40 + pageWidth * 0.68 };
 
-    doc.roundedRect(40, tableTop, pageWidth, rowHeight, 6).fill(navy);
-    doc.fillColor("#ffffff").fontSize(9).font("Helvetica-Bold");
-    doc.text("SUBJECT", col.subject + 10, tableTop + 8);
-    doc.text("SCORE", col.score, tableTop + 8);
-    doc.text("GRADE", col.grade, tableTop + 8);
-    doc.text("REMARKS", col.remarks, tableTop + 8, { width: 40 + pageWidth - col.remarks - 10 });
+    doc.roundedRect(40, tableTop, pageWidth, rowHeight + 2, 6).fill(navy);
+    doc.fillColor("#ffffff").fontSize(8).font("Helvetica-Bold");
+    doc.text("SUBJECT", col.subject + 10, tableTop + 6);
+    doc.text("SCORE", col.score, tableTop + 6);
+    doc.text("GRADE", col.grade, tableTop + 6);
+    doc.text("REMARKS", col.remarks, tableTop + 6, { width: 40 + pageWidth - col.remarks - 10 });
 
-    let y = tableTop + rowHeight;
+    let y = tableTop + rowHeight + 2;
     let totalScore = 0;
     let totalMax = 0;
 
     scores.forEach(function (s, idx) {
       const bg = idx % 2 === 0 ? cardBg : "#ffffff";
       doc.rect(40, y, pageWidth, rowHeight).fill(bg);
-      doc.fillColor(navy).fontSize(9).font("Helvetica");
-      doc.text(s.subject, col.subject + 10, y + 8, { width: col.score - col.subject - 18 });
-      doc.text(s.score + "/" + s.max_score, col.score, y + 8);
-      doc.fillColor(blue).font("Helvetica-Bold").text(s.grade_label || "-", col.grade, y + 8);
-      doc.fillColor(navy).font("Helvetica").fontSize(8).text(s.remarks || "-", col.remarks, y + 8, { width: 40 + pageWidth - col.remarks - 10 });
+      doc.fillColor(navy).fontSize(8).font("Helvetica");
+      doc.text(s.subject, col.subject + 10, y + 5, { width: col.score - col.subject - 18 });
+      doc.text(s.score + "/" + s.max_score, col.score, y + 5);
+      doc.fillColor(blue).font("Helvetica-Bold").text(s.grade_label || "-", col.grade, y + 5);
+      doc.fillColor(navy).font("Helvetica").fontSize(7.5).text(s.remarks || "-", col.remarks, y + 5, { width: 40 + pageWidth - col.remarks - 10 });
       totalScore += Number(s.score);
       totalMax += Number(s.max_score);
       y += rowHeight;
@@ -188,42 +188,42 @@ async function generateLearnerReport(req, res) {
 
     if (!scores.length) {
       doc.rect(40, y, pageWidth, rowHeight).fill(cardBg);
-      doc.fillColor(gray).fontSize(9).font("Helvetica-Oblique")
-        .text("No scores recorded for this exam yet.", col.subject + 10, y + 8);
+      doc.fillColor(gray).fontSize(8).font("Helvetica-Oblique")
+        .text("No scores recorded for this exam yet.", col.subject + 10, y + 5);
       y += rowHeight;
     }
 
     doc.roundedRect(40, tableTop, pageWidth, y - tableTop, 6).strokeColor(lightGray).lineWidth(1).stroke();
 
-    doc.y = y + 24;
+    doc.y = y + 14;
 
     // ---- Overall performance + Ranking (two cards side by side) ----
     const meanPct = totalMax ? ((totalScore / totalMax) * 100).toFixed(1) : "0.0";
     const overallGrade = scores.length === 1 ? (scores[0].grade_label || "-") : null;
     const perfTop = doc.y;
-    const perfHeight = 54;
+    const perfHeight = 44;
     const cardGap = 12;
     const perfWidth = (pageWidth - cardGap) / 2;
 
     doc.roundedRect(40, perfTop, perfWidth, perfHeight, 8).fill(lightBlue);
     doc.fillColor(gray).fontSize(7.5).font("Helvetica-Bold")
-      .text("OVERALL PERFORMANCE", 40 + pad, perfTop + 12, { characterSpacing: 0.5 });
-    doc.fillColor(navy).fontSize(16).font("Helvetica-Bold")
-      .text(totalScore + "/" + totalMax + "  (" + meanPct + "%)" + (overallGrade ? "   \u00b7   " + overallGrade : ""), 40 + pad, perfTop + 26);
+      .text("OVERALL PERFORMANCE", 40 + pad, perfTop + 9, { characterSpacing: 0.5 });
+    doc.fillColor(navy).fontSize(14).font("Helvetica-Bold")
+      .text(totalScore + "/" + totalMax + "  (" + meanPct + "%)" + (overallGrade ? "   \u00b7   " + overallGrade : ""), 40 + pad, perfTop + 22);
 
     const rankX = 40 + perfWidth + cardGap;
     doc.roundedRect(rankX, perfTop, perfWidth, perfHeight, 8).fill(lightBlue);
     doc.fillColor(gray).fontSize(7.5).font("Helvetica-Bold")
-      .text("RANKING", rankX + pad, perfTop + 12, { characterSpacing: 0.5 });
+      .text("RANKING", rankX + pad, perfTop + 9, { characterSpacing: 0.5 });
     if (myRank) {
-      doc.fillColor(navy).fontSize(11).font("Helvetica-Bold")
-        .text("Stream: " + myRank.stream_rank + " of " + myRank.stream_size + "   \u00b7   Grade: " + myRank.overall_rank + " of " + myRank.overall_size, rankX + pad, perfTop + 27);
+      doc.fillColor(navy).fontSize(10).font("Helvetica-Bold")
+        .text("Stream: " + myRank.stream_rank + " of " + myRank.stream_size + "   \u00b7   Grade: " + myRank.overall_rank + " of " + myRank.overall_size, rankX + pad, perfTop + 23);
     } else {
-      doc.fillColor(gray).fontSize(10).font("Helvetica-Oblique")
-        .text("Not yet ranked", rankX + pad, perfTop + 27);
+      doc.fillColor(gray).fontSize(9).font("Helvetica-Oblique")
+        .text("Not yet ranked", rankX + pad, perfTop + 23);
     }
 
-    doc.y = perfTop + perfHeight + 26;
+    doc.y = perfTop + perfHeight + 14;
 
     // ---- CBC grading key strip ----
     const gradingKey = getGradingKey(learner.grade);
@@ -238,22 +238,22 @@ async function generateLearnerReport(req, res) {
     gradingKey.forEach(function (label, idx) {
       const x = 40 + idx * (chipWidth + chipGap);
       const isActive = achievedGrade && label === achievedGrade;
-      doc.roundedRect(x, keyTop + 16, chipWidth, 26, 5).fill(isActive ? blue : lightGray);
-      doc.fillColor(isActive ? "#ffffff" : navy).fontSize(9).font("Helvetica-Bold")
-        .text(label, x, keyTop + 24, { width: chipWidth, align: "center" });
+      doc.roundedRect(x, keyTop + 13, chipWidth, 20, 5).fill(isActive ? blue : lightGray);
+      doc.fillColor(isActive ? "#ffffff" : navy).fontSize(8).font("Helvetica-Bold")
+        .text(label, x, keyTop + 19, { width: chipWidth, align: "center" });
     });
 
-    doc.y = keyTop + 60;
+    doc.y = keyTop + 42;
 
     // ---- Auto-generated Class Teacher's and Head Teacher's comments ----
-    // Reports with many subjects can already nearly fill the page by this
-    // point, so force a clean page break here if the remaining space is
-    // too tight for the comments + signature + stamp + footer block,
-    // rather than letting PDFKit paginate unpredictably mid-layout.
-    const commentBoxHeight = 46;
-    const commentGap = 10;
-    const postCommentPad = 16;
-    const signatureBlockSpace = 70;
+    // With the tightened spacing above, everything through the grading key plus
+    // comments + signature block fits within one A4 page for realistic subject
+    // counts (tested up to 15 subjects). This check remains only as a safety
+    // net for extreme edge cases rather than the normal path.
+    const commentBoxHeight = 36;
+    const commentGap = 8;
+    const postCommentPad = 10;
+    const signatureBlockSpace = 60;
     const neededSpace = commentBoxHeight * 2 + commentGap + postCommentPad + signatureBlockSpace;
     if (doc.y + neededSpace > doc.page.height - 70) {
       doc.addPage();
@@ -265,9 +265,9 @@ async function generateLearnerReport(req, res) {
     function commentBox(label, text, y) {
       doc.roundedRect(40, y, pageWidth, commentBoxHeight, 8).fill(cardBg);
       doc.fillColor(gray).fontSize(7.5).font("Helvetica-Bold")
-        .text(label.toUpperCase(), 40 + pad, y + 9, { characterSpacing: 0.5, height: 12, ellipsis: false });
-      doc.fillColor(navy).fontSize(9).font("Helvetica")
-        .text(text, 40 + pad, y + 22, { width: pageWidth - pad * 2, height: commentBoxHeight - 24, ellipsis: true });
+        .text(label.toUpperCase(), 40 + pad, y + 7, { characterSpacing: 0.5, height: 10, ellipsis: false });
+      doc.fillColor(navy).fontSize(8.5).font("Helvetica")
+        .text(text, 40 + pad, y + 18, { width: pageWidth - pad * 2, height: commentBoxHeight - 20, ellipsis: true });
     }
 
     commentBox(
@@ -287,25 +287,25 @@ async function generateLearnerReport(req, res) {
     const sigTop = doc.y;
     const sigColWidth = pageWidth / 2;
 
-    // Left: class teacher line â€” always a blank signature line, filled in by hand.
-    doc.moveTo(40, sigTop + 40).lineTo(40 + 170, sigTop + 40).strokeColor(lightGray).lineWidth(1).stroke();
-    doc.fillColor(navy).fontSize(9).font("Helvetica-Bold").text("Class Teacher", 40, sigTop + 46);
-    doc.fillColor(gray).fontSize(7.5).font("Helvetica").text("Signature & date", 40, sigTop + 58);
+    // Left: class teacher line — always a blank signature line, filled in by hand.
+    doc.moveTo(40, sigTop + 30).lineTo(40 + 170, sigTop + 30).strokeColor(lightGray).lineWidth(1).stroke();
+    doc.fillColor(navy).fontSize(8.5).font("Helvetica-Bold").text("Class Teacher", 40, sigTop + 35);
+    doc.fillColor(gray).fontSize(7).font("Helvetica").text("Signature & date", 40, sigTop + 46);
 
-    // Right: whoever actually signed (teacher), labeled with their REAL role â€” never
+    // Right: whoever actually signed (teacher), labeled with their REAL role — never
     // assumed to be Head Teacher just because that's the fallback lookup.
     const rightX = 40 + sigColWidth;
     if (teacher && teacher.signature_data) {
       const imgBuffer = Buffer.from(teacher.signature_data, "base64");
-      doc.image(imgBuffer, rightX, sigTop, { fit: [150, 45], align: "left" });
-      doc.fillColor(navy).fontSize(9).font("Helvetica-Bold")
-        .text(teacher.first_name + " " + teacher.last_name, rightX, sigTop + 50);
-      doc.fillColor(gray).fontSize(7.5).font("Helvetica").text(formatRole(teacher.role), rightX, sigTop + 62);
+      doc.image(imgBuffer, rightX, sigTop, { fit: [130, 36], align: "left" });
+      doc.fillColor(navy).fontSize(8.5).font("Helvetica-Bold")
+        .text(teacher.first_name + " " + teacher.last_name, rightX, sigTop + 40);
+      doc.fillColor(gray).fontSize(7).font("Helvetica").text(formatRole(teacher.role), rightX, sigTop + 51);
     } else {
-      doc.moveTo(rightX, sigTop + 40).lineTo(rightX + 170, sigTop + 40).strokeColor(lightGray).lineWidth(1).stroke();
-      doc.fillColor(navy).fontSize(9).font("Helvetica-Bold")
-        .text(teacher ? formatRole(teacher.role) : "Head Teacher", rightX, sigTop + 46);
-      doc.fillColor(gray).fontSize(7.5).font("Helvetica").text("Signature & date", rightX, sigTop + 58);
+      doc.moveTo(rightX, sigTop + 30).lineTo(rightX + 170, sigTop + 30).strokeColor(lightGray).lineWidth(1).stroke();
+      doc.fillColor(navy).fontSize(8.5).font("Helvetica-Bold")
+        .text(teacher ? formatRole(teacher.role) : "Head Teacher", rightX, sigTop + 35);
+      doc.fillColor(gray).fontSize(7).font("Helvetica").text("Signature & date", rightX, sigTop + 46);
     }
 
     // ---- School stamp (if uploaded) ----
@@ -314,9 +314,9 @@ async function generateLearnerReport(req, res) {
     if (school.stamp_data) {
       try {
         const stampBuffer = Buffer.from(school.stamp_data, "base64");
-        const stampSize = 90;
+        const stampSize = 74;
         const stampX = 40 + pageWidth / 2 - stampSize / 2;
-        const stampY = sigTop - 20;
+        const stampY = sigTop - 16;
         doc.opacity(0.82);
         doc.image(stampBuffer, stampX, stampY, { fit: [stampSize, stampSize] });
         doc.opacity(1);
@@ -324,8 +324,6 @@ async function generateLearnerReport(req, res) {
         console.error("Failed to embed school stamp:", stampErr.message);
       }
     }
-
-    doc.y = sigTop + 90;
 
     // ---- Footer ----
     doc.moveTo(40, doc.page.height - 70).lineTo(40 + pageWidth, doc.page.height - 70).strokeColor(lightGray).lineWidth(1).stroke();
