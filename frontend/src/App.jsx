@@ -3,29 +3,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
-import SignUpPage from './pages/SignUpPage';
 import DashboardPage from './pages/DashboardPage';
 import AppLayout from './components/layout/AppLayout';
 import TeachersPage from './pages/TeachersPage';
 import LearnersPage from './pages/LearnersPage';
 import ExaminationsPage from './pages/ExaminationsPage';
-import SuperAdminPage from './pages/SuperAdminPage';
-import PendingRegistrationsPage from './pages/PendingRegistrationsPage';
-import AttendancePage from './pages/AttendancePage';
-import AssignmentsPage from './pages/AssignmentsPage';
-import AssignmentDetailPage from './pages/AssignmentDetailPage';
-import AnalyticsPage from './pages/AnalyticsPage';
-import BroadsheetPage from './pages/BroadsheetPage';
-import ConductPage from './pages/ConductPage';
-import NotificationsPage from './pages/NotificationsPage';
-import ManageClassesPage from './pages/ManageClassesPage';
-import ClassListPage from './pages/ClassListPage';
-import MyClassOverviewPage from './pages/MyClassOverviewPage';
-import ParentPortalPage from './pages/ParentPortalPage';
-import ParentPortalInfoPage from './pages/ParentPortalInfoPage';
-import ParentRegisterPage from './pages/ParentRegisterPage';
-import ReportsPage from './pages/ReportsPage';
-import HelpPage from './pages/HelpPage';
+
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }) {
@@ -56,9 +39,6 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<SignUpPage />} />
-      <Route path="/parent" element={<ParentPortalPage />} />
-      <Route path="/parent/register" element={<ParentRegisterPage />} />
       <Route path="/" element={
         <ProtectedRoute>
           <AppLayout />
@@ -68,22 +48,11 @@ function AppRoutes() {
         <Route path="learners"     element={<LearnersPage />} />
         <Route path="teachers"     element={<TeachersPage />} />
         <Route path="examinations" element={<ExaminationsPage />} />
-        <Route path="reports"      element={<ReportsPage />} />
-        <Route path="attendance"   element={<AttendancePage />} />
-        <Route path="portal"       element={<ParentPortalInfoPage />} />
-        <Route path="assignments"  element={<AssignmentsPage />} />
-        <Route path="assignments/:id" element={<AssignmentDetailPage />} />
-        <Route path="analytics" element={<AnalyticsPage />} />
-        <Route path="broadsheet" element={<BroadsheetPage />} />
-        <Route path="conduct" element={<ConductPage />} />
-        <Route path="notifications" element={<NotificationsPage />} />
-        <Route path="classes" element={<ManageClassesPage />} />
-        <Route path="class-list" element={<ClassListPage />} />
-        <Route path="my-class" element={<MyClassOverviewPage />} />
-        <Route path="help" element={<HelpPage />} />
+        <Route path="reports"      element={<ComingSoon title="📄 Report Forms" />} />
+        <Route path="attendance"   element={<ComingSoon title="✅ Attendance Register" />} />
+        <Route path="assignments"  element={<ComingSoon title="📚 Assignments" />} />
         <Route path="content"      element={<ComingSoon title="✏️ Content Generation" />} />
-        <Route path="super-admin"  element={<SuperAdminPage />} />
-        <Route path="pending-registrations" element={<PendingRegistrationsPage />} />
+        <Route path="portal"       element={<ComingSoon title="💬 Parent Portal" />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

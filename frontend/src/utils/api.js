@@ -1,7 +1,7 @@
 import axios from 'axios';
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-  timeout: 60000,
+  timeout: 15000,
 });
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('educore_token');
@@ -22,7 +22,6 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (email, password) => api.post('/auth/login', { email, password }),
   me: () => api.get('/auth/me'),
-  changePassword: (currentPassword, newPassword) => api.post('/auth/change-password', { currentPassword, newPassword }),
 };
 export const learnersAPI = {
   getAll: (params) => api.get('/learners', { params }),
@@ -46,7 +45,6 @@ export const teachersAPI = {
   delete: (id) => api.delete(`/teachers/${id}`),
   assignSubjects: (id, subjects) => api.post(`/teachers/${id}/subjects`, { subjects }),
   removeSubject: (subjectId) => api.delete(`/teachers/subjects/${subjectId}`),
-  resetPassword: (id, newPassword) => api.post(`/teachers/${id}/reset-password`, { newPassword }),
 };
 export const examsAPI = {
   getSchoolOverview: (params) => api.get('/exams/school-overview', { params }),
