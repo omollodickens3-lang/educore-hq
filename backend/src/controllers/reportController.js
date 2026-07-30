@@ -11,6 +11,38 @@ function getGradingKey(gradeLabel) {
   return ["EE", "ME", "AE", "BE"];
 }
 
+// Auto-generated narrative comments based on overall percentage this term.
+// Picked automatically at report-generation time — no manual entry needed.
+function getPerformanceBand(meanPct) {
+  const p = Number(meanPct);
+  if (p >= 85) return "exceptional";
+  if (p >= 70) return "very_good";
+  if (p >= 55) return "good";
+  if (p >= 40) return "needs_improvement";
+  return "needs_support";
+}
+
+const CLASS_TEACHER_COMMENTS = {
+  exceptional: (name) => name + " has posted an exceptional result this term. Keep up the outstanding work and keep challenging yourself.",
+  very_good: (name) => name + " has performed very well this term. With a little more consistency, even higher grades are within reach.",
+  good: (name) => name + " has put in a good effort this term. Focused revision in weaker subjects will help push the grades higher.",
+  needs_improvement: (name) => name + " needs more consistent effort and revision this term. With focused support, improvement is achievable.",
+  needs_support: (name) => name + " is finding several subjects challenging this term and needs close support both at home and in class.",
+};
+
+const HEAD_TEACHER_COMMENTS = {
+  exceptional: (name) => name + " is a hardworking learner who continues to demonstrate excellent understanding across subjects. Well done.",
+  very_good: (name) => name + " has shown commendable effort this term. We encourage continued dedication to reach even greater heights.",
+  good: (name) => name + " is capable of achieving more with sustained effort. We encourage a stronger focus next term.",
+  needs_improvement: (name) => name + " needs to put in extra effort next term. We encourage close monitoring and support at home.",
+  needs_support: (name) => name + " requires urgent additional support. We strongly encourage a meeting with the class teacher to discuss a way forward.",
+};
+
+function generateComment(bank, meanPct, firstName) {
+  const band = getPerformanceBand(meanPct);
+  return bank[band](firstName || "The learner");
+}
+
 // Turns "subject_teacher" / "head_teacher" / "class_teacher" into "Subject Teacher" etc.
 function formatRole(role) {
   if (!role) return "Teacher";
@@ -212,6 +244,44 @@ async function generateLearnerReport(req, res) {
     });
 
     doc.y = keyTop + 60;
+
+    // ---- Auto-generated Class Teacher's and Head Teacher's comments ----
+    // Reports with many subjects can already nearly fill the page by this
+    // point, so force a clean page break here if the remaining space is
+    // too tight for the comments + signature + stamp + footer block,
+    // rather than letting PDFKit paginate unpredictably mid-layout.
+    const commentBoxHeight = 46;
+    const commentGap = 10;
+    const postCommentPad = 16;
+    const signatureBlockSpace = 70;
+    const neededSpace = commentBoxHeight * 2 + commentGap + postCommentPad + signatureBlockSpace;
+    if (doc.y + neededSpace > doc.page.height - 70) {
+      doc.addPage();
+      doc.y = 40;
+    }
+
+    const commentsTop = doc.y;
+
+    function commentBox(label, text, y) {
+      doc.roundedRect(40, y, pageWidth, commentBoxHeight, 8).fill(cardBg);
+      doc.fillColor(gray).fontSize(7.5).font("Helvetica-Bold")
+        .text(label.toUpperCase(), 40 + pad, y + 9, { characterSpacing: 0.5, height: 12, ellipsis: false });
+      doc.fillColor(navy).fontSize(9).font("Helvetica")
+        .text(text, 40 + pad, y + 22, { width: pageWidth - pad * 2, height: commentBoxHeight - 24, ellipsis: true });
+    }
+
+    commentBox(
+      "Class Teacher's Comments",
+      generateComment(CLASS_TEACHER_COMMENTS, meanPct, learner.first_name),
+      commentsTop
+    );
+    commentBox(
+      "Head Teacher's Comments",
+      generateComment(HEAD_TEACHER_COMMENTS, meanPct, learner.first_name),
+      commentsTop + commentBoxHeight + commentGap
+    );
+
+    doc.y = commentsTop + commentBoxHeight * 2 + commentGap + postCommentPad;
 
     // ---- Signatures (side by side) ----
     const sigTop = doc.y;
