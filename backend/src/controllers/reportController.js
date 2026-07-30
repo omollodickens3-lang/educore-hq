@@ -112,26 +112,28 @@ async function generateLearnerReport(req, res) {
     // Class Teacher's Comments byline — separate from "teacher" above,
     // which is whoever is signing the report and may be someone else).
     const classTeacherRes = await query(
-      `SELECT t.first_name, t.last_name
+      `SELECT t.first_name, t.last_name, t.signature_data
        FROM classes c
        JOIN teachers t ON t.id = c.class_teacher_id
        WHERE c.school_id = $1 AND c.grade = $2 AND c.stream = $3
        ORDER BY c.academic_year DESC LIMIT 1`,
       [learner.school_id, learner.grade, learner.stream]
     );
-    const classTeacherName = classTeacherRes.rows[0]
-      ? `${classTeacherRes.rows[0].first_name} ${classTeacherRes.rows[0].last_name}`
+    const classTeacherRow = classTeacherRes.rows[0] || null;
+    const classTeacherName = classTeacherRow
+      ? `${classTeacherRow.first_name} ${classTeacherRow.last_name}`
       : null;
 
     // Real head teacher / principal for the Head Teacher's Comments byline.
     const headTeacherRes = await query(
-      `SELECT first_name, last_name FROM teachers
+      `SELECT first_name, last_name, signature_data FROM teachers
        WHERE school_id = $1 AND (role ILIKE '%head%' OR role = 'admin')
        ORDER BY (role ILIKE '%head%') DESC LIMIT 1`,
       [learner.school_id]
     );
-    const headTeacherName = headTeacherRes.rows[0]
-      ? `${headTeacherRes.rows[0].first_name} ${headTeacherRes.rows[0].last_name}`
+    const headTeacherRow = headTeacherRes.rows[0] || null;
+    const headTeacherName = headTeacherRow
+      ? `${headTeacherRow.first_name} ${headTeacherRow.last_name}`
       : null;
 
     const doc = new PDFDocument({ margin: 40, size: "A4" });
@@ -316,24 +318,29 @@ async function generateLearnerReport(req, res) {
     const sigTop = doc.y;
     const sigColWidth = pageWidth / 2;
 
-    // Left: class teacher line — always a blank signature line, filled in by hand.
-    doc.moveTo(40, sigTop + 30).lineTo(40 + 170, sigTop + 30).strokeColor(lightGray).lineWidth(1).stroke();
-    doc.fillColor(navy).fontSize(8.5).font("Helvetica-Bold").text("Class Teacher", 40, sigTop + 35);
-    doc.fillColor(gray).fontSize(7).font("Helvetica").text("Signature & date", 40, sigTop + 46);
+    // Left: the real Class Teacher for this learner's class, with their
+    // uploaded signature if they have one, otherwise a blank line to sign by hand.
+    if (classTeacherRow && classTeacherRow.signature_data) {
+      const ctImgBuffer = Buffer.from(classTeacherRow.signature_data, "base64");
+      doc.image(ctImgBuffer, 40, sigTop, { fit: [130, 36], align: "left" });
+      doc.fillColor(navy).fontSize(8.5).font("Helvetica-Bold").text(classTeacherName, 40, sigTop + 40);
+      doc.fillColor(gray).fontSize(7).font("Helvetica").text("Class Teacher", 40, sigTop + 51);
+    } else {
+      doc.moveTo(40, sigTop + 30).lineTo(40 + 170, sigTop + 30).strokeColor(lightGray).lineWidth(1).stroke();
+      doc.fillColor(navy).fontSize(8.5).font("Helvetica-Bold").text(classTeacherName || "Class Teacher", 40, sigTop + 35);
+      doc.fillColor(gray).fontSize(7).font("Helvetica").text("Signature & date", 40, sigTop + 46);
+    }
 
-    // Right: whoever actually signed (teacher), labeled with their REAL role — never
-    // assumed to be Head Teacher just because that's the fallback lookup.
+    // Right: the real Head Teacher / Principal, same pattern.
     const rightX = 40 + sigColWidth;
-    if (teacher && teacher.signature_data) {
-      const imgBuffer = Buffer.from(teacher.signature_data, "base64");
-      doc.image(imgBuffer, rightX, sigTop, { fit: [130, 36], align: "left" });
-      doc.fillColor(navy).fontSize(8.5).font("Helvetica-Bold")
-        .text(teacher.first_name + " " + teacher.last_name, rightX, sigTop + 40);
-      doc.fillColor(gray).fontSize(7).font("Helvetica").text(formatRole(teacher.role), rightX, sigTop + 51);
+    if (headTeacherRow && headTeacherRow.signature_data) {
+      const htImgBuffer = Buffer.from(headTeacherRow.signature_data, "base64");
+      doc.image(htImgBuffer, rightX, sigTop, { fit: [130, 36], align: "left" });
+      doc.fillColor(navy).fontSize(8.5).font("Helvetica-Bold").text(headTeacherName, rightX, sigTop + 40);
+      doc.fillColor(gray).fontSize(7).font("Helvetica").text("Head Teacher", rightX, sigTop + 51);
     } else {
       doc.moveTo(rightX, sigTop + 30).lineTo(rightX + 170, sigTop + 30).strokeColor(lightGray).lineWidth(1).stroke();
-      doc.fillColor(navy).fontSize(8.5).font("Helvetica-Bold")
-        .text(teacher ? formatRole(teacher.role) : "Head Teacher", rightX, sigTop + 35);
+      doc.fillColor(navy).fontSize(8.5).font("Helvetica-Bold").text(headTeacherName || "Head Teacher", rightX, sigTop + 35);
       doc.fillColor(gray).fontSize(7).font("Helvetica").text("Signature & date", rightX, sigTop + 46);
     }
 
