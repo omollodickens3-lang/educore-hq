@@ -104,7 +104,6 @@ async function approveRegistration(req, res) {
       admin: adminUser,
     });
   } catch (err) {
-    client._hadError = true;
     await client.query('ROLLBACK').catch(() => {});
     console.error("approveRegistration error:", err.message);
     if (err.code === '23505') {
@@ -118,7 +117,7 @@ async function approveRegistration(req, res) {
     }
     res.status(500).json({ error: "Failed to approve registration" });
   } finally {
-    client.release(client._hadError === true);
+    client.release();
   }
 }
 
@@ -269,6 +268,25 @@ async function uploadStamp(req, res) {
   }
 }
 
+// Mirrors uploadStamp exactly â€” same base64-in-Postgres pattern, just a
+// different pair of columns (logo_data/logo_mime, added alongside the
+// pre-existing unused logo_url column).
+async function uploadLogo(req, res) {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No logo image uploaded' });
+    const schoolId = req.user.school_id;
+    const base64 = req.file.buffer.toString('base64');
+    await query(
+      'UPDATE schools SET logo_data = $1, logo_mime = $2 WHERE id = $3',
+      [base64, req.file.mimetype, schoolId]
+    );
+    res.json({ message: 'School logo uploaded successfully' });
+  } catch (err) {
+    console.error('uploadLogo error:', err.message);
+    res.status(500).json({ error: 'Failed to upload school logo' });
+  }
+}
+
 // ---- Term dates ----
 // Lets a school record when each term opens/closes (plus optional opener/midterm/
 // end-term sub-windows), so reports can tell parents exactly when next term begins.
@@ -370,6 +388,7 @@ module.exports = {
   getSchoolStatusHistory,
   deactivateSchool,  reactivateSchool,
   uploadStamp,
+  uploadLogo,
   getTermDates,
   upsertTermDates,
 };
