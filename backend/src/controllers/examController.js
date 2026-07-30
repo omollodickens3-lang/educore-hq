@@ -79,6 +79,7 @@ async function getScores(req, res) {
         s.max_score,
         s.grade_label,
         s.remarks,
+        s.cat_score,
         s.entered_at,
         s.updated_at
       FROM learners l
@@ -105,19 +106,22 @@ async function upsertScores(req, res) {
     );
     const examMaxScore = examMaxRows[0]?.max_score || 100;
     for (const item of scores) {
-      const { learnerId, subject, score, remarks } = item;
+      const { learnerId, subject, score, remarks, catScore } = item;
       if (score === null || score === undefined) continue;
       const rawScore = Math.max(0, parseFloat(score));
       const pct = Math.min(100, (rawScore / examMaxScore) * 100);
+      const catPct = (catScore === null || catScore === undefined || catScore === '')
+        ? null
+        : Math.min(100, Math.max(0, parseFloat(catScore)));
       const { rows: lr } = await client.query(`SELECT section FROM learners WHERE id=$1`, [learnerId]);
       const section = lr[0]?.section || 'primary';
       const gradeLabel = cbcGrade(pct, section);
       await client.query(`
-        INSERT INTO scores (id, exam_id, learner_id, school_id, subject, score, max_score, grade_label, remarks, entered_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+        INSERT INTO scores (id, exam_id, learner_id, school_id, subject, score, max_score, grade_label, remarks, entered_by, cat_score)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
       ON CONFLICT (exam_id, learner_id, subject) DO UPDATE
-      SET score=$6, max_score=$7, grade_label=$8, remarks=$9, entered_by=$10, updated_at=NOW()`,
-      [uuid(), req.params.examId, learnerId, req.user.school_id, subject, pct, examMaxScore, gradeLabel, remarks ?? null, req.user.id]
+      SET score=$6, max_score=$7, grade_label=$8, remarks=$9, entered_by=$10, updated_at=NOW(), cat_score=$11`,
+      [uuid(), req.params.examId, learnerId, req.user.school_id, subject, pct, examMaxScore, gradeLabel, remarks ?? null, req.user.id, catPct]
       );
       upserted++;
     }
