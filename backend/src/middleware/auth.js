@@ -52,7 +52,7 @@ async function authenticate(req, res, next) {
     next();
   } catch (err) {
     if (err.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Session expired — please log in again' });
+      return res.status(401).json({ error: 'Session expired â€” please log in again' });
     }
     return res.status(401).json({ error: 'Invalid token' });
   }
@@ -125,7 +125,7 @@ async function parentChildOnly(req, res, next) {
       [learnerId, req.user.id, req.user.school_id]
     );
     if (!rows.length) {
-      return res.status(403).json({ error: 'Access denied — you can only view your own child' });
+      return res.status(403).json({ error: 'Access denied â€” you can only view your own child' });
     }
     next();
   } catch (err) {
@@ -146,13 +146,13 @@ function requireSuperAdmin(req, res, next) {
   next();
 }
 
-// ─────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // TEACHER-SCOPED ACCESS CONTROL
 // Restricts subject_teacher / class_teacher accounts to only the
 // subjects/classes/learners they're actually assigned to.
 // Admin-tier roles (admin, director_of_studies, deputy, hod) and
 // super_admin bypass these checks entirely.
-// ─────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ADMIN_TIER_ROLES = ['admin', 'director_of_studies', 'deputy', 'hod'];
 
 async function getTeacherId(userId, schoolId) {
@@ -163,7 +163,7 @@ async function getTeacherId(userId, schoolId) {
   return rows[0]?.id || null;
 }
 
-// Gate: POST /exams/:examId/scores — only the subject's assigned teacher can enter marks
+// Gate: POST /exams/:examId/scores â€” only the subject's assigned teacher can enter marks
 async function requireExamSubjectAccess(req, res, next) {
   if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
   if (req.user.isSuperAdmin || ADMIN_TIER_ROLES.includes(req.user.role)) return next();
@@ -194,14 +194,14 @@ async function requireExamSubjectAccess(req, res, next) {
 
     if (unauthorized.length) {
       // Grace mode: if this school hasn't configured any subject-teacher assignments yet,
-      // don't lock every teacher out of marks entry — fall back to unrestricted access
+      // don't lock every teacher out of marks entry â€” fall back to unrestricted access
       // until the school actually sets up teacher_subjects.
       const { rows: anyAssignments } = await query(
         `SELECT 1 FROM teacher_subjects WHERE school_id=$1 LIMIT 1`,
         [req.user.school_id]
       );
       if (!anyAssignments.length) {
-        console.warn(`[requireExamSubjectAccess] school ${req.user.school_id} has no teacher_subjects configured — allowing unrestricted marks entry`);
+        console.warn(`[requireExamSubjectAccess] school ${req.user.school_id} has no teacher_subjects configured â€” allowing unrestricted marks entry`);
         return next();
       }
       return res.status(403).json({ error: `You are not assigned to teach ${unauthorized.join(', ')} for ${exam.grade}` });
@@ -226,7 +226,7 @@ async function requireExamSubjectAccess(req, res, next) {
   }
 }
 
-// Gate: POST /attendance/bulk — only the class teacher of the learners' class can mark attendance
+// Gate: POST /attendance/bulk â€” only the class teacher of the learners' class can mark attendance
 async function requireClassTeacherAccess(req, res, next) {
   if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
   if (req.user.isSuperAdmin || ADMIN_TIER_ROLES.includes(req.user.role)) return next();
@@ -245,7 +245,7 @@ async function requireClassTeacherAccess(req, res, next) {
        WHERE l.id = ANY($1::uuid[]) AND l.school_id=$2`,
       [learnerIds, req.user.school_id]
     );
-    // Only enforce for classes that actually have a class teacher assigned —
+    // Only enforce for classes that actually have a class teacher assigned â€”
     // an unassigned class can't be checked against, so let it through rather than blocking everyone.
     const unauthorized = classRows.filter(c => c.class_teacher_id && c.class_teacher_id !== teacherId);
     if (unauthorized.length) {
@@ -259,7 +259,7 @@ async function requireClassTeacherAccess(req, res, next) {
   }
 }
 
-// Gate: POST /conduct — class teacher of the learner, or any subject teacher assigned to their grade
+// Gate: POST /conduct â€” class teacher of the learner, or any subject teacher assigned to their grade
 async function requireLearnerTeacherAccess(req, res, next) {
   if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
   if (req.user.isSuperAdmin || ADMIN_TIER_ROLES.includes(req.user.role)) return next();
@@ -296,7 +296,7 @@ async function requireLearnerTeacherAccess(req, res, next) {
         [req.user.school_id]
       );
       if (!anyAssignments.length && !l.class_teacher_id) {
-        console.warn(`[requireLearnerTeacherAccess] school ${req.user.school_id} has no teacher_subjects configured — allowing unrestricted conduct logging`);
+        console.warn(`[requireLearnerTeacherAccess] school ${req.user.school_id} has no teacher_subjects configured â€” allowing unrestricted conduct logging`);
         return next();
       }
       return res.status(403).json({ error: "You are not assigned to this learner's class or subjects" });
@@ -346,7 +346,7 @@ async function requireStreamAccess(req, res, next) {
       [req.user.school_id]
     );
     if (!anyAssignments.length && !classTeacherId) {
-      console.warn(`[requireStreamAccess] school ${req.user.school_id} has no assignments configured — allowing unrestricted stream ranking access`);
+      console.warn(`[requireStreamAccess] school ${req.user.school_id} has no assignments configured â€” allowing unrestricted stream ranking access`);
       return next();
     }
 
@@ -357,11 +357,48 @@ async function requireStreamAccess(req, res, next) {
   }
 }
 
+// Gate: GET /exams/broadsheet â€” STRICTLY admin-tier or the specific Class Teacher
+// of the requested grade+stream. Unlike requireStreamAccess, subject teachers are
+// NOT let in here even if they teach that stream â€” broadsheets expose every
+// subject's scores for every learner in the class, which is a class-teacher-level
+// view, not a subject-teacher one. No grace-mode fallback either: if no class
+// teacher is assigned yet, access is simply denied rather than opened up, since
+// this endpoint is more sensitive than mark entry or attendance.
+async function requireBroadsheetAccess(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
+  if (req.user.isSuperAdmin || ADMIN_TIER_ROLES.includes(req.user.role)) return next();
+  try {
+    const { grade, stream } = req.query;
+    if (!grade || !stream) {
+      return res.status(400).json({ error: 'grade and stream are required' });
+    }
+
+    const teacherId = await getTeacherId(req.user.id, req.user.school_id);
+    if (!teacherId) return res.status(403).json({ error: 'No teacher profile linked to this account' });
+
+    const { rows: classRows } = await query(
+      `SELECT class_teacher_id FROM classes WHERE school_id=$1 AND grade=$2 AND stream=$3 ORDER BY academic_year DESC LIMIT 1`,
+      [req.user.school_id, grade, stream]
+    );
+    const classTeacherId = classRows[0]?.class_teacher_id || null;
+
+    if (classTeacherId && classTeacherId === teacherId) return next();
+
+    return res.status(403).json({
+      error: `Broadsheets are only accessible to the Administrator and the Class Teacher of ${grade} Stream ${stream}`,
+    });
+  } catch (err) {
+    console.error('requireBroadsheetAccess error:', err);
+    res.status(500).json({ error: 'Access check failed' });
+  }
+}
+
 module.exports = {
   authenticate, authorize, authorizeLevel,
   requirePermission, sameSchool, parentChildOnly,
   requireSuperAdmin,
   requireExamSubjectAccess, requireClassTeacherAccess, requireLearnerTeacherAccess, requireStreamAccess,
+  requireBroadsheetAccess,
   ROLE_LEVELS, ROLE_LABELS, ADMIN_TIER_ROLES,
   getTeacherId,
 };
