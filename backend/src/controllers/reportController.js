@@ -108,6 +108,32 @@ async function generateLearnerReport(req, res) {
       teacherIsFallbackHead = !!teacher;
     }
 
+    // Real class teacher for this learner's specific grade+stream (for the
+    // Class Teacher's Comments byline — separate from "teacher" above,
+    // which is whoever is signing the report and may be someone else).
+    const classTeacherRes = await query(
+      `SELECT t.first_name, t.last_name
+       FROM classes c
+       JOIN teachers t ON t.id = c.class_teacher_id
+       WHERE c.school_id = $1 AND c.grade = $2 AND c.stream = $3
+       ORDER BY c.academic_year DESC LIMIT 1`,
+      [learner.school_id, learner.grade, learner.stream]
+    );
+    const classTeacherName = classTeacherRes.rows[0]
+      ? `${classTeacherRes.rows[0].first_name} ${classTeacherRes.rows[0].last_name}`
+      : null;
+
+    // Real head teacher / principal for the Head Teacher's Comments byline.
+    const headTeacherRes = await query(
+      `SELECT first_name, last_name FROM teachers
+       WHERE school_id = $1 AND (role ILIKE '%head%' OR role = 'admin')
+       ORDER BY (role ILIKE '%head%') DESC LIMIT 1`,
+      [learner.school_id]
+    );
+    const headTeacherName = headTeacherRes.rows[0]
+      ? `${headTeacherRes.rows[0].first_name} ${headTeacherRes.rows[0].last_name}`
+      : null;
+
     const doc = new PDFDocument({ margin: 40, size: "A4" });
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", "attachment; filename=report_" + (learner.admission_no || learner.id) + ".pdf");
@@ -262,21 +288,24 @@ async function generateLearnerReport(req, res) {
 
     const commentsTop = doc.y;
 
-    function commentBox(label, text, y) {
+    function commentBox(label, name, text, y) {
+      const headerLabel = name ? `${label.toUpperCase()} — ${name.toUpperCase()}` : label.toUpperCase();
       doc.roundedRect(40, y, pageWidth, commentBoxHeight, 8).fill(cardBg);
       doc.fillColor(gray).fontSize(7.5).font("Helvetica-Bold")
-        .text(label.toUpperCase(), 40 + pad, y + 7, { characterSpacing: 0.5, height: 10, ellipsis: false });
+        .text(headerLabel, 40 + pad, y + 7, { characterSpacing: 0.5, height: 10, ellipsis: true, width: pageWidth - pad * 2 });
       doc.fillColor(navy).fontSize(8.5).font("Helvetica")
         .text(text, 40 + pad, y + 18, { width: pageWidth - pad * 2, height: commentBoxHeight - 20, ellipsis: true });
     }
 
     commentBox(
       "Class Teacher's Comments",
+      classTeacherName,
       generateComment(CLASS_TEACHER_COMMENTS, meanPct, learner.first_name),
       commentsTop
     );
     commentBox(
       "Head Teacher's Comments",
+      headTeacherName,
       generateComment(HEAD_TEACHER_COMMENTS, meanPct, learner.first_name),
       commentsTop + commentBoxHeight + commentGap
     );
