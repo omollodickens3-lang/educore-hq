@@ -64,11 +64,20 @@ teachersAPI.uploadSignature = (id, file) => {
   return api.post(`/teachers/${id}/signature`, formData);
 };
 
+// reportsAPI.download:
+// - `printSafe` defaults to true, so the existing "Download Report" button
+//   (which calls this with just learnerId/examId/signedBy, exactly as before)
+//   now always requests the black-and-white-safe header render from the
+//   backend by default â€” no other call site needs to change.
+// - Pass `printSafe: false` explicitly if a colorful/on-screen-only version
+//   is ever needed again.
 export const reportsAPI = {
-  download: (learnerId, examId, signedBy) => {
-    const url = signedBy
-      ? `/reports/learner/${learnerId}/${examId}?signedBy=${signedBy}`
-      : `/reports/learner/${learnerId}/${examId}`;
+  download: (learnerId, examId, signedBy, printSafe = true) => {
+    const params = new URLSearchParams();
+    if (signedBy) params.set("signedBy", signedBy);
+    if (printSafe) params.set("printSafe", "true");
+    const query = params.toString();
+    const url = `/reports/learner/${learnerId}/${examId}${query ? `?${query}` : ""}`;
     return api.get(url, { responseType: "blob" });
   },
 };
