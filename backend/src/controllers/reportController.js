@@ -1,5 +1,6 @@
 const PDFDocument = require("pdfkit");
 const { query } = require("../config/db");
+const { cbcGrade } = require("../utils/examUtils");
 
 // CBC grading bands: Primary (PP1-Grade 6) uses 4 levels, Junior Secondary (Grade 7-9) uses 8 levels
 function getGradingKey(gradeLabel) {
@@ -11,8 +12,25 @@ function getGradingKey(gradeLabel) {
   return ["EE", "ME", "AE", "BE"];
 }
 
+// Turns a raw grade code (EE, EE1, EE2, ME, ME1... etc) into its full CBC
+// Performance Level description, e.g. "EE1" -> "Exceeding Expectation (EE1)".
+// Used for the Overall Performance line so parents see the same descriptive
+// wording used nationally, not just a bare code.
+function fullPerformanceLabel(code) {
+  if (!code) return null;
+  const prefix = code.slice(0, 2);
+  const names = {
+    EE: "Exceeding Expectation",
+    ME: "Meeting Expectation",
+    AE: "Approaching Expectation",
+    BE: "Below Expectation",
+  };
+  const name = names[prefix];
+  return name ? `${name} (${code})` : code;
+}
+
 // Auto-generated narrative comments based on overall percentage this term.
-// Picked automatically at report-generation time — no manual entry needed.
+// Picked automatically at report-generation time â€” no manual entry needed.
 function getPerformanceBand(meanPct) {
   const p = Number(meanPct);
   if (p >= 85) return "exceptional";
@@ -74,8 +92,10 @@ async function generateLearnerReport(req, res) {
     );
     const scores = scoresRes.rows;
 
-    // Rank this learner both within their own stream and across the whole grade
-    // (the exam now covers the whole grade, so both comparisons come from one query).
+    // Rank this learner both within their own stream and across the whole grade.
+    // Joined to exams and filtered by l.grade = e.grade so a school-wide roll
+    // never leaks other grades into "Grade: X of Y" â€” a Grade 7 learner's rank
+    // is always out of Grade 7's own class size, never the whole school.
     const rankRes = await query(
       `SELECT l.id AS learner_id,
         RANK() OVER (PARTITION BY l.stream ORDER BY SUM(s.score) DESC) AS stream_rank,
@@ -84,13 +104,14 @@ async function generateLearnerReport(req, res) {
         COUNT(*) OVER () AS overall_size
        FROM scores s
        JOIN learners l ON l.id = s.learner_id
-       WHERE s.exam_id = $1
+       JOIN exams e ON e.id = s.exam_id
+       WHERE s.exam_id = $1 AND l.grade = e.grade
        GROUP BY l.id, l.stream`,
       [examId]
     );
     const myRank = rankRes.rows.find((r) => r.learner_id === learnerId) || null;
 
-    // "teacher" is whoever is actually signing this report — either the person the
+    // "teacher" is whoever is actually signing this report â€” either the person the
     // caller explicitly picked (signedBy), or a head-teacher fallback if none was picked.
     // Their displayed title must reflect their ACTUAL role, never assume Head Teacher.
     let teacher = null;
@@ -109,7 +130,7 @@ async function generateLearnerReport(req, res) {
     }
 
     // Real class teacher for this learner's specific grade+stream (for the
-    // Class Teacher's Comments byline — separate from "teacher" above,
+    // Class Teacher's Comments byline â€” separate from "teacher" above,
     // which is whoever is signing the report and may be someone else).
     const classTeacherRes = await query(
       `SELECT t.first_name, t.last_name, t.signature_data
@@ -153,6 +174,20 @@ async function generateLearnerReport(req, res) {
     // ---- Header (solid navy block, matching the school-brand report style) ----
     const headerHeight = 90;
     doc.rect(0, 0, doc.page.width, headerHeight).fill(navy);
+
+    // School logo, top-left of the header, if one has been uploaded. The
+    // school name stays centered regardless, so the layout doesn't shift
+    // for schools that haven't added a logo yet.
+    if (school.logo_data) {
+      try {
+        const logoBuffer = Buffer.from(school.logo_data, "base64");
+        const logoSize = 50;
+        doc.image(logoBuffer, 40, (headerHeight - logoSize) / 2, { fit: [logoSize, logoSize] });
+      } catch (logoErr) {
+        console.error("Failed to embed school logo:", logoErr.message);
+      }
+    }
+
     doc.fillColor("#ffffff").fontSize(21).font("Helvetica-Bold")
       .text(school.name || "School", 40, 30, { align: "center", width: pageWidth });
     doc.fillColor(gold).fontSize(9).font("Helvetica-Bold")
@@ -228,6 +263,13 @@ async function generateLearnerReport(req, res) {
     // ---- Overall performance + Ranking (two cards side by side) ----
     const meanPct = totalMax ? ((totalScore / totalMax) * 100).toFixed(1) : "0.0";
     const overallGrade = scores.length === 1 ? (scores[0].grade_label || "-") : null;
+
+    // Full CBC Performance Level for the mean percentage itself, using the
+    // exact same thresholds (cbcGrade) as every individual subject grade,
+    // so this always agrees with the subject-level grading elsewhere.
+    const overallPerformanceCode = totalMax ? cbcGrade(Number(meanPct), learner.section) : null;
+    const overallPerformanceLabel = fullPerformanceLabel(overallPerformanceCode);
+
     const perfTop = doc.y;
     const perfHeight = 44;
     const cardGap = 12;
@@ -236,8 +278,12 @@ async function generateLearnerReport(req, res) {
     doc.roundedRect(40, perfTop, perfWidth, perfHeight, 8).fill(lightBlue);
     doc.fillColor(gray).fontSize(7.5).font("Helvetica-Bold")
       .text("OVERALL PERFORMANCE", 40 + pad, perfTop + 9, { characterSpacing: 0.5 });
-    doc.fillColor(navy).fontSize(14).font("Helvetica-Bold")
-      .text(totalScore + "/" + totalMax + "  (" + meanPct + "%)" + (overallGrade ? "   \u00b7   " + overallGrade : ""), 40 + pad, perfTop + 22);
+    doc.fillColor(navy).fontSize(12).font("Helvetica-Bold")
+      .text(totalScore + "/" + totalMax + "  (" + meanPct + "%)", 40 + pad, perfTop + 21);
+    if (overallPerformanceLabel) {
+      doc.fillColor(blue).fontSize(8.5).font("Helvetica-Bold")
+        .text(overallPerformanceLabel, 40 + pad, perfTop + 33, { width: perfWidth - pad * 2 });
+    }
 
     const rankX = 40 + perfWidth + cardGap;
     doc.roundedRect(rankX, perfTop, perfWidth, perfHeight, 8).fill(lightBlue);
@@ -291,7 +337,7 @@ async function generateLearnerReport(req, res) {
     const commentsTop = doc.y;
 
     function commentBox(label, name, text, y) {
-      const headerLabel = name ? `${label.toUpperCase()} — ${name.toUpperCase()}` : label.toUpperCase();
+      const headerLabel = name ? `${label.toUpperCase()} â€” ${name.toUpperCase()}` : label.toUpperCase();
       doc.roundedRect(40, y, pageWidth, commentBoxHeight, 8).fill(cardBg);
       doc.fillColor(gray).fontSize(7.5).font("Helvetica-Bold")
         .text(headerLabel, 40 + pad, y + 7, { characterSpacing: 0.5, height: 10, ellipsis: true, width: pageWidth - pad * 2 });
