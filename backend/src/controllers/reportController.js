@@ -30,7 +30,7 @@ function fullPerformanceLabel(code) {
 }
 
 // Auto-generated narrative comments based on overall percentage this term.
-// Picked automatically at report-generation time â€” no manual entry needed.
+// Picked automatically at report-generation time — no manual entry needed.
 function getPerformanceBand(meanPct) {
   const p = Number(meanPct);
   if (p >= 85) return "exceptional";
@@ -75,6 +75,15 @@ async function generateLearnerReport(req, res) {
     const { learnerId, examId } = req.params;
     const signedBy = req.query.signedBy;
 
+    // Print-safe mode: renders the header (and any other white-on-color text)
+    // as solid black on a plain white/bordered background instead of white
+    // text on a solid color fill. This is the PDFKit equivalent of an
+    // `@media print` stylesheet — it changes nothing about layout, data, or
+    // the normal on-screen/default look, it only swaps colors when the
+    // caller explicitly asks for a monochrome/printer-safe render, e.g.
+    // GET /reports/:learnerId/:examId?printSafe=true
+    const printSafe = req.query.printSafe === "true" || req.query.printSafe === "1";
+
     const learnerRes = await query("SELECT * FROM learners WHERE id = $1", [learnerId]);
     if (!learnerRes.rows.length) return res.status(404).json({ error: "Learner not found" });
     const learner = learnerRes.rows[0];
@@ -94,7 +103,7 @@ async function generateLearnerReport(req, res) {
 
     // Rank this learner both within their own stream and across the whole grade.
     // Joined to exams and filtered by l.grade = e.grade so a school-wide roll
-    // never leaks other grades into "Grade: X of Y" â€” a Grade 7 learner's rank
+    // never leaks other grades into "Grade: X of Y" — a Grade 7 learner's rank
     // is always out of Grade 7's own class size, never the whole school.
     const rankRes = await query(
       `SELECT l.id AS learner_id,
@@ -111,7 +120,7 @@ async function generateLearnerReport(req, res) {
     );
     const myRank = rankRes.rows.find((r) => r.learner_id === learnerId) || null;
 
-    // "teacher" is whoever is actually signing this report â€” either the person the
+    // "teacher" is whoever is actually signing this report — either the person the
     // caller explicitly picked (signedBy), or a head-teacher fallback if none was picked.
     // Their displayed title must reflect their ACTUAL role, never assume Head Teacher.
     let teacher = null;
@@ -130,7 +139,7 @@ async function generateLearnerReport(req, res) {
     }
 
     // Real class teacher for this learner's specific grade+stream (for the
-    // Class Teacher's Comments byline â€” separate from "teacher" above,
+    // Class Teacher's Comments byline — separate from "teacher" above,
     // which is whoever is signing the report and may be someone else).
     const classTeacherRes = await query(
       `SELECT t.first_name, t.last_name, t.signature_data
@@ -171,9 +180,30 @@ async function generateLearnerReport(req, res) {
     const cardBg = "#f8fafc";
     const pageWidth = doc.page.width - 80; // minus margins
 
+    // Header/table-header colors. Default (printSafe = false) keeps the
+    // existing on-screen brand look exactly as before: solid navy block,
+    // white school name, gold subtitle. printSafe = true removes all
+    // reliance on background color/opacity for legibility — the school name
+    // and subtitle become solid #000 text on a plain white background with
+    // a black rule, and the table header becomes black text on white too.
+    // This guarantees contrast on black-and-white printers and photocopiers
+    // regardless of how they render (or lighten/dither) solid color fills.
+    const headerBg = printSafe ? "#ffffff" : navy;
+    const schoolNameColor = printSafe ? "#000000" : "#ffffff";
+    const subtitleColor = printSafe ? "#000000" : gold;
+    const tableHeaderBg = printSafe ? "#ffffff" : navy;
+    const tableHeaderTextColor = printSafe ? "#000000" : "#ffffff";
+
     // ---- Header (solid navy block, matching the school-brand report style) ----
     const headerHeight = 90;
-    doc.rect(0, 0, doc.page.width, headerHeight).fill(navy);
+    doc.rect(0, 0, doc.page.width, headerHeight).fill(headerBg);
+    if (printSafe) {
+      // Black rule along the bottom of the header stands in for the color
+      // block, so the header region stays visually distinct without
+      // depending on any fill color surviving grayscale/toner-saving print.
+      doc.moveTo(0, headerHeight).lineTo(doc.page.width, headerHeight)
+        .lineWidth(1.5).strokeColor("#000000").stroke();
+    }
 
     // School logo, top-left of the header, if one has been uploaded. The
     // school name stays centered regardless, so the layout doesn't shift
@@ -188,9 +218,9 @@ async function generateLearnerReport(req, res) {
       }
     }
 
-    doc.fillColor("#ffffff").fontSize(21).font("Helvetica-Bold")
+    doc.fillColor(schoolNameColor).fontSize(21).font("Helvetica-Bold")
       .text(school.name || "School", 40, 30, { align: "center", width: pageWidth });
-    doc.fillColor(gold).fontSize(9).font("Helvetica-Bold")
+    doc.fillColor(subtitleColor).fontSize(9).font("Helvetica-Bold")
       .text("STUDENT ACADEMIC REPORT  \u00b7  CBC", { align: "center", width: pageWidth, characterSpacing: 1 });
 
     doc.y = headerHeight + 16;
@@ -225,8 +255,12 @@ async function generateLearnerReport(req, res) {
     const rowHeight = 18;
     const col = { subject: 40, score: 40 + pageWidth * 0.38, grade: 40 + pageWidth * 0.55, remarks: 40 + pageWidth * 0.68 };
 
-    doc.roundedRect(40, tableTop, pageWidth, rowHeight + 2, 6).fill(navy);
-    doc.fillColor("#ffffff").fontSize(8).font("Helvetica-Bold");
+    doc.roundedRect(40, tableTop, pageWidth, rowHeight + 2, 6).fill(tableHeaderBg);
+    if (printSafe) {
+      doc.roundedRect(40, tableTop, pageWidth, rowHeight + 2, 6)
+        .lineWidth(1).strokeColor("#000000").stroke();
+    }
+    doc.fillColor(tableHeaderTextColor).fontSize(8).font("Helvetica-Bold");
     doc.text("SUBJECT", col.subject + 10, tableTop + 6);
     doc.text("SCORE", col.score, tableTop + 6);
     doc.text("GRADE", col.grade, tableTop + 6);
@@ -337,7 +371,7 @@ async function generateLearnerReport(req, res) {
     const commentsTop = doc.y;
 
     function commentBox(label, name, text, y) {
-      const headerLabel = name ? `${label.toUpperCase()} â€” ${name.toUpperCase()}` : label.toUpperCase();
+      const headerLabel = name ? `${label.toUpperCase()} \u2014 ${name.toUpperCase()}` : label.toUpperCase();
       doc.roundedRect(40, y, pageWidth, commentBoxHeight, 8).fill(cardBg);
       doc.fillColor(gray).fontSize(7.5).font("Helvetica-Bold")
         .text(headerLabel, 40 + pad, y + 7, { characterSpacing: 0.5, height: 10, ellipsis: true, width: pageWidth - pad * 2 });
