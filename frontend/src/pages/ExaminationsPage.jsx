@@ -536,10 +536,11 @@ function MarkEntryTab({ exam, scores, setScores, onSaved, selectedSubject, setSe
       // silently discarded just because the debounce hadn't fired yet.
       api.upsertScores(
         exam.id ?? exam._id,
-        scoresRef.current.map(({ learnerId, score, remarks }) => ({
+        scoresRef.current.map(({ learnerId, score, remarks, catScore }) => ({
           learnerId,
           subject: subjectRef.current,
           score: score === "" || score === undefined ? null : Number(score),
+          catScore: catScore === "" || catScore === undefined ? null : Number(catScore),
           remarks: remarks ?? "",
         }))
       ).catch(() => {});
@@ -554,10 +555,11 @@ function MarkEntryTab({ exam, scores, setScores, onSaved, selectedSubject, setSe
     try {
       await api.upsertScores(
         exam.id ?? exam._id,
-        scoresRef.current.map(({ learnerId, score, remarks }) => ({
+        scoresRef.current.map(({ learnerId, score, remarks, catScore }) => ({
           learnerId,
           subject: subjectRef.current,
           score: score === "" || score === undefined ? null : Number(score),
+          catScore: catScore === "" || catScore === undefined ? null : Number(catScore),
           remarks: remarks ?? "",
         }))
       );
@@ -676,6 +678,9 @@ function MarkEntryTab({ exam, scores, setScores, onSaved, selectedSubject, setSe
               <th style={{ ...styles.th, width: 36 }}>#</th>
               <th style={styles.th}>Learner</th>
               <th style={styles.th}>Adm. No</th>
+              <th style={{ ...styles.th, width: 90, textAlign: "center" }}>
+                CAT <span style={{ fontWeight: 400, color: "#C4C4C4" }}>/ 100</span>
+              </th>
               <th style={{ ...styles.th, width: 130, textAlign: "center" }}>
                 Score <span style={{ fontWeight: 400, color: "#C4C4C4" }}>/ {maxScore}</span>
               </th>
@@ -711,6 +716,19 @@ function MarkEntryTab({ exam, scores, setScores, onSaved, selectedSubject, setSe
                   </td>
                   <td style={{ ...styles.td, fontSize: 12, color: "#9CA3AF" }}>
                     {row.admissionNo ?? "—"}
+                  </td>
+                  <td style={{ ...styles.td, textAlign: "center" }}>
+                    <input
+                      type="number" min={0} max={100}
+                      value={row.catScore ?? ""}
+                      onChange={(e) => update(row.learnerId, "catScore", e.target.value)}
+                      placeholder="—"
+                      style={{
+                        width: 64, padding: "7px 0", textAlign: "center",
+                        border: "2px solid #E5E7EB", borderRadius: 8, fontSize: 14, fontWeight: 600,
+                        background: "#FAFAFA", color: "#374151", outline: "none", fontFamily: "inherit",
+                      }}
+                    />
                   </td>
                   <td style={{ ...styles.td, textAlign: "center" }}>
                     <input
