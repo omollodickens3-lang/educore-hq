@@ -167,7 +167,7 @@ async function getAnalysis(req, res) {
       FROM scores s
       JOIN exams e ON e.id = s.exam_id
       JOIN learners l ON l.id = s.learner_id
-      WHERE s.school_id=$1 AND e.grade=$2 AND e.term=$3 AND e.academic_year=$4`;
+      WHERE s.school_id=$1 AND e.grade=$2 AND e.term=$3 AND e.academic_year=$4 AND l.grade=$2`;
     const params = [req.user.school_id, grade, termToInt(term), academicYear];
     if (stream) { sql += ` AND l.stream=$5`; params.push(stream); }
     sql += ` GROUP BY s.subject ORDER BY avg_score DESC`;
@@ -185,7 +185,7 @@ async function getTrends(req, res) {
       FROM scores s
       JOIN exams e ON e.id = s.exam_id
       JOIN learners l ON l.id = s.learner_id
-      WHERE s.school_id=$1 AND e.grade=$2 AND s.subject=$3`;
+      WHERE s.school_id=$1 AND e.grade=$2 AND s.subject=$3 AND l.grade=$2`;
     const params = [req.user.school_id, grade, subject];
     if (stream) { sql += ` AND l.stream=$4`; params.push(stream); }
     sql += ` GROUP BY e.academic_year, e.term ORDER BY e.academic_year, e.term`;
@@ -340,7 +340,7 @@ async function getStreamRanking(req, res) {
       JOIN learners l ON l.id = s.learner_id
       LEFT JOIN classes c ON c.school_id = s.school_id AND c.grade = e.grade AND c.stream = l.stream
       LEFT JOIN teachers ut ON ut.id = c.class_teacher_id
-      WHERE s.school_id=$1 AND e.grade=$2 AND e.term=$3 AND e.academic_year=$4`;
+      WHERE s.school_id=$1 AND e.grade=$2 AND e.term=$3 AND e.academic_year=$4 AND l.grade=$2`;
     const params = [req.user.school_id, grade, termToInt(term), academicYear];
     let idx = 5;
     if (subject)  { sql += ` AND s.subject=$${idx++}`;  params.push(subject); }
@@ -364,7 +364,7 @@ async function getLearnerRanking(req, res) {
       FROM scores s
       JOIN exams e ON e.id = s.exam_id
       JOIN learners l ON l.id = s.learner_id
-      WHERE s.school_id=$1 AND e.grade=$2 AND e.term=$3 AND e.academic_year=$4`;
+      WHERE s.school_id=$1 AND e.grade=$2 AND e.term=$3 AND e.academic_year=$4 AND l.grade=$2`;
     const params = [req.user.school_id, grade, termToInt(term), academicYear];
     let idx = 5;
     if (stream) { sql += ' AND l.stream=$' + idx; params.push(stream); idx++; }
@@ -409,7 +409,7 @@ async function getSubjectRankingByStream(req, res) {
         LIMIT 1
       ) tsub ON true
       LEFT JOIN teachers ut ON ut.id = tsub.teacher_id
-      WHERE s.school_id=$1 AND e.grade=$2 AND e.term=$3 AND e.academic_year=$4 AND l.stream=$5`;
+      WHERE s.school_id=$1 AND e.grade=$2 AND e.term=$3 AND e.academic_year=$4 AND l.stream=$5 AND l.grade=$2`;
     const params = [req.user.school_id, grade, termToInt(term), academicYear, stream];
     if (examType) { sql += ` AND e.exam_type=$6`; params.push(examType); }
     sql += ` GROUP BY s.subject ORDER BY avg_score DESC`;
