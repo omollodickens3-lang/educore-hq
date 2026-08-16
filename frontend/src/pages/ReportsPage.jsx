@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
-import { learnersAPI, examsAPI, teachersAPI, reportsAPI } from "../utils/api";
+import { learnersAPI, examsAPI, teachersAPI, reportsAPI, classesAPI } from "../utils/api";
 import toast from "react-hot-toast";
 
 const GRADES = ["Grade 7", "Grade 8", "Grade 9"];
-const STREAM_OPTIONS = ["A", "B", "C", "D", "East", "West", "North", "South"];
 
 export default function ReportsPage() {
   const [learners, setLearners] = useState([]);
   const [exams, setExams] = useState([]);
   const [teachers, setTeachers] = useState([]);
+  const [classes, setClasses] = useState([]);
   const [learnerId, setLearnerId] = useState("");
   const [examId, setExamId] = useState("");
   const [teacherId, setTeacherId] = useState("");
@@ -31,8 +31,17 @@ export default function ReportsPage() {
   useEffect(() => {
     learnersAPI.getAll().then(res => setLearners(res.data.learners || res.data || [])).catch(() => {});
     examsAPI.getAll().then(res => setExams(res.data.exams || res.data || [])).catch(() => {});
+    classesAPI.getAll().then(res => setClasses(res.data || [])).catch(() => {});
     loadTeachers();
   }, []);
+
+  // Real streams that exist for the currently selected grade, derived from
+  // Manage Classes — not a hardcoded guess like "A, B, C, D", since schools
+  // often name streams anything (e.g. "J", house names, etc).
+  const streamsForBulkGrade = classes
+    .filter(c => c.grade === bulkGrade)
+    .map(c => c.stream)
+    .filter((s, i, arr) => s && arr.indexOf(s) === i);
 
   const handleDownload = async () => {
     if (!learnerId || !examId) {
@@ -205,10 +214,17 @@ export default function ReportsPage() {
         {!bulkWholeGrade && (
           <>
             <label style={labelStyle}>Stream</label>
-            <select value={bulkStream} onChange={e => setBulkStream(e.target.value)} style={selectStyle}>
-              <option value="">Select stream</option>
-              {STREAM_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
+            {bulkGrade && streamsForBulkGrade.length === 0 ? (
+              <p style={{ fontSize: "12.5px", color: "#f87171", marginBottom: "14px" }}>
+                No classes found for {bulkGrade} in Manage Classes yet — add one there first,
+                or check "Whole grade" if you're an admin and just want everyone in this grade.
+              </p>
+            ) : (
+              <select value={bulkStream} onChange={e => setBulkStream(e.target.value)} style={selectStyle} disabled={!bulkGrade}>
+                <option value="">{bulkGrade ? "Select stream" : "Select a grade first"}</option>
+                {streamsForBulkGrade.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            )}
           </>
         )}
 
