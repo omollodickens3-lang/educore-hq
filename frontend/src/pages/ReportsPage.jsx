@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { learnersAPI, examsAPI, teachersAPI, reportsAPI } from "../utils/api";
 import toast from "react-hot-toast";
 
+const GRADES = ["Grade 7", "Grade 8", "Grade 9"];
+const STREAM_OPTIONS = ["A", "B", "C", "D", "East", "West", "North", "South"];
+
 export default function ReportsPage() {
   const [learners, setLearners] = useState([]);
   const [exams, setExams] = useState([]);
@@ -10,6 +13,12 @@ export default function ReportsPage() {
   const [examId, setExamId] = useState("");
   const [teacherId, setTeacherId] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const [bulkExamId, setBulkExamId] = useState("");
+  const [bulkGrade, setBulkGrade] = useState("");
+  const [bulkStream, setBulkStream] = useState("");
+  const [bulkWholeGrade, setBulkWholeGrade] = useState(false);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const [sigTeacherId, setSigTeacherId] = useState("");
   const [sigFile, setSigFile] = useState(null);
@@ -48,6 +57,37 @@ export default function ReportsPage() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleBulkDownload = async () => {
+    if (!bulkExamId || !bulkGrade) {
+      toast.error("Please select an exam and a grade");
+      return;
+    }
+    if (!bulkWholeGrade && !bulkStream) {
+      toast.error("Please select a stream, or check \"Whole grade (all streams)\"");
+      return;
+    }
+    setBulkLoading(true);
+    try {
+      const res = await reportsAPI.downloadBulk(bulkExamId, bulkGrade, bulkWholeGrade ? undefined : bulkStream);
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Report_Cards_${bulkGrade.replace(/\s+/g, "")}${bulkWholeGrade ? "_All" : "_" + bulkStream}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Report cards downloaded");
+    } catch (err) {
+      const msg = err.response?.data?.error || "Failed to generate bulk report";
+      toast.error(msg);
+      console.error(err);
+    } finally {
+      setBulkLoading(false);
     }
   };
 
@@ -125,6 +165,55 @@ export default function ReportsPage() {
         <br />
         <button onClick={handleSignatureUpload} disabled={sigLoading} style={buttonStyle}>
           {sigLoading ? "Uploading..." : "Upload Signature"}
+        </button>
+      </div>
+
+      <div style={boxStyle}>
+        <h2 style={{ fontSize: "16px", fontWeight: 600, marginBottom: "14px", color: "#e2e8f0" }}>
+          Bulk Download Report Cards
+        </h2>
+        <p style={{ fontSize: "12.5px", color: "#94a3b8", marginBottom: "14px" }}>
+          Downloads one merged PDF with every learner's report card, one page each &mdash;
+          ready to print for a whole class in one go.
+        </p>
+
+        <label style={labelStyle}>Exam</label>
+        <select value={bulkExamId} onChange={e => setBulkExamId(e.target.value)} style={selectStyle}>
+          <option value="">Select exam</option>
+          {exams.map(e => (
+            <option key={e.id} value={e.id}>
+              {e.name} - Term {e.term} ({e.academic_year})
+            </option>
+          ))}
+        </select>
+
+        <label style={labelStyle}>Grade</label>
+        <select value={bulkGrade} onChange={e => setBulkGrade(e.target.value)} style={selectStyle}>
+          <option value="">Select grade</option>
+          {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
+        </select>
+
+        <label style={{ ...labelStyle, display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
+          <input
+            type="checkbox"
+            checked={bulkWholeGrade}
+            onChange={e => setBulkWholeGrade(e.target.checked)}
+          />
+          Whole grade (all streams) &mdash; admin only
+        </label>
+
+        {!bulkWholeGrade && (
+          <>
+            <label style={labelStyle}>Stream</label>
+            <select value={bulkStream} onChange={e => setBulkStream(e.target.value)} style={selectStyle}>
+              <option value="">Select stream</option>
+              {STREAM_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </>
+        )}
+
+        <button onClick={handleBulkDownload} disabled={bulkLoading} style={buttonStyle}>
+          {bulkLoading ? "Generating..." : "Download Report Cards"}
         </button>
       </div>
 
