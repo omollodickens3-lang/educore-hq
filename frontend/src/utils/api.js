@@ -68,7 +68,7 @@ teachersAPI.uploadSignature = (id, file) => {
 // - `printSafe` defaults to true, so the existing "Download Report" button
 //   (which calls this with just learnerId/examId/signedBy, exactly as before)
 //   now always requests the black-and-white-safe header render from the
-//   backend by default â€” no other call site needs to change.
+//   backend by default — no other call site needs to change.
 // - Pass `printSafe: false` explicitly if a colorful/on-screen-only version
 //   is ever needed again.
 export const reportsAPI = {
@@ -78,6 +78,16 @@ export const reportsAPI = {
     if (printSafe) params.set("printSafe", "true");
     const query = params.toString();
     const url = `/reports/learner/${learnerId}/${examId}${query ? `?${query}` : ""}`;
+    return api.get(url, { responseType: "blob" });
+  },
+  // Bulk: one merged PDF covering every learner in a class (grade+stream) or
+  // a whole grade (all streams, stream omitted) for a single exam.
+  downloadBulk: (examId, grade, stream, printSafe = true) => {
+    const params = new URLSearchParams();
+    params.set("grade", grade);
+    if (stream) params.set("stream", stream);
+    if (printSafe) params.set("printSafe", "true");
+    const url = `/reports/bulk/${examId}?${params.toString()}`;
     return api.get(url, { responseType: "blob" });
   },
 };
