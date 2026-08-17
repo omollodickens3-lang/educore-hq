@@ -154,6 +154,15 @@ schoolsAPI.uploadStamp = (file) => {
   return api.post('/schools/stamp', formData);
 };
 
+schoolsAPI.uploadLogo = (file) => {
+  const formData = new FormData();
+  formData.append('logo', file);
+  return api.post('/schools/logo', formData);
+};
+
+schoolsAPI.getProfile = () => api.get('/schools/profile');
+schoolsAPI.updateProfile = (data) => api.put('/schools/profile', data);
+
 export const superAdminAPI = {
   listSchools: () => api.get('/super-admin/schools'),
   getSchoolHistory: (id) => api.get(`/super-admin/schools/${id}/history`),
