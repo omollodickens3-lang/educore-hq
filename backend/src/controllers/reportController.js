@@ -299,7 +299,9 @@ function drawReportPage(doc, { learner, exam, school, scores, myRank, classTeach
     doc.fillColor(gray).fontSize(7).font("Helvetica").text("Signature & date", rightX, sigTop + 46);
   }
 
-  // ---- School stamp (if uploaded) ----
+  // ---- School stamp (if uploaded), with a live date overlay so it behaves
+  // like a real self-inking date stamp — the date always shows today,
+  // updated automatically on every generation, no manual editing needed.
   if (school.stamp_data) {
     try {
       const stampBuffer = Buffer.from(school.stamp_data, "base64");
@@ -309,6 +311,10 @@ function drawReportPage(doc, { learner, exam, school, scores, myRank, classTeach
       doc.opacity(0.82);
       doc.image(stampBuffer, stampX, stampY, { fit: [stampSize, stampSize] });
       doc.opacity(1);
+
+      const stampDate = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
+      doc.fillColor("#8b1a1a").fontSize(7).font("Helvetica-Bold")
+        .text(stampDate, stampX, stampY + stampSize / 2 - 3, { width: stampSize, align: "center" });
     } catch (stampErr) {
       console.error("Failed to embed school stamp:", stampErr.message);
     }
@@ -870,14 +876,23 @@ function drawTermReportPage(doc, { learner, school, term, academicYear, termDate
   signatureBlock(left, classTeacherRow, classTeacherName, classTeacherDesignation);
   signatureBlock(left + pageWidth / 2, headTeacherRow, headTeacherName, headTeacherDesignation);
 
-  // ---- School stamp ----
+  // ---- School stamp, with a live date overlay so it behaves like a real
+  // self-inking date stamp — always shows today, auto-updated on every
+  // generation. In printSafe mode the date uses black instead of red ink,
+  // matching the rest of the black-and-white-friendly styling.
   if (school.stamp_data) {
     try {
       const stampBuffer = Buffer.from(school.stamp_data, "base64");
       const stampSize = 70;
+      const stampX = left + pageWidth / 2 - stampSize / 2;
+      const stampY = sigTop - 14;
       doc.opacity(printSafe ? 0.35 : 0.82);
-      doc.image(stampBuffer, left + pageWidth / 2 - stampSize / 2, sigTop - 14, { fit: [stampSize, stampSize] });
+      doc.image(stampBuffer, stampX, stampY, { fit: [stampSize, stampSize] });
       doc.opacity(1);
+
+      const stampDate = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
+      doc.fillColor(printSafe ? termInk : "#8b1a1a").fontSize(6.5).font("Helvetica-Bold")
+        .text(stampDate, stampX, stampY + stampSize / 2 - 3, { width: stampSize, align: "center" });
     } catch (e) {
       console.error("Failed to embed school stamp:", e.message);
     }
