@@ -623,6 +623,27 @@ async function getTermDatesRow(schoolId, academicYear, term) {
   return res.rows[0] || null;
 }
 
+// The term immediately after the one this report covers — e.g. Term 2 ->
+// Term 3 of the same academic year, or Term 3 -> Term 1 of the NEXT
+// academic year (e.g. "2025/2026" -> "2026/2027"). Used to show parents
+// when the next term opens/closes, right on the report card.
+async function getNextTermDatesRow(schoolId, academicYear, term) {
+  const termNum = parseInt(term, 10);
+  let nextTerm, nextAcademicYear;
+  if (termNum >= 3) {
+    nextTerm = "1";
+    const years = String(academicYear).split("/").map((y) => parseInt(y, 10));
+    nextAcademicYear = years.length === 2 && !years.some(isNaN)
+      ? `${years[0] + 1}/${years[1] + 1}`
+      : academicYear;
+  } else {
+    nextTerm = String(termNum + 1);
+    nextAcademicYear = academicYear;
+  }
+  const row = await getTermDatesRow(schoolId, nextAcademicYear, nextTerm);
+  return { nextTerm, nextAcademicYear, row };
+}
+
 // Pulls every score for one learner across the three term exams and pivots
 // them into one row per subject: { subject, opener, midterm, endTerm, avgPct, remark }.
 async function buildSubjectRows(learnerId, termExams) {
@@ -679,7 +700,7 @@ function scoreCell(doc, entry, x, y, width, printSafe) {
   doc.fillColor(termGray).fontSize(8.5).font("Helvetica").text("/" + entry.max_score, x + width * 0.55, y + 0.5, { width: width * 0.45, align: "left" });
 }
 
-function drawTermReportPage(doc, { learner, school, term, academicYear, termDatesRow, subjectRows, classTeacherRow, classTeacherName, classTeacherDesignation, headTeacherRow, headTeacherName, headTeacherDesignation, printSafe }) {
+function drawTermReportPage(doc, { learner, school, term, academicYear, termDatesRow, nextTermInfo, subjectRows, classTeacherRow, classTeacherName, classTeacherDesignation, headTeacherRow, headTeacherName, headTeacherDesignation, printSafe }) {
   const pageWidth = doc.page.width - 72;
   const left = 36;
 
@@ -898,6 +919,20 @@ function drawTermReportPage(doc, { learner, school, term, academicYear, termDate
     }
   }
 
+  // ---- Next term dates (if set) — shown just above the footer so parents
+  // know when to expect the school to reopen and close next term ----
+  if (nextTermInfo && nextTermInfo.row) {
+    const nextOpen = formatDate(nextTermInfo.row.open_date);
+    const nextClose = formatDate(nextTermInfo.row.close_date);
+    if (nextOpen || nextClose) {
+      let nextLine = "Next Term (Term " + nextTermInfo.nextTerm + ", " + nextTermInfo.nextAcademicYear + ")";
+      if (nextOpen) nextLine += "  \u2014  Opens " + nextOpen;
+      if (nextClose) nextLine += (nextOpen ? "  \u00b7  " : "  \u2014  ") + "Closes " + nextClose;
+      doc.fillColor(printSafe ? termInk : termGray).fontSize(7.5).font("Helvetica-Bold")
+        .text(nextLine, left, doc.page.height - 76, { width: pageWidth, align: "center" });
+    }
+  }
+
   // ---- Footer ----
   doc.moveTo(left, doc.page.height - 60).lineTo(left + pageWidth, doc.page.height - 60).strokeColor(termLightGray).lineWidth(0.5).stroke();
   doc.fillColor(termGray).fontSize(6.5).font("Helvetica")
@@ -906,7 +941,12 @@ function drawTermReportPage(doc, { learner, school, term, academicYear, termDate
 
 async function resolveClassTeacher(schoolId, grade, stream) {
   const row = await getClassTeacher(schoolId, grade, stream);
-  return { row, name: row ? `${row.first_name} ${row.last_name}` : null, designation: row ? formatRole(row.role) : "Class Teacher" };
+  // Note: deliberately NOT formatRole(row.role) here. A teacher's stored
+  // `role` (e.g. "subject_teacher") reflects their general staff role, but
+  // this lookup already comes from classes.class_teacher_id for this exact
+  // class — that alone proves they ARE the class teacher here, even if
+  // they're a subject teacher in other classes. Always label them as such.
+  return { row, name: row ? `${row.first_name} ${row.last_name}` : null, designation: "Class Teacher" };
 }
 
 async function resolveHeadTeacher(schoolId, signedBy) {
@@ -932,6 +972,7 @@ async function generateTermReport(req, res) {
     const termExams = await getTermExams(learner.school_id, learner.grade, term, academicYear);
     const subjectRows = await buildSubjectRows(learnerId, termExams);
     const termDatesRow = await getTermDatesRow(learner.school_id, academicYear, term);
+    const nextTermInfo = await getNextTermDatesRow(learner.school_id, academicYear, term);
 
     const classTeacher = await resolveClassTeacher(learner.school_id, learner.grade, learner.stream);
     const headTeacher = await resolveHeadTeacher(learner.school_id, signedBy);
@@ -942,7 +983,7 @@ async function generateTermReport(req, res) {
     doc.pipe(res);
 
     drawTermReportPage(doc, {
-      learner, school, term, academicYear, termDatesRow, subjectRows,
+      learner, school, term, academicYear, termDatesRow, nextTermInfo, subjectRows,
       classTeacherRow: classTeacher.row, classTeacherName: classTeacher.name, classTeacherDesignation: classTeacher.designation,
       headTeacherRow: headTeacher.row, headTeacherName: headTeacher.name, headTeacherDesignation: headTeacher.designation,
       printSafe,
@@ -1013,6 +1054,7 @@ async function generateBulkTermReport(req, res) {
     doc.pipe(res);
 
     const termDatesRow = await getTermDatesCached();
+    const nextTermInfo = await getNextTermDatesRow(schoolId, academicYear, term);
 
     for (const learner of learners) {
       doc.addPage();
@@ -1021,7 +1063,7 @@ async function generateBulkTermReport(req, res) {
       const classTeacher = await getClassTeacherCached(learner.grade, learner.stream);
 
       drawTermReportPage(doc, {
-        learner, school, term, academicYear, termDatesRow, subjectRows,
+        learner, school, term, academicYear, termDatesRow, nextTermInfo, subjectRows,
         classTeacherRow: classTeacher.row, classTeacherName: classTeacher.name, classTeacherDesignation: classTeacher.designation,
         headTeacherRow: headTeacher.row, headTeacherName: headTeacher.name, headTeacherDesignation: headTeacher.designation,
         printSafe,
