@@ -710,6 +710,10 @@ function drawTermReportPage(doc, { learner, school, term, academicYear, termDate
   if (openDate && closeDate) termLine += "  (" + openDate + " \u2013 " + closeDate + ")";
   doc.fillColor(metaColor).fontSize(8).font("Helvetica").text(termLine, 110, 64, { width: pageWidth - 74 });
 
+  if (school.address) {
+    doc.fillColor(metaColor).fontSize(7.5).font("Helvetica").text(school.address, 110, 77, { width: pageWidth - 74 });
+  }
+
   doc.y = headerHeight + 20;
 
   // ---- Info strip ----
