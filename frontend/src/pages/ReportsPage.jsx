@@ -9,15 +9,21 @@ export default function ReportsPage() {
   const [exams, setExams] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [classes, setClasses] = useState([]);
+
+  // ---- Single learner term report ----
   const [learnerId, setLearnerId] = useState("");
-  const [examId, setExamId] = useState("");
+  const [termKey, setTermKey] = useState(""); // "term::academicYear"
   const [teacherId, setTeacherId] = useState("");
+  const [printSafe, setPrintSafe] = useState(true);
   const [loading, setLoading] = useState(false);
 
-  const [bulkExamId, setBulkExamId] = useState("");
+  // ---- Bulk term report ----
+  const [bulkTermKey, setBulkTermKey] = useState("");
+  const [bulkScope, setBulkScope] = useState("class"); // 'class' | 'grade' | 'school'
   const [bulkGrade, setBulkGrade] = useState("");
   const [bulkStream, setBulkStream] = useState("");
-  const [bulkWholeGrade, setBulkWholeGrade] = useState(false);
+  const [bulkTeacherId, setBulkTeacherId] = useState("");
+  const [bulkPrintSafe, setBulkPrintSafe] = useState(true);
   const [bulkLoading, setBulkLoading] = useState(false);
 
   const [sigTeacherId, setSigTeacherId] = useState("");
@@ -35,22 +41,34 @@ export default function ReportsPage() {
     loadTeachers();
   }, []);
 
-  // Real streams that exist for the currently selected grade, derived from
-  // Manage Classes — not a hardcoded guess like "A, B, C, D", since schools
-  // often name streams anything (e.g. "J", house names, etc).
+  // Every distinct Term + Academic Year combination that actually has exams
+  // recorded, newest first — this drives both the single and bulk Term
+  // dropdowns instead of picking one exam at a time.
+  const termYearOptions = Object.values(
+    exams.reduce((acc, e) => {
+      const key = `${e.term}::${e.academic_year}`;
+      if (!acc[key]) acc[key] = { key, term: e.term, academicYear: e.academic_year };
+      return acc;
+    }, {})
+  ).sort((a, b) => b.academicYear.localeCompare(a.academicYear) || String(b.term).localeCompare(String(a.term)));
+
+  // Real streams that exist for the currently selected bulk grade, derived
+  // from Manage Classes — not a hardcoded guess, since schools name streams
+  // anything (letters, house names, etc).
   const streamsForBulkGrade = classes
     .filter(c => c.grade === bulkGrade)
     .map(c => c.stream)
     .filter((s, i, arr) => s && arr.indexOf(s) === i);
 
   const handleDownload = async () => {
-    if (!learnerId || !examId) {
-      toast.error("Please select a learner and an exam");
+    if (!learnerId || !termKey) {
+      toast.error("Please select a learner and a term");
       return;
     }
+    const [term, academicYear] = termKey.split("::");
     setLoading(true);
     try {
-      const res = await reportsAPI.download(learnerId, examId, teacherId || undefined);
+      const res = await reportsAPI.downloadTerm(learnerId, term, academicYear, teacherId || undefined, printSafe);
       const blob = new Blob([res.data], { type: "application/pdf" });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -62,7 +80,7 @@ export default function ReportsPage() {
       window.URL.revokeObjectURL(url);
       toast.success("Report downloaded");
     } catch (err) {
-      toast.error("Failed to generate report");
+      toast.error(err.response?.data?.error || "Failed to generate report");
       console.error(err);
     } finally {
       setLoading(false);
@@ -70,22 +88,31 @@ export default function ReportsPage() {
   };
 
   const handleBulkDownload = async () => {
-    if (!bulkExamId || !bulkGrade) {
-      toast.error("Please select an exam and a grade");
+    if (!bulkTermKey) {
+      toast.error("Please select a term");
       return;
     }
-    if (!bulkWholeGrade && !bulkStream) {
-      toast.error("Please select a stream, or check \"Whole grade (all streams)\"");
+    if (bulkScope !== "school" && !bulkGrade) {
+      toast.error("Please select a grade");
       return;
     }
+    if (bulkScope === "class" && !bulkStream) {
+      toast.error("Please select a stream");
+      return;
+    }
+    const [term, academicYear] = bulkTermKey.split("::");
+    const grade = bulkScope === "school" ? undefined : bulkGrade;
+    const stream = bulkScope === "class" ? bulkStream : undefined;
+
     setBulkLoading(true);
     try {
-      const res = await reportsAPI.downloadBulk(bulkExamId, bulkGrade, bulkWholeGrade ? undefined : bulkStream);
+      const res = await reportsAPI.downloadTermBulk(term, academicYear, grade, stream, bulkTeacherId || undefined, bulkPrintSafe);
       const blob = new Blob([res.data], { type: "application/pdf" });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Report_Cards_${bulkGrade.replace(/\s+/g, "")}${bulkWholeGrade ? "_All" : "_" + bulkStream}.pdf`;
+      const scopeLabel = bulkScope === "school" ? "WholeSchool" : bulkScope === "grade" ? `${grade}_All` : `${grade}_${stream}`;
+      a.download = `Report_Cards_${scopeLabel.replace(/\s+/g, "")}_Term${term}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -144,6 +171,9 @@ export default function ReportsPage() {
     cursor: "pointer",
     fontWeight: 600,
   };
+  const checkLabelStyle = { display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#cbd5e1", marginBottom: "14px" };
+  const scopeRowStyle = { display: "flex", gap: "16px", marginBottom: "14px", flexWrap: "wrap" };
+  const scopeOptionStyle = { display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: "#cbd5e1" };
 
   return (
     <div style={{ padding: "24px", maxWidth: "600px" }}>
@@ -160,7 +190,7 @@ export default function ReportsPage() {
           <option value="">Select teacher</option>
           {teachers.map(t => (
             <option key={t.id} value={t.id}>
-              {t.first_name} {t.last_name} ({t.role}) {t.signature_data ? "? has signature" : ""}
+              {t.first_name} {t.last_name} ({t.role}) {t.signature_data ? "\u2713 has signature" : ""}
             </option>
           ))}
         </select>
@@ -178,46 +208,56 @@ export default function ReportsPage() {
       </div>
 
       <div style={boxStyle}>
-        <h2 style={{ fontSize: "16px", fontWeight: 600, marginBottom: "14px", color: "#e2e8f0" }}>
+        <h2 style={{ fontSize: "16px", fontWeight: 600, marginBottom: "4px", color: "#e2e8f0" }}>
           Bulk Download Report Cards
         </h2>
         <p style={{ fontSize: "12.5px", color: "#94a3b8", marginBottom: "14px" }}>
-          Downloads one merged PDF with every learner's report card, one page each &mdash;
-          ready to print for a whole class in one go.
+          One merged PDF, one page per learner &mdash; Opener, Mid-Term and End-Term scores
+          side by side. Pick the widest scope you need: a single class, a whole grade, or
+          (for admins) the whole school in one download.
         </p>
 
-        <label style={labelStyle}>Exam</label>
-        <select value={bulkExamId} onChange={e => setBulkExamId(e.target.value)} style={selectStyle}>
-          <option value="">Select exam</option>
-          {exams.map(e => (
-            <option key={e.id} value={e.id}>
-              {e.name} - Term {e.term} ({e.academic_year})
-            </option>
+        <label style={labelStyle}>Term</label>
+        <select value={bulkTermKey} onChange={e => setBulkTermKey(e.target.value)} style={selectStyle}>
+          <option value="">Select term</option>
+          {termYearOptions.map(t => (
+            <option key={t.key} value={t.key}>Term {t.term} &middot; {t.academicYear}</option>
           ))}
         </select>
 
-        <label style={labelStyle}>Grade</label>
-        <select value={bulkGrade} onChange={e => setBulkGrade(e.target.value)} style={selectStyle}>
-          <option value="">Select grade</option>
-          {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
-        </select>
+        <label style={labelStyle}>Scope</label>
+        <div style={scopeRowStyle}>
+          <label style={scopeOptionStyle}>
+            <input type="radio" name="bulkScope" checked={bulkScope === "class"} onChange={() => setBulkScope("class")} />
+            One class
+          </label>
+          <label style={scopeOptionStyle}>
+            <input type="radio" name="bulkScope" checked={bulkScope === "grade"} onChange={() => setBulkScope("grade")} />
+            Whole grade
+          </label>
+          <label style={scopeOptionStyle}>
+            <input type="radio" name="bulkScope" checked={bulkScope === "school"} onChange={() => setBulkScope("school")} />
+            Whole school (admin only)
+          </label>
+        </div>
 
-        <label style={{ ...labelStyle, display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
-          <input
-            type="checkbox"
-            checked={bulkWholeGrade}
-            onChange={e => setBulkWholeGrade(e.target.checked)}
-          />
-          Whole grade (all streams) &mdash; admin only
-        </label>
+        {bulkScope !== "school" && (
+          <>
+            <label style={labelStyle}>Grade</label>
+            <select value={bulkGrade} onChange={e => { setBulkGrade(e.target.value); setBulkStream(""); }} style={selectStyle}>
+              <option value="">Select grade</option>
+              {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </>
+        )}
 
-        {!bulkWholeGrade && (
+        {bulkScope === "class" && (
           <>
             <label style={labelStyle}>Stream</label>
             {bulkGrade && streamsForBulkGrade.length === 0 ? (
               <p style={{ fontSize: "12.5px", color: "#f87171", marginBottom: "14px" }}>
-                No classes found for {bulkGrade} in Manage Classes yet — add one there first,
-                or check "Whole grade" if you're an admin and just want everyone in this grade.
+                No classes found for {bulkGrade} in Manage Classes yet &mdash; add one there first,
+                or choose "Whole grade" instead.
               </p>
             ) : (
               <select value={bulkStream} onChange={e => setBulkStream(e.target.value)} style={selectStyle} disabled={!bulkGrade}>
@@ -227,6 +267,19 @@ export default function ReportsPage() {
             )}
           </>
         )}
+
+        <label style={labelStyle}>Sign as Head Teacher (optional, defaults to the school's Head Teacher)</label>
+        <select value={bulkTeacherId} onChange={e => setBulkTeacherId(e.target.value)} style={selectStyle}>
+          <option value="">Default (Head Teacher)</option>
+          {teachers.map(t => (
+            <option key={t.id} value={t.id}>{t.first_name} {t.last_name} ({t.role})</option>
+          ))}
+        </select>
+
+        <label style={checkLabelStyle}>
+          <input type="checkbox" checked={bulkPrintSafe} onChange={e => setBulkPrintSafe(e.target.checked)} />
+          Black &amp; white print-friendly (clear header background, no color reliance)
+        </label>
 
         <button onClick={handleBulkDownload} disabled={bulkLoading} style={buttonStyle}>
           {bulkLoading ? "Generating..." : "Download Report Cards"}
@@ -247,17 +300,15 @@ export default function ReportsPage() {
           ))}
         </select>
 
-        <label style={labelStyle}>Exam</label>
-        <select value={examId} onChange={e => setExamId(e.target.value)} style={selectStyle}>
-          <option value="">Select exam</option>
-          {exams.map(e => (
-            <option key={e.id} value={e.id}>
-              {e.name} - Term {e.term} ({e.academic_year})
-            </option>
+        <label style={labelStyle}>Term</label>
+        <select value={termKey} onChange={e => setTermKey(e.target.value)} style={selectStyle}>
+          <option value="">Select term</option>
+          {termYearOptions.map(t => (
+            <option key={t.key} value={t.key}>Term {t.term} &middot; {t.academicYear}</option>
           ))}
         </select>
 
-        <label style={labelStyle}>Sign as (optional, defaults to Head Teacher)</label>
+        <label style={labelStyle}>Sign as Head Teacher (optional, defaults to the school's Head Teacher)</label>
         <select value={teacherId} onChange={e => setTeacherId(e.target.value)} style={selectStyle}>
           <option value="">Default (Head Teacher)</option>
           {teachers.map(t => (
@@ -266,6 +317,11 @@ export default function ReportsPage() {
             </option>
           ))}
         </select>
+
+        <label style={checkLabelStyle}>
+          <input type="checkbox" checked={printSafe} onChange={e => setPrintSafe(e.target.checked)} />
+          Black &amp; white print-friendly (clear header background, no color reliance)
+        </label>
 
         <button onClick={handleDownload} disabled={loading} style={buttonStyle}>
           {loading ? "Generating..." : "Download Report"}
