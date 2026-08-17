@@ -190,7 +190,7 @@ export default function ReportsPage() {
           <option value="">Select teacher</option>
           {teachers.map(t => (
             <option key={t.id} value={t.id}>
-              {t.first_name} {t.last_name} ({t.role}) {t.signature_data ? "\u2713 has signature" : ""}
+              {t.first_name} {t.last_name} ({t.role}) {t.has_signature ? "\u2713 has signature \u2014 uploading a new image replaces it" : ""}
             </option>
           ))}
         </select>
