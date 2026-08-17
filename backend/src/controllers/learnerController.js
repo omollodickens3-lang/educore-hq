@@ -39,7 +39,7 @@ async function createLearner(req, res) {
     const { rows } = await query(`
       INSERT INTO learners (id, school_id, admission_no, first_name, last_name, date_of_birth, gender, grade, stream, section, parent_name, parent_phone, parent_email, notes)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
-      [uuid(), schoolId, admissionNo || `2025/${Date.now().toString().slice(-4)}`, firstName, lastName, dateOfBirth || null, gender || null, grade, stream || 'A', section, parentName || null, parentPhone || null, parentEmail || null, notes || null]
+      [uuid(), schoolId, admissionNo || `2025/${Date.now().toString().slice(-4)}`, firstName, lastName, dateOfBirth || null, gender || null, grade, stream || null, section, parentName || null, parentPhone || null, parentEmail || null, notes || null]
     );
     res.status(201).json({ message: 'Learner created', learner: rows[0] });
   } catch (err) {
@@ -54,7 +54,7 @@ async function updateLearner(req, res) {
     const { rows } = await query(`
       UPDATE learners SET first_name=$1, last_name=$2, date_of_birth=$3, gender=$4, grade=$5, stream=$6, status=$7, parent_name=$8, parent_phone=$9, parent_email=$10, notes=$11, updated_at=NOW()
       WHERE id=$12 AND school_id=$13 RETURNING *`,
-      [firstName, lastName, dateOfBirth||null, gender||null, grade, stream||'A', status||'active', parentName||null, parentPhone||null, parentEmail||null, notes||null, req.params.id, req.user.school_id]
+      [firstName, lastName, dateOfBirth||null, gender||null, grade, stream||null, status||'active', parentName||null, parentPhone||null, parentEmail||null, notes||null, req.params.id, req.user.school_id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Learner not found' });
     res.json({ message: 'Learner updated', learner: rows[0] });
@@ -147,7 +147,7 @@ async function bulkCreateLearners(req, res) {
           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
           [uuid(), schoolId, admissionNo,
             firstName, lastName, r.dateOfBirth || null, r.gender || null, grade,
-            r.stream || 'A', section, r.parentName || null, r.parentPhone || null,
+            r.stream || null, section, r.parentName || null, r.parentPhone || null,
             r.parentEmail || null, r.notes || null]
         );
         created.push(inserted[0]);
