@@ -104,6 +104,9 @@ const reports = require("../controllers/reportController");
 
 router.post("/teachers/:id/signature", authenticate, upload.single("signature"), teachers.uploadSignature);
 router.post("/schools/stamp", authenticate, upload.single("stamp"), schools.uploadStamp);
+router.post("/schools/logo", authenticate, upload.single("logo"), schools.uploadLogo);
+router.get("/schools/profile", authenticate, schools.getSchoolProfile);
+router.put("/schools/profile", authenticate, schools.updateSchoolProfile);
 router.get("/reports/learner/:learnerId/:examId", authenticate, reports.generateLearnerReport);
 router.get("/reports/bulk/:examId", authenticate, requireBroadsheetAccess, reports.generateBulkReport);
 router.get("/reports/term/:learnerId", authenticate, reports.generateTermReport);
