@@ -251,6 +251,46 @@ async function getPlatformAnalytics(req, res) {
   res.json({ schools: [] });
 }
 
+// ---- School profile (name, address, phone, email + logo/stamp presence) ----
+async function getSchoolProfile(req, res) {
+  try {
+    const schoolId = req.user.school_id;
+    const { rows } = await query(
+      `SELECT name, address, phone, email, county, sub_county,
+              (logo_data IS NOT NULL) AS has_logo,
+              (stamp_data IS NOT NULL) AS has_stamp
+       FROM schools WHERE id = $1`,
+      [schoolId]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'School not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('getSchoolProfile error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch school profile' });
+  }
+}
+
+async function updateSchoolProfile(req, res) {
+  try {
+    const schoolId = req.user.school_id;
+    const { name, address, phone, email } = req.body;
+    const { rows } = await query(
+      `UPDATE schools SET
+         name = COALESCE($1, name),
+         address = $2,
+         phone = $3,
+         email = $4
+       WHERE id = $5
+       RETURNING name, address, phone, email`,
+      [name || null, address || null, phone || null, email || null, schoolId]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'School not found' });
+    res.json({ message: 'School profile updated', school: rows[0] });
+  } catch (err) {
+    console.error('updateSchoolProfile error:', err.message);
+    res.status(500).json({ error: 'Failed to update school profile' });
+  }
+}
 
 async function uploadStamp(req, res) {
   try {
@@ -389,6 +429,8 @@ module.exports = {
   deactivateSchool,  reactivateSchool,
   uploadStamp,
   uploadLogo,
+  getSchoolProfile,
+  updateSchoolProfile,
   getTermDates,
   upsertTermDates,
 };
