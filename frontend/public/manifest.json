@@ -1,0 +1,13 @@
+{
+  "name": "EduCore Exam Analyzer",
+  "short_name": "EduCore",
+  "description": "CBC school management and exam analysis platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F1F4D",
+  "theme_color": "#0F1F4D",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
