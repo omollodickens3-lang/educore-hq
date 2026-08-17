@@ -106,6 +106,8 @@ router.post("/teachers/:id/signature", authenticate, upload.single("signature"),
 router.post("/schools/stamp", authenticate, upload.single("stamp"), schools.uploadStamp);
 router.get("/reports/learner/:learnerId/:examId", authenticate, reports.generateLearnerReport);
 router.get("/reports/bulk/:examId", authenticate, requireBroadsheetAccess, reports.generateBulkReport);
+router.get("/reports/term/:learnerId", authenticate, reports.generateTermReport);
+router.get("/reports/term-bulk", authenticate, requireBroadsheetAccess, reports.generateBulkTermReport);
 
 router.get("/schools/term-dates", authenticate, schools.getTermDates);
 router.post("/schools/term-dates", authenticate, schools.upsertTermDates);
