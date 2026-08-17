@@ -7,6 +7,7 @@ async function getTeachers(req, res) {
     const { rows } = await query(
       `SELECT t.id, t.user_id, t.first_name, t.last_name, t.tsc_number, t.phone, t.email,
               t.gender, t.qualification, t.role, t.status, t.created_at,
+              (t.signature_data IS NOT NULL) AS has_signature,
               u.email AS login_email
        FROM teachers t
        LEFT JOIN users u ON u.id = t.user_id
