@@ -90,6 +90,30 @@ export const reportsAPI = {
     const url = `/reports/bulk/${examId}?${params.toString()}`;
     return api.get(url, { responseType: "blob" });
   },
+  // Term report (new default): Opener/Mid-Term/End-Term columns for one
+  // learner, for a whole term rather than a single exam.
+  downloadTerm: (learnerId, term, academicYear, signedBy, printSafe = true) => {
+    const params = new URLSearchParams();
+    params.set("term", term);
+    params.set("academicYear", academicYear);
+    if (signedBy) params.set("signedBy", signedBy);
+    if (printSafe) params.set("printSafe", "true");
+    const url = `/reports/term/${learnerId}?${params.toString()}`;
+    return api.get(url, { responseType: "blob" });
+  },
+  // Bulk term report: grade+stream = one class, grade only = whole grade,
+  // neither = whole school (admin-tier only, enforced server-side).
+  downloadTermBulk: (term, academicYear, grade, stream, signedBy, printSafe = true) => {
+    const params = new URLSearchParams();
+    params.set("term", term);
+    params.set("academicYear", academicYear);
+    if (grade) params.set("grade", grade);
+    if (stream) params.set("stream", stream);
+    if (signedBy) params.set("signedBy", signedBy);
+    if (printSafe) params.set("printSafe", "true");
+    const url = `/reports/term-bulk?${params.toString()}`;
+    return api.get(url, { responseType: "blob" });
+  },
 };
 
 attendanceAPI.getAttendance = (params) => api.get("/attendance", { params });
