@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { parentAPI } from '../utils/api';
+import { parentAPI, schoolsAPI } from '../utils/api';
 
 const styles = {
   page: { minHeight: '100vh', background: '#0a1628', fontFamily: 'system-ui, sans-serif', color: '#e2e8f0' },
@@ -11,20 +11,111 @@ const styles = {
   btn: { width: '100%', padding: '12px', borderRadius: 8, border: 'none', background: '#185fa5', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
 };
 
+function SchoolPicker({ schoolId, schoolName, onSelect }) {
+  const [query, setQuery] = useState(schoolName || '');
+  const [results, setResults] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const debounceRef = useRef(null);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  function handleChange(e) {
+    const value = e.target.value;
+    setQuery(value);
+    onSelect(null, value); // clear selection when typing
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (value.trim().length < 2) {
+      setResults([]);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await schoolsAPI.search(value.trim());
+        setResults(res.data || []);
+        setOpen(true);
+      } catch {
+        setResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+  }
+
+  return (
+    <div ref={wrapRef} style={{ position: 'relative' }}>
+      <input
+        style={{ ...styles.input, marginBottom: 4 }}
+        value={query}
+        onChange={handleChange}
+        onFocus={() => results.length > 0 && setOpen(true)}
+        placeholder="Start typing your child's school name..."
+        autoComplete="off"
+      />
+      {schoolId && (
+        <div style={{ fontSize: 12, color: '#4ade80', marginBottom: 10 }}>&#10003; School selected</div>
+      )}
+      {!schoolId && (
+        <div style={{ fontSize: 11, color: '#6b8cba', marginBottom: 10 }}>
+          {searching ? 'Searching...' : 'Select your school from the list before continuing'}
+        </div>
+      )}
+      {open && results.length > 0 && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
+          background: '#0e1e33', border: '0.5px solid #2d4a6d', borderRadius: 8,
+          marginTop: -8, maxHeight: 200, overflowY: 'auto',
+        }}>
+          {results.map(s => (
+            <div
+              key={s.id}
+              onClick={() => { onSelect(s.id, s.name); setQuery(s.name); setOpen(false); }}
+              style={{ padding: '10px 12px', fontSize: 14, color: '#e2e8f0', cursor: 'pointer', borderBottom: '0.5px solid #1e3a5f' }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#132339'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
+              {s.name}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ParentRegisterPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     admissionNo: '', lastName: '', fullName: '', email: '', password: '', confirmPassword: '',
   });
+  const [schoolId, setSchoolId] = useState(null);
+  const [schoolName, setSchoolName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState('');
 
   const handleChange = (field) => (e) => setForm(prev => ({ ...prev, [field]: e.target.value }));
 
+  function handleSchoolSelect(id, name) {
+    setSchoolId(id);
+    setSchoolName(name);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setErr('');
 
+    if (!schoolId) {
+      setErr("Please select your child's school from the search results.");
+      return;
+    }
     if (!form.admissionNo || !form.lastName || !form.fullName || !form.email || !form.password) {
       setErr('Please fill in all fields.');
       return;
@@ -41,6 +132,7 @@ export default function ParentRegisterPage() {
     setSubmitting(true);
     try {
       await parentAPI.register({
+        schoolId,
         admissionNo: form.admissionNo,
         lastName: form.lastName,
         fullName: form.fullName,
@@ -65,6 +157,9 @@ export default function ParentRegisterPage() {
         </div>
 
         <form onSubmit={handleSubmit} style={styles.card}>
+          <label style={styles.label}>Child's school</label>
+          <SchoolPicker schoolId={schoolId} schoolName={schoolName} onSelect={handleSchoolSelect} />
+
           <label style={styles.label}>Learner's admission number</label>
           <input style={styles.input} value={form.admissionNo} onChange={handleChange('admissionNo')} placeholder="e.g. 2025/004" />
 
