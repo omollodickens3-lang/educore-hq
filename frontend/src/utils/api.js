@@ -162,6 +162,7 @@ schoolsAPI.uploadLogo = (file) => {
 
 schoolsAPI.getProfile = () => api.get('/schools/profile');
 schoolsAPI.updateProfile = (data) => api.put('/schools/profile', data);
+schoolsAPI.search = (q) => api.get('/schools/search', { params: { q } });
 
 export const superAdminAPI = {
   listSchools: () => api.get('/super-admin/schools'),
