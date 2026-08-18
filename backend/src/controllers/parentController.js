@@ -65,17 +65,17 @@ async function getMyChild(req, res) {
 
 async function registerParent(req, res) {
   try {
-    const { admissionNo, lastName, fullName, email, password } = req.body;
-    if (!admissionNo || !lastName || !fullName || !email || !password) {
-      return res.status(400).json({ error: 'All fields are required' });
+    const { admissionNo, lastName, fullName, email, password, schoolId } = req.body;
+    if (!admissionNo || !lastName || !fullName || !email || !password || !schoolId) {
+      return res.status(400).json({ error: 'All fields, including selecting your child\'s school, are required' });
     }
 
     const learnerRes = await query(
-      'SELECT id, school_id, parent_user_id, last_name FROM learners WHERE admission_no = $1',
-      [admissionNo.trim()]
+      'SELECT id, school_id, parent_user_id, last_name FROM learners WHERE admission_no = $1 AND school_id = $2',
+      [admissionNo.trim(), schoolId]
     );
     if (!learnerRes.rows.length) {
-      return res.status(404).json({ error: "No learner found with that admission number. Check with the school if you're unsure." });
+      return res.status(404).json({ error: "No learner found with that admission number at the selected school. Check with the school if you're unsure." });
     }
     const learner = learnerRes.rows[0];
 
