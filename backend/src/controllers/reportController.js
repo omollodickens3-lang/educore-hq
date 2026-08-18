@@ -1,6 +1,7 @@
 const PDFDocument = require("pdfkit");
 const { query } = require("../config/db");
 const { cbcGrade } = require("../utils/examUtils");
+const { ROLE_LABELS } = require("../middleware/auth");
 
 // CBC grading bands: Primary (PP1-Grade 6) uses 4 levels, Junior Secondary (Grade 7-9) uses 8 levels
 function getGradingKey(gradeLabel) {
@@ -367,6 +368,7 @@ async function getTeacherById(schoolId, teacherId) {
 // "Subject Teacher" / "Deputy Head" / "Class Teacher" for display.
 function formatRole(role) {
   if (!role) return "Teacher";
+  if (ROLE_LABELS[role]) return ROLE_LABELS[role];
   return role
     .split("_")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
