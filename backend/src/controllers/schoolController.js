@@ -42,6 +42,26 @@ async function checkSubdomain(req, res) {
   } catch (err) { res.status(500).json({ error: 'Failed' }); }
 }
 
+// Public, name-only search used by the parent self-registration form so a
+// parent can pick their child's actual school before we look up the
+// admission number — admission numbers are only unique WITHIN a school,
+// not across the whole platform, so without this a lookup could match the
+// wrong school's learner entirely. Returns id + name only, nothing sensitive.
+async function searchSchools(req, res) {
+  try {
+    const q = (req.query.q || '').trim();
+    if (q.length < 2) return res.json([]);
+    const { rows } = await query(
+      `SELECT id, name FROM schools WHERE name ILIKE $1 ORDER BY name ASC LIMIT 10`,
+      [`%${q}%`]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('searchSchools error:', err.message);
+    res.status(500).json({ error: 'Failed to search schools' });
+  }
+}
+
 async function listRegistrations(req, res) {
   try {
     const { rows } = await query(`SELECT * FROM school_registrations WHERE status='pending' ORDER BY created_at DESC`);
@@ -420,6 +440,7 @@ async function upsertTermDates(req, res) {
 module.exports = {
   registerSchool,
   checkSubdomain,
+  searchSchools,
   listRegistrations,
   approveRegistration,
   rejectRegistration,
