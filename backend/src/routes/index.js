@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticate, authorize, requireSuperAdmin, requireExamSubjectAccess, requireClassTeacherAccess, requireLearnerTeacherAccess, requireStreamAccess, requireBroadsheetAccess } = require('../middleware/auth');
+const { authenticate, authorize, requireSuperAdmin, requireExamSubjectAccess, requireClassTeacherAccess, requireLearnerTeacherAccess, requireStreamAccess, requireBroadsheetAccess, ADMIN_TIER_ROLES } = require('../middleware/auth');
 const auth = require('../controllers/authController');
 const learners = require('../controllers/learnerController');
 const exams = require('../controllers/examController');
@@ -24,9 +24,9 @@ router.post('/auth/change-password', authenticate, auth.changePassword);
 
 router.get('/classes', authenticate, classes.getClasses);
 router.get('/classes/mine', authenticate, classes.getMyClass);
-router.post('/classes', authenticate, classes.createClass);
-router.put('/classes/:id', authenticate, classes.updateClass);
-router.delete('/classes/:id', authenticate, classes.deleteClass);
+router.post('/classes', authenticate, authorize(...ADMIN_TIER_ROLES), classes.createClass);
+router.put('/classes/:id', authenticate, authorize(...ADMIN_TIER_ROLES), classes.updateClass);
+router.delete('/classes/:id', authenticate, authorize(...ADMIN_TIER_ROLES), classes.deleteClass);
 
 router.get('/learners', authenticate, learners.getLearners);
 router.get('/learners/stats', authenticate, learners.getStats);
@@ -34,24 +34,24 @@ router.get('/learners/class-list', authenticate, classList.getClassList);
 router.get('/learners/class-list/csv', authenticate, classList.exportClassListCSV);
 router.get('/learners/class-list/pdf', authenticate, classList.exportClassListPDF);
 router.get('/learners/:id', authenticate, learners.getLearnerById);
-router.post('/learners', authenticate, learners.createLearner);
-router.put('/learners/:id', authenticate, learners.updateLearner);
-router.delete('/learners/:id', authenticate, learners.deleteLearner);
+router.post('/learners', authenticate, authorize(...ADMIN_TIER_ROLES, 'class_teacher'), learners.createLearner);
+router.put('/learners/:id', authenticate, authorize(...ADMIN_TIER_ROLES, 'class_teacher'), learners.updateLearner);
+router.delete('/learners/:id', authenticate, authorize(...ADMIN_TIER_ROLES, 'class_teacher'), learners.deleteLearner);
 router.get('/learners/:id/progress', authenticate, learners.getLearnerProgress);
-router.put('/learners/:id/strands', authenticate, learners.updateStrands);
-router.post('/learners/bulk', authenticate, learners.bulkCreateLearners);
+router.put('/learners/:id/strands', authenticate, authorize(...ADMIN_TIER_ROLES, 'class_teacher', 'subject_teacher'), learners.updateStrands);
+router.post('/learners/bulk', authenticate, authorize(...ADMIN_TIER_ROLES, 'class_teacher'), learners.bulkCreateLearners);
 
 router.get('/teachers', authenticate, teachers.getTeachers);
 router.get('/teachers/:id', authenticate, teachers.getTeacherById);
-router.post('/teachers', authenticate, teachers.createTeacher);
-router.put('/teachers/:id', authenticate, teachers.updateTeacher);
-router.delete('/teachers/:id', authenticate, teachers.deleteTeacher);
-router.post('/teachers/:id/subjects', authenticate, teachers.assignSubjects);
-router.delete('/teachers/subjects/:subjectId', authenticate, teachers.removeSubject);
+router.post('/teachers', authenticate, authorize(...ADMIN_TIER_ROLES), teachers.createTeacher);
+router.put('/teachers/:id', authenticate, authorize(...ADMIN_TIER_ROLES), teachers.updateTeacher);
+router.delete('/teachers/:id', authenticate, authorize(...ADMIN_TIER_ROLES), teachers.deleteTeacher);
+router.post('/teachers/:id/subjects', authenticate, authorize(...ADMIN_TIER_ROLES), teachers.assignSubjects);
+router.delete('/teachers/subjects/:subjectId', authenticate, authorize(...ADMIN_TIER_ROLES), teachers.removeSubject);
 
 router.get('/exams', authenticate, exams.getExams);
-router.post('/exams', authenticate, exams.createExam);
-router.put('/exams/:examId', authenticate, exams.updateExam);
+router.post('/exams', authenticate, authorize(...ADMIN_TIER_ROLES), exams.createExam);
+router.put('/exams/:examId', authenticate, authorize(...ADMIN_TIER_ROLES), exams.updateExam);
 router.get('/exams/analysis', authenticate, exams.getAnalysis);
 router.get('/exams/trends', authenticate, exams.getTrends);
 router.get('/exams/school-overview', authenticate, exams.getSchoolOverview);
@@ -63,7 +63,7 @@ router.get('/exams/subject-ranking-by-stream', authenticate, requireStreamAccess
 router.get('/exams/broadsheet', authenticate, requireBroadsheetAccess, exams.getBroadsheet);
 router.get('/exams/:examId/scores', authenticate, exams.getScores);
 router.post('/exams/:examId/scores', authenticate, requireExamSubjectAccess, exams.upsertScores);
-router.delete('/exams/:examId', authenticate, exams.deleteExam);
+router.delete('/exams/:examId', authenticate, authorize(...ADMIN_TIER_ROLES), exams.deleteExam);
 
 router.get('/attendance', authenticate, attendance.getAttendance);
 router.post('/attendance/bulk', authenticate, requireClassTeacherAccess, attendance.markBulk);
@@ -85,6 +85,7 @@ router.get('/notifications/stats', authenticate, notifications.getNotificationSt
 
 router.post('/schools/register', schools.registerSchool);
 router.get('/schools/check-subdomain', schools.checkSubdomain);
+router.get('/schools/search', schools.searchSchools);
 router.get('/schools/registrations', authenticate, requireSuperAdmin, schools.listRegistrations);
 router.post('/schools/registrations/:id/approve', authenticate, requireSuperAdmin, schools.approveRegistration);
 router.post('/schools/registrations/:id/reject', authenticate, requireSuperAdmin, schools.rejectRegistration);
@@ -103,14 +104,14 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 *
 const reports = require("../controllers/reportController");
 
 router.post("/teachers/:id/signature", authenticate, upload.single("signature"), teachers.uploadSignature);
-router.post("/schools/stamp", authenticate, upload.single("stamp"), schools.uploadStamp);
-router.post("/schools/logo", authenticate, upload.single("logo"), schools.uploadLogo);
+router.post("/schools/stamp", authenticate, authorize(...ADMIN_TIER_ROLES), upload.single("stamp"), schools.uploadStamp);
+router.post("/schools/logo", authenticate, authorize(...ADMIN_TIER_ROLES), upload.single("logo"), schools.uploadLogo);
 router.get("/schools/profile", authenticate, schools.getSchoolProfile);
-router.put("/schools/profile", authenticate, schools.updateSchoolProfile);
+router.put("/schools/profile", authenticate, authorize(...ADMIN_TIER_ROLES), schools.updateSchoolProfile);
 router.get("/reports/learner/:learnerId/:examId", authenticate, reports.generateLearnerReport);
 router.get("/reports/bulk/:examId", authenticate, requireBroadsheetAccess, reports.generateBulkReport);
 router.get("/reports/term/:learnerId", authenticate, reports.generateTermReport);
 router.get("/reports/term-bulk", authenticate, requireBroadsheetAccess, reports.generateBulkTermReport);
 
 router.get("/schools/term-dates", authenticate, schools.getTermDates);
-router.post("/schools/term-dates", authenticate, schools.upsertTermDates);
+router.post("/schools/term-dates", authenticate, authorize(...ADMIN_TIER_ROLES), schools.upsertTermDates);
