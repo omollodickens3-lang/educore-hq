@@ -134,6 +134,14 @@ export const parentAPI = {};
 parentAPI.getMyChild = () => api.get('/parent/my-child');
 parentAPI.register = (data) => api.post('/parent/register', data);
 
+export const feesAPI = {};
+feesAPI.getBalance = (learnerId, term, academicYear) =>
+  api.get(`/fees/balance/${learnerId}`, { params: { term, academicYear } });
+feesAPI.pay = (learnerId, data) => api.post(`/fees/pay/${learnerId}`, data);
+feesAPI.getHistory = (learnerId) => api.get(`/fees/history/${learnerId}`);
+feesAPI.getStructures = (params) => api.get('/fees/structures', { params });
+feesAPI.setStructure = (data) => api.post('/fees/structures', data);
+
 
 export const classesAPI = {};
 classesAPI.getAll = () => api.get('/classes');

@@ -28,6 +28,7 @@ import ReportsPage from './pages/ReportsPage';
 import HelpPage from './pages/HelpPage';
 import RubricsPage from './pages/RubricsPage';
 import SchoolProfilePage from './pages/SchoolProfilePage';
+import FeeStructuresPage from './pages/FeeStructuresPage';
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }) {
@@ -85,6 +86,7 @@ function AppRoutes() {
         <Route path="help" element={<HelpPage />} />
         <Route path="rubrics" element={<RubricsPage />} />
         <Route path="school-profile" element={<SchoolProfilePage />} />
+        <Route path="fees" element={<FeeStructuresPage />} />
         <Route path="content"      element={<ComingSoon title="✏️ Content Generation" />} />
         <Route path="super-admin"  element={<SuperAdminPage />} />
         <Route path="pending-registrations" element={<PendingRegistrationsPage />} />

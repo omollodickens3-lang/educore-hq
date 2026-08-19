@@ -28,6 +28,7 @@ const NAV_ITEMS = [
   { to: '/analytics',    icon: '📊', label: 'Analytics',         visible: (a) => a.isAdminTier },
   { to: '/classes',      icon: '🏫', label: 'Manage Classes',    visible: (a) => a.isAdminTier },
   { to: '/school-profile', icon: '🏷️', label: 'School Profile',  visible: (a) => a.isAdminTier },
+  { to: '/fees',           icon: '💰', label: 'Fees',              visible: (a) => a.isAdminTier },
 { section: 'Support' },
 { to: '/help',         icon: '💬', label: 'Help & Support', visible: () => true },
   { section: 'Platform' },
