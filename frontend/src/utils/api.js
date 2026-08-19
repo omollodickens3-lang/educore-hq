@@ -22,6 +22,10 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (email, password) => api.post('/auth/login', { email, password }),
   me: () => api.get('/auth/me'),
+  changePassword: (currentPassword, newPassword) => api.post('/auth/change-password', { currentPassword, newPassword }),
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (token, newPassword) => api.post('/auth/reset-password', { token, newPassword }),
+  deleteAccount: (password) => api.delete('/auth/me', { data: { password } }),
 };
 export const learnersAPI = {
   getAll: (params) => api.get('/learners', { params }),
