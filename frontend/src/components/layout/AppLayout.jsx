@@ -154,6 +154,88 @@ function ChangePasswordModal({ onClose }) {
   );
 }
 
+function DeleteAccountModal({ onClose }) {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const [password, setPassword] = useState('');
+  const [confirmText, setConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [err, setErr] = useState('');
+
+  async function handleDelete(e) {
+    e.preventDefault();
+    setErr('');
+    if (!password) {
+      setErr('Please enter your password to confirm.');
+      return;
+    }
+    if (confirmText !== 'DELETE') {
+      setErr('Please type DELETE exactly to confirm.');
+      return;
+    }
+    setDeleting(true);
+    try {
+      await authAPI.deleteAccount(password);
+      toast.success('Your account has been deleted');
+      logout();
+      navigate('/login');
+    } catch (e) {
+      setErr(e.response?.data?.error || 'Failed to delete account');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const inputStyle = {
+    width: '100%', padding: '10px 12px', borderRadius: '8px',
+    border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0',
+    fontSize: '14px', marginTop: '4px', boxSizing: 'border-box',
+  };
+  const labelStyle = { fontSize: '13px', color: '#94a3b8', fontWeight: 500 };
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
+    }} onClick={onClose}>
+      <div style={{
+        background: '#1e293b', borderRadius: '14px', padding: '28px',
+        width: '380px', maxWidth: '92vw', border: '1px solid #7f1d1d',
+      }} onClick={(e) => e.stopPropagation()}>
+        <h2 style={{ color: '#fca5a5', fontSize: '18px', marginBottom: '10px' }}>Delete Account</h2>
+        <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '18px', lineHeight: 1.5 }}>
+          This permanently removes your login access to EduCore. This cannot be undone.
+        </p>
+        <form onSubmit={handleDelete}>
+          <label style={labelStyle}>Confirm your password
+            <input style={inputStyle} type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          </label>
+          <div style={{ height: '12px' }} />
+          <label style={labelStyle}>Type <strong style={{ color: '#fca5a5' }}>DELETE</strong> to confirm
+            <input style={inputStyle} type="text" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} placeholder="DELETE" />
+          </label>
+
+          {err && (
+            <p style={{ color: '#f87171', fontSize: '13px', marginTop: '14px', marginBottom: 0 }}>{err}</p>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+            <button type="button" onClick={onClose} style={{
+              padding: '9px 16px', borderRadius: '8px', border: '1px solid #334155',
+              background: 'transparent', color: '#94a3b8', cursor: 'pointer', fontSize: '14px',
+            }}>Cancel</button>
+            <button type="submit" disabled={deleting} style={{
+              padding: '9px 16px', borderRadius: '8px', border: 'none',
+              background: '#b91c1c', color: '#fff', cursor: 'pointer', fontSize: '14px',
+              fontWeight: 600, opacity: deleting ? 0.6 : 1,
+            }}>{deleting ? 'Deleting...' : 'Delete My Account'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function AppLayout() {
   const auth = useAuth();
   const { user, logout, schoolName } = auth;
@@ -163,6 +245,7 @@ export default function AppLayout() {
   const isMobile = useIsMobile();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
 
   // Close the drawer automatically whenever the route changes (i.e. after
   // tapping a nav link on mobile), so it doesn't stay open over the new page.
@@ -259,12 +342,21 @@ export default function AppLayout() {
             title="Change password"
             style={{ background:'none', border:'none', color:'#8496C4', cursor:'pointer', fontSize:'16px' }}
           >🔑</button>
+          <button
+            onClick={() => setShowDeleteAccount(true)}
+            title="Delete account"
+            style={{ background:'none', border:'none', color:'#8496C4', cursor:'pointer', fontSize:'16px' }}
+          >🗑️</button>
           <button onClick={handleLogout} style={{ background:'none', border:'none', color:'#8496C4', cursor:'pointer', fontSize:'16px' }}>🚪</button>
         </div>
       </div>
 
       {showChangePassword && (
         <ChangePasswordModal onClose={() => setShowChangePassword(false)} />
+      )}
+
+      {showDeleteAccount && (
+        <DeleteAccountModal onClose={() => setShowDeleteAccount(false)} />
       )}
 
       <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', background:'#F4F5F9', minWidth: 0 }}>
