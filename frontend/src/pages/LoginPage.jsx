@@ -48,7 +48,7 @@ export default function LoginPage() {
               />
             </div>
 
-            <div style={{ marginBottom:'20px' }}>
+            <div style={{ marginBottom:'8px' }}>
               <label style={{ display:'block', color:'#8faad0', fontSize:'11px', fontWeight:'500', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:'5px' }}>Password</label>
               <input
                 type="password"
@@ -57,6 +57,10 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 style={{ width:'100%', padding:'9px 12px', background:'#0a1628', border:'0.5px solid #1e3a5f', borderRadius:'8px', color:'#fff', fontSize:'13px', fontFamily:'inherit', outline:'none', boxSizing:'border-box' }}
               />
+            </div>
+
+            <div style={{ textAlign: 'right', marginBottom: '20px' }}>
+              <a href="/forgot-password" style={{ color: '#6b8cba', fontSize: '12px', textDecoration: 'none' }}>Forgot password?</a>
             </div>
 
             <button type="submit" disabled={loading}
