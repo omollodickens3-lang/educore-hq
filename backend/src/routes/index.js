@@ -22,6 +22,9 @@ router.get('/health', (req, res) => {
 router.post('/auth/login', auth.login);
 router.get('/auth/me', authenticate, auth.me);
 router.post('/auth/change-password', authenticate, auth.changePassword);
+router.post('/auth/forgot-password', auth.forgotPassword);
+router.post('/auth/reset-password', auth.resetPassword);
+router.delete('/auth/me', authenticate, auth.deleteMyAccount);
 
 router.get('/classes', authenticate, classes.getClasses);
 router.get('/classes/mine', authenticate, classes.getMyClass);
