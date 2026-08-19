@@ -55,4 +55,26 @@ async function sendRejectionEmail({ to, schoolName, contactName, reason }) {
   });
 }
 
-module.exports = { sendApprovalEmail, sendRejectionEmail };
+async function sendPasswordResetEmail({ to, resetUrl }) {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #1a1a1a;">
+      <h2 style="color:#185fa5; margin-bottom: 4px;">Reset your EduCore password</h2>
+      <p>We received a request to reset the password for this account. Click below to set a new one:</p>
+      <p style="margin: 24px 0;">
+        <a href="${resetUrl}" style="background:#185fa5;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;">
+          Reset Password
+        </a>
+      </p>
+      <p style="color:#666; font-size:13px;">This link expires in 1 hour. If you didn't request this, you can safely ignore this email — your password won't be changed.</p>
+    </div>
+  `;
+
+  await transporter.sendMail({
+    from: `"EduCore" <${process.env.GMAIL_USER}>`,
+    to,
+    subject: 'Reset your EduCore password',
+    html,
+  });
+}
+
+module.exports = { sendApprovalEmail, sendRejectionEmail, sendPasswordResetEmail };
