@@ -69,4 +69,4 @@ async function notify({ schoolId, learnerId, triggerType, recipientPhone, messag
   }
 }
 
-module.exports = { notify };
+module.exports = { notify, normalizePhone };

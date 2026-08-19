@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticate, authorize, requireSuperAdmin, requireExamSubjectAccess, requireClassTeacherAccess, requireLearnerTeacherAccess, requireStreamAccess, requireBroadsheetAccess, ADMIN_TIER_ROLES } = require('../middleware/auth');
+const { authenticate, authorize, requireSuperAdmin, requireExamSubjectAccess, requireClassTeacherAccess, requireLearnerTeacherAccess, requireStreamAccess, requireBroadsheetAccess, ADMIN_TIER_ROLES, parentChildOnly } = require('../middleware/auth');
 const auth = require('../controllers/authController');
 const learners = require('../controllers/learnerController');
 const exams = require('../controllers/examController');
@@ -13,6 +13,7 @@ const parentPortal = require('../controllers/parentController');
 const classes = require('../controllers/classController');
 const notifications = require('../controllers/notificationController');
 const classList = require('../controllers/classListController');
+const fees = require('../controllers/feeController');
 
 router.get('/health', (req, res) => {
   res.json({ status: 'ok', platform: 'EduCore', version: '1.0.0' });
@@ -110,6 +111,14 @@ router.get("/schools/profile", authenticate, schools.getSchoolProfile);
 router.put("/schools/profile", authenticate, authorize(...ADMIN_TIER_ROLES), schools.updateSchoolProfile);
 router.get("/reports/learner/:learnerId/:examId", authenticate, reports.generateLearnerReport);
 router.get("/reports/bulk/:examId", authenticate, requireBroadsheetAccess, reports.generateBulkReport);
+
+// Fees / M-Pesa payments
+router.get('/fees/structures', authenticate, authorize('admin', 'director_of_studies', 'deputy'), fees.getFeeStructures);
+router.post('/fees/structures', authenticate, authorize('admin', 'director_of_studies', 'deputy'), fees.setFeeStructure);
+router.get('/fees/balance/:learnerId', authenticate, parentChildOnly, fees.getBalance);
+router.post('/fees/pay/:learnerId', authenticate, parentChildOnly, fees.initiatePayment);
+router.get('/fees/history/:learnerId', authenticate, parentChildOnly, fees.getPaymentHistory);
+router.post('/fees/webhook/intasend', fees.intasendWebhook);
 router.get("/reports/term/:learnerId", authenticate, reports.generateTermReport);
 router.get("/reports/term-bulk", authenticate, requireBroadsheetAccess, reports.generateBulkTermReport);
 
