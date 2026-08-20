@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { to: '/reports',      icon: '📄', label: 'Report Forms', visible: (a) => a.isAdminTier || a.user?.role === 'class_teacher' },
   { to: '/rubrics',      icon: '🧩', label: 'Rubrics',      visible: (a) => a.isAdminTier || a.user?.role === 'class_teacher' },
   { to: '/broadsheet',   icon: '📊', label: 'Broadsheet',     visible: (a) => a.isAdminTier || a.user?.role === 'class_teacher' },
+  { to: '/at-risk',      icon: '🚨', label: 'At-Risk Learners', visible: (a) => a.isAdminTier || a.user?.role === 'class_teacher' },
   { to: '/notifications', icon: '🔔', label: 'Notifications',   visible: (a) => a.isAdminTier || a.user?.role === 'class_teacher' },
   { to: '/class-list',   icon: '📋', label: 'Class Lists',      visible: (a) => a.isAdminTier || a.user?.role === 'class_teacher' },
 
