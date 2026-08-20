@@ -23,6 +23,7 @@ const api = {
   getStreamRanking: (p = {}) => apiFetch("/exams/stream-ranking?" + new URLSearchParams(p)),
   getLearnerRanking: (p = {}) => apiFetch("/exams/learner-ranking?" + new URLSearchParams(p)),
   getSubjectRankingByStream: (p = {}) => apiFetch("/exams/subject-ranking-by-stream?" + new URLSearchParams(p)),
+  getTrends: (p = {}) => apiFetch("/exams/trends?" + new URLSearchParams(p)),
 };
 
 const GRADES = ["Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Grade 7","Grade 8","Grade 9","Grade 10","Grade 11","Grade 12"];
@@ -60,11 +61,54 @@ function GradeBadge({ label, count, colorKey }) {
   return <span style={{ ...styles.gradeBadge, background: c.bg, color: c.text }}>{label}: {count}</span>;
 }
 
+function TrendLineChart({ data }) {
+  if (!data.length) return null;
+
+  const width = 720, height = 240, padL = 45, padR = 45, padT = 20, padB = 40;
+  const plotW = width - padL - padR, plotH = height - padT - padB;
+
+  const points = data.map((d, i) => ({
+    x: padL + (data.length === 1 ? plotW / 2 : (i / (data.length - 1)) * plotW),
+    y: padT + plotH - (Number(d.avg_score) / 100) * plotH,
+    label: `T${d.term} ${d.academic_year}`,
+    value: Number(d.avg_score),
+    marked: d.learners_marked,
+  }));
+
+  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+  const gridLines = [0, 25, 50, 75, 100];
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", maxWidth: width, display: "block" }}>
+      {gridLines.map((g) => {
+        const y = padT + plotH - (g / 100) * plotH;
+        return (
+          <g key={g}>
+            <line x1={padL} y1={y} x2={width - padR} y2={y} stroke="#1F2937" strokeWidth="1" />
+            <text x={padL - 8} y={y + 4} fill="#6B7280" fontSize="10" textAnchor="end">{g}%</text>
+          </g>
+        );
+      })}
+      <path d={linePath} fill="none" stroke="#2563EB" strokeWidth="2.5" />
+      {points.map((p, i) => (
+        <g key={i}>
+          <circle cx={p.x} cy={p.y} r="4.5" fill="#0B0F19" stroke="#2563EB" strokeWidth="2.5" />
+          <text x={p.x} y={p.y - 12} fill="#E5E7EB" fontSize="11" fontWeight="700" textAnchor="middle">{p.value}%</text>
+          <text x={p.x} y={height - 12} fill="#9CA3AF" fontSize="10" textAnchor="middle">{p.label}</text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
 export default function AnalyticsPage() {
   const [filters, setFilters] = useState({ grade: "Grade 7", term: "2", academicYear: `${THIS_YEAR}/${THIS_YEAR + 1}`, subject: "", stream: "", examType: "" });
   const [streamRanking, setStreamRanking] = useState([]);
   const [learnerRanking, setLearnerRanking] = useState([]);
   const [subjectRanking, setSubjectRanking] = useState([]);
+  const [trends, setTrends] = useState([]);
+  const [trendsLoading, setTrendsLoading] = useState(false);
+  const [trendsErr, setTrendsErr] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
@@ -100,6 +144,27 @@ export default function AnalyticsPage() {
   }
 
   useEffect(() => { load(); }, [filters.grade, filters.term, filters.academicYear, filters.subject, filters.stream, filters.examType]);
+
+  async function loadTrends() {
+    if (!filters.grade || !filters.subject) {
+      setTrends([]);
+      return;
+    }
+    setTrendsLoading(true);
+    setTrendsErr("");
+    try {
+      const params = { grade: filters.grade, subject: filters.subject };
+      if (filters.stream) params.stream = filters.stream;
+      const res = await api.getTrends(params);
+      setTrends(res.trends || []);
+    } catch (e) {
+      setTrendsErr(e.message || "Failed to load trends");
+    } finally {
+      setTrendsLoading(false);
+    }
+  }
+
+  useEffect(() => { loadTrends(); }, [filters.grade, filters.subject, filters.stream]);
 
   return (
     <div style={styles.page}>
@@ -138,6 +203,25 @@ export default function AnalyticsPage() {
       </div>
 
       {err && <div style={styles.error}>Could not load analytics: {err}</div>}
+
+      <div style={styles.section}>
+        <div style={styles.sectionTitle}>
+          Performance Trends {filters.subject ? `— ${filters.subject}` : ""} {filters.stream ? `(Stream ${filters.stream})` : "(All Streams)"}
+        </div>
+        {!filters.subject ? (
+          <div style={styles.empty}>Select a subject above to see how average scores have moved across terms.</div>
+        ) : trendsErr ? (
+          <div style={styles.error}>Could not load trends: {trendsErr}</div>
+        ) : trendsLoading ? (
+          <div style={styles.empty}>Loading…</div>
+        ) : trends.length === 0 ? (
+          <div style={styles.empty}>No historical data yet for this grade/subject combination.</div>
+        ) : trends.length === 1 ? (
+          <div style={styles.empty}>Only one term of data so far ({trends[0].avg_score}% in Term {trends[0].term}, {trends[0].academic_year}) — trends need at least two terms to show a line.</div>
+        ) : (
+          <TrendLineChart data={trends} />
+        )}
+      </div>
 
       <div style={styles.section}>
         <div style={styles.sectionTitle}>Stream Ranking {filters.subject ? `— ${filters.subject}` : "— All Subjects"}</div>
