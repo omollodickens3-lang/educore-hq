@@ -34,6 +34,7 @@ router.delete('/classes/:id', authenticate, authorize(...ADMIN_TIER_ROLES), clas
 
 router.get('/learners', authenticate, learners.getLearners);
 router.get('/learners/stats', authenticate, requireStaff, learners.getStats);
+router.get('/learners/at-risk', authenticate, requireBroadsheetAccess, learners.getAtRiskLearners);
 router.get('/learners/class-list', authenticate, classList.getClassList);
 router.get('/learners/class-list/csv', authenticate, classList.exportClassListCSV);
 router.get('/learners/class-list/pdf', authenticate, classList.exportClassListPDF);
