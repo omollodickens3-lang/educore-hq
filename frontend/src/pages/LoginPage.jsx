@@ -14,6 +14,11 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const user = await login(form.email, form.password);
+      if (user.role === 'parent') {
+        toast('This login is for school staff. Redirecting you to the Parent Portal...', { icon: '↪️' });
+        navigate('/parent');
+        return;
+      }
       toast.success('Welcome to EduCore!');
       navigate('/');
     } catch (err) {
