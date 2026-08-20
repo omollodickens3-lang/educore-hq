@@ -58,6 +58,18 @@ async function authenticate(req, res, next) {
   }
 }
 
+// Blocks parent accounts from staff-only endpoints (school-wide stats,
+// attendance alerts, exam overviews, etc.). Deliberately a block-list on
+// 'parent' rather than an allow-list of staff roles, so a newly added
+// staff role doesn't accidentally get locked out by omission.
+function requireStaff(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
+  if (req.user.role === 'parent') {
+    return res.status(403).json({ error: 'This data is only available to school staff.' });
+  }
+  next();
+}
+
 function authorize(...roles) {
   return (req, res, next) => {
     if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
@@ -394,7 +406,7 @@ async function requireBroadsheetAccess(req, res, next) {
 }
 
 module.exports = {
-  authenticate, authorize, authorizeLevel,
+  authenticate, authorize, authorizeLevel, requireStaff,
   requirePermission, sameSchool, parentChildOnly,
   requireSuperAdmin,
   requireExamSubjectAccess, requireClassTeacherAccess, requireLearnerTeacherAccess, requireStreamAccess,
