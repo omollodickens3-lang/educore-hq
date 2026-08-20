@@ -41,6 +41,11 @@ function ProtectedRoute({ children }) {
     </div>
   );
   if (!user) return <Navigate to="/login" replace />;
+  // Parent accounts have their own dedicated portal (/parent) with only
+  // their child's data. They must never land in the staff dashboard, which
+  // shows school-wide stats (total learners, school mean, attendance
+  // alerts, etc.) that have no business being visible to a parent.
+  if (user.role === 'parent') return <Navigate to="/parent" replace />;
   return children;
 }
 
