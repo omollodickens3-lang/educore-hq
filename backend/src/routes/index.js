@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticate, authorize, requireSuperAdmin, requireExamSubjectAccess, requireClassTeacherAccess, requireLearnerTeacherAccess, requireStreamAccess, requireBroadsheetAccess, ADMIN_TIER_ROLES, parentChildOnly } = require('../middleware/auth');
+const { authenticate, authorize, requireSuperAdmin, requireExamSubjectAccess, requireClassTeacherAccess, requireLearnerTeacherAccess, requireStreamAccess, requireBroadsheetAccess, ADMIN_TIER_ROLES, parentChildOnly, requireStaff } = require('../middleware/auth');
 const auth = require('../controllers/authController');
 const learners = require('../controllers/learnerController');
 const exams = require('../controllers/examController');
@@ -33,7 +33,7 @@ router.put('/classes/:id', authenticate, authorize(...ADMIN_TIER_ROLES), classes
 router.delete('/classes/:id', authenticate, authorize(...ADMIN_TIER_ROLES), classes.deleteClass);
 
 router.get('/learners', authenticate, learners.getLearners);
-router.get('/learners/stats', authenticate, learners.getStats);
+router.get('/learners/stats', authenticate, requireStaff, learners.getStats);
 router.get('/learners/class-list', authenticate, classList.getClassList);
 router.get('/learners/class-list/csv', authenticate, classList.exportClassListCSV);
 router.get('/learners/class-list/pdf', authenticate, classList.exportClassListPDF);
@@ -58,8 +58,8 @@ router.post('/exams', authenticate, authorize(...ADMIN_TIER_ROLES), exams.create
 router.put('/exams/:examId', authenticate, authorize(...ADMIN_TIER_ROLES), exams.updateExam);
 router.get('/exams/analysis', authenticate, exams.getAnalysis);
 router.get('/exams/trends', authenticate, exams.getTrends);
-router.get('/exams/school-overview', authenticate, exams.getSchoolOverview);
-router.get('/exams/my-active', authenticate, exams.getMyActiveExams);
+router.get('/exams/school-overview', authenticate, requireStaff, exams.getSchoolOverview);
+router.get('/exams/my-active', authenticate, requireStaff, exams.getMyActiveExams);
 router.get('/exams/:examId/my-subjects', authenticate, exams.getMySubjectsForExam);
 router.get('/exams/stream-ranking', authenticate, exams.getStreamRanking); // aggregate-only (avg/counts per stream) — safe for all staff to compare
 router.get('/exams/learner-ranking', authenticate, requireStreamAccess, exams.getLearnerRanking);
@@ -71,7 +71,7 @@ router.delete('/exams/:examId', authenticate, authorize(...ADMIN_TIER_ROLES), ex
 
 router.get('/attendance', authenticate, attendance.getAttendance);
 router.post('/attendance/bulk', authenticate, requireClassTeacherAccess, attendance.markBulk);
-router.get('/attendance/alerts', authenticate, attendance.getAlerts);
+router.get('/attendance/alerts', authenticate, requireStaff, attendance.getAlerts);
 router.get('/attendance/stats/:learnerId', authenticate, attendance.getLearnerStats);
 
 router.post('/assignments', authenticate, assignments.createAssignment);
