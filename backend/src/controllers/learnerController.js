@@ -173,6 +173,133 @@ async function bulkCreateLearners(req, res) {
   res.status(201).json({ message: `${created.length} learner(s) created`, created, failed });
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// EARLY WARNING SYSTEM — cross-references three data sources EduCore
+// already collects separately (attendance, exam scores, conduct logs) to
+// surface learners showing MULTIPLE co-occurring warning signs. A single
+// bad exam or one late mark isn't flagged — this is specifically about
+// catching the learner whose attendance AND grades AND conduct are all
+// slipping in the same window, which is much easier to miss when each
+// signal lives in its own separate page.
+// ═══════════════════════════════════════════════════════════════════════
+async function getAtRiskLearners(req, res) {
+  try {
+    const schoolId = req.user.school_id;
+    const { grade, stream } = req.query;
+
+    let learnerWhere = 'school_id = $1';
+    const learnerParams = [schoolId];
+    if (grade) { learnerParams.push(grade); learnerWhere += ` AND grade = $${learnerParams.length}`; }
+    if (stream) { learnerParams.push(stream); learnerWhere += ` AND stream = $${learnerParams.length}`; }
+
+    const { rows: learners } = await query(
+      `SELECT id, first_name, last_name, admission_no, grade, stream, parent_name, parent_phone
+       FROM learners WHERE ${learnerWhere} AND status = 'active' ORDER BY grade, stream, last_name`,
+      learnerParams
+    );
+    if (!learners.length) return res.json({ atRisk: [] });
+
+    const learnerIds = learners.map((l) => l.id);
+
+    // Signal 1: attendance rate over the last 60 days (AM session), needs
+    // at least 10 marked days to avoid flagging on too little data.
+    const { rows: attendanceRows } = await query(
+      `SELECT learner_id,
+         COUNT(*) FILTER (WHERE status IN ('P','L')) AS present_days,
+         COUNT(*) AS total_days
+       FROM attendance
+       WHERE school_id = $1 AND session = 'AM' AND date >= (CURRENT_DATE - INTERVAL '60 days')
+         AND learner_id = ANY($2::uuid[])
+       GROUP BY learner_id`,
+      [schoolId, learnerIds]
+    );
+    const attendanceByLearner = {};
+    attendanceRows.forEach((r) => {
+      const total = parseInt(r.total_days, 10);
+      if (total < 10) return; // not enough data to judge fairly
+      const rate = (parseInt(r.present_days, 10) / total) * 100;
+      attendanceByLearner[r.learner_id] = { rate: Math.round(rate), totalDays: total };
+    });
+
+    // Signal 2: score decline between a learner's two most recent exams
+    // (each exam's score averaged across all subjects taken).
+    const { rows: examAvgRows } = await query(
+      `WITH learner_exam_avg AS (
+         SELECT s.learner_id, s.exam_id, e.academic_year, e.term, e.created_at,
+                AVG(s.score::float / NULLIF(s.max_score, 0) * 100) AS avg_pct
+         FROM scores s JOIN exams e ON e.id = s.exam_id
+         WHERE s.school_id = $1 AND s.learner_id = ANY($2::uuid[])
+         GROUP BY s.learner_id, s.exam_id, e.academic_year, e.term, e.created_at
+       ),
+       ranked AS (
+         SELECT *, ROW_NUMBER() OVER (
+           PARTITION BY learner_id ORDER BY academic_year DESC, term DESC, created_at DESC
+         ) AS rn
+         FROM learner_exam_avg
+       )
+       SELECT r1.learner_id, r1.avg_pct AS latest_avg, r2.avg_pct AS previous_avg
+       FROM ranked r1 LEFT JOIN ranked r2 ON r2.learner_id = r1.learner_id AND r2.rn = 2
+       WHERE r1.rn = 1`,
+      [schoolId, learnerIds]
+    );
+    const scoreDeclineByLearner = {};
+    const DECLINE_THRESHOLD = 10; // percentage points
+    examAvgRows.forEach((r) => {
+      if (r.previous_avg == null) return; // only one exam on record, no trend yet
+      const drop = Number(r.previous_avg) - Number(r.latest_avg);
+      if (drop >= DECLINE_THRESHOLD) {
+        scoreDeclineByLearner[r.learner_id] = {
+          latestAvg: Math.round(Number(r.latest_avg)),
+          previousAvg: Math.round(Number(r.previous_avg)),
+          drop: Math.round(drop),
+        };
+      }
+    });
+
+    // Signal 3: 2+ "concern" conduct logs in the last 60 days.
+    const { rows: conductRows } = await query(
+      `SELECT learner_id, COUNT(*) AS concern_count
+       FROM conduct_logs
+       WHERE school_id = $1 AND type = 'concern' AND learner_id = ANY($2::uuid[])
+         AND created_at >= (NOW() - INTERVAL '60 days')
+       GROUP BY learner_id`,
+      [schoolId, learnerIds]
+    );
+    const conductByLearner = {};
+    conductRows.forEach((r) => {
+      const count = parseInt(r.concern_count, 10);
+      if (count >= 2) conductByLearner[r.learner_id] = { concernCount: count };
+    });
+
+    // Combine — only surface learners with at least one real flag, sorted
+    // so the most urgent (most co-occurring signals) show up first.
+    const atRisk = learners
+      .map((l) => {
+        const flags = [];
+        const attendance = attendanceByLearner[l.id];
+        if (attendance && attendance.rate < 75) {
+          flags.push({ type: 'attendance', detail: `${attendance.rate}% attendance over the last 60 days` });
+        }
+        const decline = scoreDeclineByLearner[l.id];
+        if (decline) {
+          flags.push({ type: 'scores', detail: `Dropped from ${decline.previousAvg}% to ${decline.latestAvg}% (-${decline.drop} pts) in the most recent exam` });
+        }
+        const conduct = conductByLearner[l.id];
+        if (conduct) {
+          flags.push({ type: 'conduct', detail: `${conduct.concernCount} behavior concerns logged in the last 60 days` });
+        }
+        return { learner: l, flags, riskScore: flags.length };
+      })
+      .filter((r) => r.riskScore > 0)
+      .sort((a, b) => b.riskScore - a.riskScore);
+
+    res.json({ atRisk });
+  } catch (err) {
+    console.error('getAtRiskLearners error:', err.message);
+    res.status(500).json({ error: 'Failed to compute at-risk learners' });
+  }
+}
+
 module.exports = {
   getLearners,
   getLearnerById,
@@ -183,4 +310,5 @@ module.exports = {
   updateStrands,
   getStats,
   bulkCreateLearners,
+  getAtRiskLearners,
 };
