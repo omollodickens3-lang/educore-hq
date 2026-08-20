@@ -3,21 +3,30 @@
 // https://github.com/IntaSend/documentation/blob/master/online-payments/collection-api.md
 //
 // Defaults to MOCK MODE (no real API calls, no real charges) until you
-// set INTASEND_MOCK_MODE=false and provide real keys — same safety
-// pattern as the SMS service.
+// set INTASEND_MOCK_MODE=false — same safety pattern as the SMS service.
+// MOCK_MODE is a global kill switch: even if a school has configured real
+// keys, nothing live happens until this is turned off.
 //
-// Required env vars for live mode:
-//   INTASEND_PUBLISHABLE_KEY   (starts with ISPubKey_)
-//   INTASEND_SECRET_KEY        (starts with ISSecretKey_)
-//   INTASEND_TEST_MODE         'true' while using IntaSend's sandbox, 'false' once live with real keys
-//   INTASEND_MOCK_MODE         set to 'false' to make real HTTP calls at all (defaults to mocked)
+// Supports per-school credentials (each school can use their own IntaSend
+// account so payments go straight to them). Pass `credentials` as
+// { publishableKey, secretKey, testMode } — falls back to the shared
+// platform env vars (INTASEND_PUBLISHABLE_KEY / INTASEND_SECRET_KEY /
+// INTASEND_TEST_MODE) for schools that haven't configured their own yet.
 
 const { v4: uuid } = require('uuid');
 const { normalizePhone } = require('./notificationService');
 
 const MOCK_MODE = process.env.INTASEND_MOCK_MODE !== 'false';
-const TEST_MODE = process.env.INTASEND_TEST_MODE !== 'false'; // sandbox by default, safest
-const BASE_URL = TEST_MODE ? 'https://sandbox.intasend.com/api' : 'https://payment.intasend.com/api';
+
+function resolveCredentials(credentials) {
+  const publishableKey = credentials?.publishableKey || process.env.INTASEND_PUBLISHABLE_KEY;
+  const secretKey = credentials?.secretKey || process.env.INTASEND_SECRET_KEY;
+  const testMode = credentials?.testMode !== undefined
+    ? !!credentials.testMode
+    : process.env.INTASEND_TEST_MODE !== 'false'; // sandbox by default, safest
+  const baseUrl = testMode ? 'https://sandbox.intasend.com/api' : 'https://payment.intasend.com/api';
+  return { publishableKey, secretKey, testMode, baseUrl };
+}
 
 function toIntasendPhone(phone) {
   // IntaSend wants 2547XXXXXXXX (no leading +). normalizePhone() gives us
@@ -28,23 +37,24 @@ function toIntasendPhone(phone) {
 
 // Initiates an M-Pesa STK Push. Returns { invoiceId, state } on success.
 // Throws on failure (caller is responsible for marking the payment failed).
-async function initiateStkPush({ amount, phone, apiRef, name, email }) {
+// `credentials` (optional): { publishableKey, secretKey, testMode } — a
+// specific school's own IntaSend account. Omit to use the shared platform keys.
+async function initiateStkPush({ amount, phone, apiRef, name, email, credentials }) {
   if (MOCK_MODE) {
     const mockInvoiceId = `MOCK-${uuid().slice(0, 8).toUpperCase()}`;
     console.log(`[MOCK INTASEND] STK Push: KES ${amount} to ${phone} | ref: ${apiRef} | invoice: ${mockInvoiceId}`);
     return { invoiceId: mockInvoiceId, state: 'PENDING' };
   }
 
-  const publishableKey = process.env.INTASEND_PUBLISHABLE_KEY;
-  const secretKey = process.env.INTASEND_SECRET_KEY;
+  const { publishableKey, secretKey, baseUrl } = resolveCredentials(credentials);
   if (!publishableKey || !secretKey) {
-    throw new Error('INTASEND_PUBLISHABLE_KEY / INTASEND_SECRET_KEY not configured');
+    throw new Error('IntaSend is not configured for this school (and no platform default keys are set)');
   }
 
   const phoneNumber = toIntasendPhone(phone);
   if (!phoneNumber) throw new Error(`Invalid phone format: ${phone}`);
 
-  const res = await fetch(`${BASE_URL}/v1/payment/collection/`, {
+  const res = await fetch(`${baseUrl}/v1/payment/collection/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -70,16 +80,17 @@ async function initiateStkPush({ amount, phone, apiRef, name, email }) {
   return { invoiceId: data.invoice.invoice_id, state: data.invoice.state };
 }
 
-// Checks the current status of a previously-initiated payment.
-async function checkPaymentStatus(invoiceId) {
+// Checks the current status of a previously-initiated payment. Pass the
+// SAME credentials used to initiate it (a school's payment only exists in
+// that school's own IntaSend account).
+async function checkPaymentStatus(invoiceId, credentials) {
   if (MOCK_MODE) {
     console.log(`[MOCK INTASEND] Status check for ${invoiceId} — reporting COMPLETE`);
     return { state: 'COMPLETE', invoiceId };
   }
 
-  const publishableKey = process.env.INTASEND_PUBLISHABLE_KEY;
-  const secretKey = process.env.INTASEND_SECRET_KEY;
-  const res = await fetch(`${BASE_URL}/v1/payment/status/`, {
+  const { publishableKey, secretKey, baseUrl } = resolveCredentials(credentials);
+  const res = await fetch(`${baseUrl}/v1/payment/status/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

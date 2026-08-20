@@ -3,6 +3,77 @@ const { query } = require('../config/db');
 const { initiateStkPush, checkPaymentStatus } = require('../services/intasendService');
 const { notify } = require('../services/notificationService');
 
+// Fetches a school's own IntaSend credentials, if they've configured
+// them. Returns null if not configured (caller then falls back to the
+// shared platform keys inside intasendService.js).
+async function getSchoolCredentials(schoolId) {
+  const { rows } = await query(
+    `SELECT intasend_publishable_key, intasend_secret_key, intasend_test_mode
+     FROM school_payment_settings WHERE school_id = $1`,
+    [schoolId]
+  );
+  const row = rows[0];
+  if (!row || !row.intasend_publishable_key || !row.intasend_secret_key) return null;
+  return {
+    publishableKey: row.intasend_publishable_key,
+    secretKey: row.intasend_secret_key,
+    testMode: row.intasend_test_mode,
+  };
+}
+
+// ---- Payment settings (admin configures their own IntaSend account) ----
+
+async function getPaymentSettings(req, res) {
+  try {
+    const { rows } = await query(
+      `SELECT intasend_publishable_key, intasend_test_mode, updated_at
+       FROM school_payment_settings WHERE school_id = $1`,
+      [req.user.school_id]
+    );
+    const row = rows[0];
+    res.json({
+      configured: !!(row && row.intasend_publishable_key),
+      publishableKey: row?.intasend_publishable_key || null,
+      testMode: row ? row.intasend_test_mode : true,
+      updatedAt: row?.updated_at || null,
+    });
+  } catch (err) {
+    console.error('getPaymentSettings error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch payment settings' });
+  }
+}
+
+async function setPaymentSettings(req, res) {
+  try {
+    const { publishableKey, secretKey, testMode } = req.body;
+    if (!publishableKey) return res.status(400).json({ error: 'publishableKey is required' });
+
+    // Leaving secretKey blank keeps the existing one (so admins can update
+    // just the publishable key or test-mode toggle without re-entering it).
+    let finalSecretKey = secretKey;
+    if (!finalSecretKey) {
+      const { rows } = await query(
+        `SELECT intasend_secret_key FROM school_payment_settings WHERE school_id = $1`,
+        [req.user.school_id]
+      );
+      finalSecretKey = rows[0]?.intasend_secret_key || null;
+    }
+    if (!finalSecretKey) return res.status(400).json({ error: 'secretKey is required the first time you configure this' });
+
+    await query(
+      `INSERT INTO school_payment_settings (school_id, intasend_publishable_key, intasend_secret_key, intasend_test_mode, updated_at)
+       VALUES ($1,$2,$3,$4,NOW())
+       ON CONFLICT (school_id) DO UPDATE SET
+         intasend_publishable_key=$2, intasend_secret_key=$3, intasend_test_mode=$4, updated_at=NOW()`,
+      [req.user.school_id, publishableKey, finalSecretKey, testMode !== false]
+    );
+    res.json({ saved: true });
+  } catch (err) {
+    console.error('setPaymentSettings error:', err.message);
+    res.status(500).json({ error: 'Failed to save payment settings' });
+  }
+}
+
 // ---- Fee structures (admin sets how much each grade owes per term) ----
 
 async function getFeeStructures(req, res) {
@@ -134,6 +205,7 @@ async function initiatePayment(req, res) {
 
     const paymentId = uuid();
     const apiRef = `EDU-${paymentId.slice(0, 8)}`;
+    const credentials = await getSchoolCredentials(req.user.school_id);
 
     let invoiceId, state;
     try {
@@ -142,6 +214,7 @@ async function initiatePayment(req, res) {
         phone,
         apiRef,
         name: `${learner.first_name} ${learner.last_name}`,
+        credentials,
       });
       invoiceId = result.invoiceId;
       state = result.state;
@@ -184,7 +257,8 @@ async function intasendWebhook(req, res) {
 
     // Confirm directly with IntaSend rather than trusting the webhook body
     // alone, since webhook payloads can be spoofed if the secret leaks.
-    const statusResult = await checkPaymentStatus(invoiceId);
+    const credentials = await getSchoolCredentials(payment.school_id);
+    const statusResult = await checkPaymentStatus(invoiceId, credentials);
     const newStatus = statusResult.state === 'COMPLETE' ? 'confirmed'
       : statusResult.state === 'FAILED' ? 'failed'
       : 'pending';
@@ -233,4 +307,4 @@ async function getPaymentHistory(req, res) {
   }
 }
 
-module.exports = { getFeeStructures, setFeeStructure, getBalance, initiatePayment, intasendWebhook, getPaymentHistory };
+module.exports = { getFeeStructures, setFeeStructure, getBalance, initiatePayment, intasendWebhook, getPaymentHistory, getPaymentSettings, setPaymentSettings };

@@ -121,6 +121,8 @@ router.post('/fees/structures', authenticate, authorize('admin', 'director_of_st
 router.get('/fees/balance/:learnerId', authenticate, parentChildOnly, fees.getBalance);
 router.post('/fees/pay/:learnerId', authenticate, parentChildOnly, fees.initiatePayment);
 router.get('/fees/history/:learnerId', authenticate, parentChildOnly, fees.getPaymentHistory);
+router.get('/fees/payment-settings', authenticate, authorize('admin', 'director_of_studies', 'deputy'), fees.getPaymentSettings);
+router.post('/fees/payment-settings', authenticate, authorize('admin', 'director_of_studies', 'deputy'), fees.setPaymentSettings);
 router.post('/fees/webhook/intasend', fees.intasendWebhook);
 router.get("/reports/term/:learnerId", authenticate, reports.generateTermReport);
 router.get("/reports/term-bulk", authenticate, requireBroadsheetAccess, reports.generateBulkTermReport);
