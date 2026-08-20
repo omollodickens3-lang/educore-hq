@@ -35,6 +35,43 @@ export default function FeeStructuresPage() {
   });
   const [saving, setSaving] = useState(false);
 
+  const [payConfigured, setPayConfigured] = useState(false);
+  const [payTestMode, setPayTestMode] = useState(true);
+  const [payPublishableKey, setPayPublishableKey] = useState("");
+  const [paySecretKey, setPaySecretKey] = useState("");
+  const [paySaving, setPaySaving] = useState(false);
+
+  async function loadPaymentSettings() {
+    try {
+      const res = await feesAPI.getPaymentSettings();
+      setPayConfigured(res.data.configured);
+      setPayTestMode(res.data.testMode);
+      setPayPublishableKey(res.data.publishableKey || "");
+    } catch (e) {
+      // Non-fatal — settings section will just show as unconfigured.
+    }
+  }
+
+  async function savePaymentSettings() {
+    if (!payPublishableKey) { toast.error("Enter your IntaSend Publishable Key"); return; }
+    if (!paySecretKey && !payConfigured) { toast.error("Enter your IntaSend Secret Key"); return; }
+    setPaySaving(true);
+    try {
+      await feesAPI.setPaymentSettings({
+        publishableKey: payPublishableKey,
+        secretKey: paySecretKey || undefined,
+        testMode: payTestMode,
+      });
+      toast.success("Payment settings saved");
+      setPaySecretKey("");
+      loadPaymentSettings();
+    } catch (e) {
+      toast.error(e.response?.data?.error || "Failed to save payment settings");
+    } finally {
+      setPaySaving(false);
+    }
+  }
+
   async function load() {
     setLoading(true);
     try {
@@ -47,7 +84,7 @@ export default function FeeStructuresPage() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); loadPaymentSettings(); }, []);
 
   async function handleSave() {
     if (!form.amount || Number(form.amount) < 0) {
@@ -141,6 +178,39 @@ export default function FeeStructuresPage() {
             </tbody>
           </table>
         )}
+      </div>
+
+      <div style={styles.section}>
+        <div style={styles.sectionTitle}>
+          M-Pesa Payment Settings {payConfigured && <span style={{ color: "#16a34a", fontSize: 12, fontWeight: 600 }}>✓ Configured</span>}
+        </div>
+        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 14 }}>
+          Enter your school's own IntaSend account keys so parent M-Pesa payments go directly to your school —
+          not a shared account. Don't have an IntaSend account yet? Sign up free at intasend.com.
+        </div>
+        <div style={styles.filterBar}>
+          <div style={styles.field}>
+            <label style={styles.label}>Publishable Key</label>
+            <input style={{ ...styles.input, width: 260 }} value={payPublishableKey}
+              onChange={e => setPayPublishableKey(e.target.value)} placeholder="ISPubKey_live_..." />
+          </div>
+          <div style={styles.field}>
+            <label style={styles.label}>Secret Key {payConfigured && "(leave blank to keep current)"}</label>
+            <input style={{ ...styles.input, width: 260 }} type="password" value={paySecretKey}
+              onChange={e => setPaySecretKey(e.target.value)} placeholder={payConfigured ? "••••••••••••" : "ISSecretKey_live_..."} />
+          </div>
+          <div style={styles.field}>
+            <label style={styles.label}>Mode</label>
+            <select style={styles.select} value={payTestMode ? "test" : "live"}
+              onChange={e => setPayTestMode(e.target.value === "test")}>
+              <option value="test">Sandbox (testing)</option>
+              <option value="live">Live (real payments)</option>
+            </select>
+          </div>
+          <button style={styles.btn} onClick={savePaymentSettings} disabled={paySaving}>
+            {paySaving ? "Saving..." : "Save"}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -145,6 +145,8 @@ feesAPI.pay = (learnerId, data) => api.post(`/fees/pay/${learnerId}`, data);
 feesAPI.getHistory = (learnerId) => api.get(`/fees/history/${learnerId}`);
 feesAPI.getStructures = (params) => api.get('/fees/structures', { params });
 feesAPI.setStructure = (data) => api.post('/fees/structures', data);
+feesAPI.getPaymentSettings = () => api.get('/fees/payment-settings');
+feesAPI.setPaymentSettings = (data) => api.post('/fees/payment-settings', data);
 
 
 export const classesAPI = {};
