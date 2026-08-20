@@ -29,6 +29,7 @@ import ParentRegisterPage from './pages/ParentRegisterPage';
 import ReportsPage from './pages/ReportsPage';
 import HelpPage from './pages/HelpPage';
 import RubricsPage from './pages/RubricsPage';
+import AtRiskLearnersPage from './pages/AtRiskLearnersPage';
 import SchoolProfilePage from './pages/SchoolProfilePage';
 import FeeStructuresPage from './pages/FeeStructuresPage';
 const queryClient = new QueryClient();
@@ -94,6 +95,7 @@ function AppRoutes() {
         <Route path="my-class" element={<MyClassOverviewPage />} />
         <Route path="help" element={<HelpPage />} />
         <Route path="rubrics" element={<RubricsPage />} />
+        <Route path="at-risk" element={<AtRiskLearnersPage />} />
         <Route path="school-profile" element={<SchoolProfilePage />} />
         <Route path="fees" element={<FeeStructuresPage />} />
         <Route path="content"      element={<ComingSoon title="✏️ Content Generation" />} />
