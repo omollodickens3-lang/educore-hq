@@ -36,6 +36,7 @@ export const learnersAPI = {
   delete: (id) => api.delete(`/learners/${id}`),
   getStats: () => api.get('/learners/stats'),
   getProgress: (id) => api.get(`/learners/${id}/progress`),
+  getAtRisk: (params) => api.get('/learners/at-risk', { params }),
 };
 export const attendanceAPI = {
   getAlerts: () => api.get('/attendance/alerts'),
