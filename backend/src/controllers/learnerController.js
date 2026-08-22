@@ -87,7 +87,10 @@ async function updateStrands(req, res) {
       [uuid(), req.params.id, term, academicYear, s.communication||0, s.criticalThinking||0, s.creativity||0, s.citizenship||0, s.collaboration||0, s.learningToLearn||0, s.selfEfficacy||0, s.digitalLiteracy||0]
     );
     res.json({ message: 'Strands updated', strands: rows[0] });
-  } catch (err) { res.status(500).json({ error: 'Failed to update strands' }); }
+  } catch (err) {
+    console.error('updateStrands error:', err.message);
+    res.status(500).json({ error: `Failed to update strands: ${err.message}` });
+  }
 }
 
 async function getStats(req, res) {
