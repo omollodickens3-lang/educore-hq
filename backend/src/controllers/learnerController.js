@@ -35,7 +35,7 @@ async function generateKemisWorksheet(req, res) {
     sheet.mergeCells('A1:F1');
     sheet.getCell('A1').value = 'KEMIS Registration Worksheet -- ' + schoolName + ' -- generated ' + new Date().toLocaleDateString();
     sheet.getCell('A1').font = { bold: true, size: 13 };
-    sheet.mergeCells('A2:N2');
+    sheet.mergeCells('A2:AE2');
     sheet.getCell('A2').value =
       'Green = filled in from EduCore. Yellow = please fill in. Gray = common KEMIS default -- verify per learner.';
     sheet.getCell('A2').font = { italic: true, size: 10, color: { argb: 'FF64748B' } };
@@ -95,7 +95,7 @@ async function generateKemisWorksheet(req, res) {
       colFill(r, 'W', GRAY);                                     // boarding status default
       colFill(r, 'X', l.parent_name ? GREEN : YELLOW);           // guardian 1 name
       colFill(r, 'AA', l.parent_phone ? GREEN : YELLOW);         // guardian 1 phone
-      ['E', 'G', 'I', 'J', 'K', 'M', 'N', 'O', 'U', 'V', 'Y', 'Z'].forEach((c) => colFill(r, c, YELLOW));
+      ['D', 'E', 'G', 'I', 'J', 'K', 'M', 'N', 'O', 'U', 'V', 'Y', 'Z', 'AB', 'AC', 'AD', 'AE'].forEach((c) => colFill(r, c, YELLOW));
     });
 
     sheet.columns.forEach((col) => { col.width = 16; });
