@@ -738,6 +738,24 @@ function PreviewRowWithRemove({ row, onChange, onRemove }) {
   );
 }
 
+async function handleDownloadKemisWorksheet() {
+  try {
+    const res = await learnersAPI.downloadKemisWorksheet();
+    const blob = new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'KEMIS-Worksheet.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+    toast.success('KEMIS worksheet downloaded');
+  } catch (e) {
+    toast.error('Failed to generate KEMIS worksheet');
+  }
+}
+
 export default function LearnersPage() {
   const { user } = useAuth();
   const canAddLearners = user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'class_teacher';
@@ -783,6 +801,11 @@ export default function LearnersPage() {
         </div>
         {canAddLearners && (
           <div style={{ display: 'flex', gap: '10px' }}>
+            <button onClick={handleDownloadKemisWorksheet} style={{
+              padding: '11px 20px', borderRadius: '10px', border: '1px solid #16a34a',
+              background: '#fff', color: '#16a34a', fontWeight: 600,
+              cursor: 'pointer', fontSize: '14px',
+            }}>Download KEMIS Worksheet</button>
             <button onClick={() => setShowBulkModal(true)} style={{
               padding: '11px 20px', borderRadius: '10px', border: '1px solid #2563eb',
               background: '#fff', color: '#2563eb', fontWeight: 600,

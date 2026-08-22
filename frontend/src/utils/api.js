@@ -37,6 +37,13 @@ export const learnersAPI = {
   getStats: () => api.get('/learners/stats'),
   getProgress: (id) => api.get(`/learners/${id}/progress`),
   getAtRisk: (params) => api.get('/learners/at-risk', { params }),
+  downloadKemisWorksheet: (grade, stream) => {
+    const params = new URLSearchParams();
+    if (grade) params.set('grade', grade);
+    if (stream) params.set('stream', stream);
+    const query = params.toString();
+    return api.get(`/learners/kemis-worksheet${query ? `?${query}` : ''}`, { responseType: 'blob' });
+  },
 };
 export const attendanceAPI = {
   getAlerts: () => api.get('/attendance/alerts'),
