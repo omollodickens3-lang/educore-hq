@@ -37,6 +37,7 @@ export const learnersAPI = {
   getStats: () => api.get('/learners/stats'),
   getProgress: (id) => api.get(`/learners/${id}/progress`),
   getAtRisk: (params) => api.get('/learners/at-risk', { params }),
+  updateStrands: (id, data) => api.put(`/learners/${id}/strands`, data),
   downloadKemisWorksheet: (grade, stream) => {
     const params = new URLSearchParams();
     if (grade) params.set('grade', grade);
