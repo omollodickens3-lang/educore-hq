@@ -38,6 +38,7 @@ router.get('/learners/at-risk', authenticate, requireBroadsheetAccess, learners.
 router.get('/learners/class-list', authenticate, classList.getClassList);
 router.get('/learners/class-list/csv', authenticate, classList.exportClassListCSV);
 router.get('/learners/class-list/pdf', authenticate, classList.exportClassListPDF);
+router.get('/learners/kemis-worksheet', authenticate, authorize('admin', 'director_of_studies', 'deputy'), learners.generateKemisWorksheet);
 router.get('/learners/:id', authenticate, learners.getLearnerById);
 router.post('/learners', authenticate, authorize(...ADMIN_TIER_ROLES, 'class_teacher'), learners.createLearner);
 router.put('/learners/:id', authenticate, authorize(...ADMIN_TIER_ROLES, 'class_teacher'), learners.updateLearner);

@@ -1,5 +1,118 @@
 const { query } = require('../config/db');
 const { v4: uuid } = require('uuid');
+const ExcelJS = require('exceljs');
+
+// KEMIS Registration Worksheet -- one row per learner, columns matching
+// the official KEMIS Data Capture form. Fields EduCore already has are
+// pre-filled (green); everything else is left blank (yellow) or set to
+// KEMIS's own common default (gray) for quick verification.
+async function generateKemisWorksheet(req, res) {
+  try {
+    const { grade, stream } = req.query;
+    const schoolId = req.user.school_id;
+
+    let sql = `SELECT admission_no, first_name, last_name, date_of_birth, gender,
+                      grade, stream, parent_name, parent_phone
+               FROM learners WHERE school_id = $1 AND status = 'active'`;
+    const params = [schoolId];
+    let idx = 2;
+    if (grade)  { sql += ` AND grade = $${idx++}`;  params.push(grade); }
+    if (stream) { sql += ` AND stream = $${idx++}`; params.push(stream); }
+    sql += ` ORDER BY grade, stream, last_name, first_name`;
+    const { rows: learners } = await query(sql, params);
+
+    const { rows: schoolRows } = await query(`SELECT name FROM schools WHERE id = $1`, [schoolId]);
+    const schoolName = schoolRows[0]?.name || 'School';
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('KEMIS Worksheet');
+
+    const GREEN = 'FFDCFCE7';   // pre-filled from EduCore
+    const YELLOW = 'FFFEF9C3';  // needs your input
+    const GRAY = 'FFF1F5F9';    // KEMIS's own common default, verify
+
+    // Legend
+    sheet.mergeCells('A1:F1');
+    sheet.getCell('A1').value = 'KEMIS Registration Worksheet -- ' + schoolName + ' -- generated ' + new Date().toLocaleDateString();
+    sheet.getCell('A1').font = { bold: true, size: 13 };
+    sheet.mergeCells('A2:N2');
+    sheet.getCell('A2').value =
+      'Green = filled in from EduCore. Yellow = please fill in. Gray = common KEMIS default -- verify per learner.';
+    sheet.getCell('A2').font = { italic: true, size: 10, color: { argb: 'FF64748B' } };
+
+    const headers = [
+      'Adm. No. (ref)', 'Grade', 'Stream',
+      'ID Method (KNEC No. / Birth Cert.)', 'KNEC Assessment No.',
+      'First Name', 'Middle Name', 'Last Name',
+      'Learner Interests', 'Medical Condition', 'Religion',
+      'Country of Birth', 'County of Birth', 'Sub County of Birth', 'Location of Birth',
+      'Sex', 'Date of Birth', 'Orphan', 'SNE/Disability',
+      'Nationality', 'ID Document Type', 'ID Number', 'Boarding Status',
+      'Guardian 1 Full Name', 'Guardian 1 Relationship', 'Guardian 1 ID No.', 'Guardian 1 Phone',
+      'Guardian 2 Full Name', 'Guardian 2 Relationship', 'Guardian 2 ID No.', 'Guardian 2 Phone',
+    ];
+    const headerRow = sheet.addRow(headers);
+    headerRow.eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0A1628' } };
+      cell.alignment = { wrapText: true, vertical: 'middle' };
+    });
+    sheet.getRow(3).height = 30;
+
+    const colFill = (rowIdx, colLetter, color) => {
+      sheet.getCell(colLetter + rowIdx).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color } };
+    };
+
+    learners.forEach((l) => {
+      const row = sheet.addRow([
+        l.admission_no,
+        l.grade,
+        l.stream || '',
+        '',                                            // ID method -- choose
+        '',                                             // KNEC Assessment No.
+        l.first_name,
+        '',                                             // Middle name
+        l.last_name,
+        '', '', '',                                     // interests, medical, religion
+        'Kenya', '', '', '',                             // country/county/subcounty/location of birth
+        l.gender === 'Male' ? 'Male' : l.gender === 'Female' ? 'Female' : '',
+        l.date_of_birth ? new Date(l.date_of_birth).toLocaleDateString('en-GB') : '',
+        'No',                                            // Orphan default
+        'No',                                            // SNE/Disability default
+        'Kenyan',                                        // Nationality default
+        '', '',                                          // ID doc type, ID number
+        'Day Scholar',                                    // Boarding status default
+        l.parent_name || '', '', '', l.parent_phone || '',
+        '', '', '', '',
+      ]);
+      const r = row.number;
+      colFill(r, 'F', GREEN); colFill(r, 'H', GREEN);           // first/last name
+      colFill(r, 'L', GRAY);                                     // country of birth default
+      colFill(r, 'P', GREEN);                                    // sex
+      colFill(r, 'Q', l.date_of_birth ? GREEN : YELLOW);         // date of birth
+      colFill(r, 'R', GRAY); colFill(r, 'S', GRAY);              // orphan, SNE defaults
+      colFill(r, 'T', GRAY);                                     // nationality default
+      colFill(r, 'W', GRAY);                                     // boarding status default
+      colFill(r, 'X', l.parent_name ? GREEN : YELLOW);           // guardian 1 name
+      colFill(r, 'AA', l.parent_phone ? GREEN : YELLOW);         // guardian 1 phone
+      ['E', 'G', 'I', 'J', 'K', 'M', 'N', 'O', 'U', 'V', 'Y', 'Z'].forEach((c) => colFill(r, c, YELLOW));
+    });
+
+    sheet.columns.forEach((col) => { col.width = 16; });
+    sheet.getColumn(1).width = 12;
+    sheet.getColumn(6).width = 14;
+    sheet.getColumn(8).width = 14;
+
+    const safeName = schoolName.replace(/[^a-z0-9]/gi, '-');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="KEMIS-Worksheet-' + safeName + '.xlsx"');
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error('generateKemisWorksheet error:', err.message);
+    res.status(500).json({ error: 'Failed to generate KEMIS worksheet' });
+  }
+}
 
 async function getLearners(req, res) {
   try {
@@ -314,4 +427,5 @@ module.exports = {
   getStats,
   bulkCreateLearners,
   getAtRiskLearners,
+  generateKemisWorksheet,
 };
