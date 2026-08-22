@@ -121,6 +121,13 @@ export default function RubricsPage() {
         toast.success(`Overall Performance: ${res.data.overallMean} (${res.data.overallLabel})`, { duration: 4000 });
       }
     } catch (err) {
+      const details = [
+        `Message: ${err.message || "none"}`,
+        `Code: ${err.code || "none"}`,
+        `HTTP status: ${err.response?.status ?? "no response received"}`,
+        `Server error: ${err.response?.data?.error || "none"}`,
+      ].join("\n");
+      alert(`Rubric save failed — full details:\n\n${details}`);
       toast.error(err.response?.data?.error || 'Failed to save rubric scores');
     } finally {
       setSaving(false);
