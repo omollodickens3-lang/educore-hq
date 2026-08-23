@@ -324,7 +324,7 @@ export default function TeachersPage() {
   }
 
   return (
-    <div style={{ padding: '32px', fontFamily: 'system-ui' }}>
+    <div style={{ padding: '32px', fontFamily: "'Inter', system-ui, sans-serif" }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontSize: '24px', color: '#0f172a', marginBottom: '4px' }}>Teachers</h1>
