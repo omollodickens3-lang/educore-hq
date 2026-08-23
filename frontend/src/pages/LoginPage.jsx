@@ -29,7 +29,7 @@ export default function LoginPage() {
   }
 
     return (
-    <div style={{ minHeight:'100vh', background:'#0a1628', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px', fontFamily:'system-ui,sans-serif' }}>
+    <div style={{ minHeight:'100vh', background:'#0a1628', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px', fontFamily:"'Inter', system-ui, sans-serif" }}>
       <div style={{ width:'100%', maxWidth:'380px' }}>
 
         <div style={{ textAlign:'center', marginBottom:'32px' }}>
