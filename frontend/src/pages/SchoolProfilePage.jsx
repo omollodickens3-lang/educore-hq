@@ -234,7 +234,7 @@ export default function SchoolProfilePage() {
   }, []);
 
   return (
-    <div style={{ padding: '32px', fontFamily: 'system-ui' }}>
+    <div style={{ padding: '32px', fontFamily: "'Inter', system-ui, sans-serif" }}>
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '24px', color: '#0f172a', marginBottom: '4px' }}>School Profile</h1>
         <p style={{ color: '#64748b', fontSize: '14px' }}>Manage your school's official documents and branding</p>
