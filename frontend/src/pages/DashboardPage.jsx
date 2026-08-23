@@ -96,7 +96,7 @@ export default function DashboardPage() {
   const cardStyle = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', minWidth: 0 };
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'system-ui, sans-serif', maxWidth: '100%', overflowX: 'hidden' }}>
+    <div style={{ padding: '20px', fontFamily: "'Inter', system-ui, sans-serif", maxWidth: '100%', overflowX: 'hidden' }}>
       <style>{`
         .ec-grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
         @media (max-width: 640px) {
