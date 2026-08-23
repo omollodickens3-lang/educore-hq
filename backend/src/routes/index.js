@@ -52,6 +52,7 @@ router.get('/teachers/:id', authenticate, teachers.getTeacherById);
 router.post('/teachers', authenticate, authorize(...ADMIN_TIER_ROLES), teachers.createTeacher);
 router.put('/teachers/:id', authenticate, authorize(...ADMIN_TIER_ROLES), teachers.updateTeacher);
 router.delete('/teachers/:id', authenticate, authorize(...ADMIN_TIER_ROLES), teachers.deleteTeacher);
+router.put('/teachers/:id/reset-password', authenticate, authorize(...ADMIN_TIER_ROLES), teachers.resetPassword);
 router.post('/teachers/:id/subjects', authenticate, authorize(...ADMIN_TIER_ROLES), teachers.assignSubjects);
 router.delete('/teachers/subjects/:subjectId', authenticate, authorize(...ADMIN_TIER_ROLES), teachers.removeSubject);
 
