@@ -280,7 +280,7 @@ export default function AppLayout() {
     : sidebarBaseStyle;
 
   return (
-    <div style={{ display:'flex', height:'100vh', fontFamily:'system-ui,sans-serif', fontSize:'13px', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ display:'flex', height:'100vh', fontFamily:"'Inter', system-ui, sans-serif", fontSize:'13px', position: 'relative', overflow: 'hidden' }}>
 
       {/* Dark overlay behind the drawer on mobile, tap to close */}
       {isMobile && drawerOpen && (
