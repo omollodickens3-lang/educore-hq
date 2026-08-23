@@ -56,6 +56,7 @@ export const teachersAPI = {
   create: (data) => api.post('/teachers', data),
   update: (id, data) => api.put(`/teachers/${id}`, data),
   delete: (id) => api.delete(`/teachers/${id}`),
+  resetPassword: (id, newPassword) => api.put(`/teachers/${id}/reset-password`, { newPassword }),
   assignSubjects: (id, subjects) => api.post(`/teachers/${id}/subjects`, { subjects }),
   removeSubject: (subjectId) => api.delete(`/teachers/subjects/${subjectId}`),
 };
