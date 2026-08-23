@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { parentAPI, schoolsAPI } from '../utils/api';
 
 const styles = {
-  page: { minHeight: '100vh', background: '#0a1628', fontFamily: 'system-ui, sans-serif', color: '#e2e8f0' },
+  page: { minHeight: '100vh', background: '#0a1628', fontFamily: "'Inter', system-ui, sans-serif", color: '#e2e8f0' },
   card: { background: '#132339', borderRadius: 12, padding: 24, marginBottom: 16, border: '0.5px solid #1e3a5f' },
   label: { fontSize: 12, color: '#8ba3c7', marginBottom: 6, display: 'block' },
   input: { width: '100%', padding: '10px 12px', borderRadius: 8, border: '0.5px solid #2d4a6d', background: '#0e1e33', color: '#fff', fontSize: 14, marginBottom: 14, boxSizing: 'border-box' },
