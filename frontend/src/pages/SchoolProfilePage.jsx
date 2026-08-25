@@ -53,20 +53,20 @@ function ImageUploadCard({ title, description, apiCall, hasExisting, existingLab
   }
 
   const cardStyle = {
-    background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0',
+    background: '#1e293b', borderRadius: '12px', border: '1px solid #334155',
     padding: '28px', maxWidth: '560px', marginBottom: '24px',
   };
   const labelStyle = { fontSize: '13px', color: '#94a3b8', fontWeight: 500 };
 
   return (
     <div style={cardStyle}>
-      <h2 style={{ fontSize: '16px', color: '#0f172a', marginBottom: '4px', fontWeight: 600 }}>
+      <h2 style={{ fontSize: '16px', color: '#e2e8f0', marginBottom: '4px', fontWeight: 600 }}>
         {title}
       </h2>
-      <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '20px' }}>
+      <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '20px' }}>
         {description}
         {hasExisting && !previewUrl && (
-          <span style={{ display: 'block', color: '#16a34a', marginTop: '4px' }}>
+          <span style={{ display: 'block', color: '#4ade80', marginTop: '4px' }}>
             &#10003; {existingLabel} already uploaded &mdash; choose a new image below to replace it.
           </span>
         )}
@@ -75,14 +75,14 @@ function ImageUploadCard({ title, description, apiCall, hasExisting, existingLab
       <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '20px' }}>
         <div style={{
           width: '110px', height: '110px', borderRadius: '10px',
-          border: '1px dashed #cbd5e1', background: '#f8fafc',
+          border: '1px dashed #475569', background: '#0f172a',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexShrink: 0, overflow: 'hidden',
         }}>
           {previewUrl ? (
             <img src={previewUrl} alt={`${title} preview`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
           ) : (
-            <span style={{ fontSize: '28px', opacity: 0.4 }}>{hasExisting ? '\u2713' : '\ud83d\uddbc\ufe0f'}</span>
+            <span style={{ fontSize: '28px', opacity: 0.5 }}>{hasExisting ? '\u2713' : '\ud83d\uddbc\ufe0f'}</span>
           )}
         </div>
 
@@ -100,15 +100,15 @@ function ImageUploadCard({ title, description, apiCall, hasExisting, existingLab
               type="button"
               onClick={() => fileInputRef.current?.click()}
               style={{
-                padding: '9px 16px', borderRadius: '8px', border: '1px solid #334155',
-                background: 'transparent', color: '#334155', cursor: 'pointer', fontSize: '13px',
+                padding: '9px 16px', borderRadius: '8px', border: '1px solid #475569',
+                background: 'transparent', color: '#cbd5e1', cursor: 'pointer', fontSize: '13px',
               }}
             >
               {selectedFile ? 'Choose Different Image' : 'Choose Image'}
             </button>
           </div>
           {selectedFile && (
-            <p style={{ color: '#64748b', fontSize: '12px', marginTop: '8px' }}>{selectedFile.name}</p>
+            <p style={{ color: '#94a3b8', fontSize: '12px', marginTop: '8px' }}>{selectedFile.name}</p>
           )}
         </div>
       </div>
@@ -164,25 +164,25 @@ function SchoolDetailsCard() {
   }
 
   const cardStyle = {
-    background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0',
+    background: '#1e293b', borderRadius: '12px', border: '1px solid #334155',
     padding: '28px', maxWidth: '560px', marginBottom: '24px',
   };
   const labelStyle = { fontSize: '13px', color: '#94a3b8', fontWeight: 500, display: 'block', marginBottom: '6px' };
   const inputStyle = {
-    width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0',
-    fontSize: '14px', marginBottom: '16px', boxSizing: 'border-box', color: '#0f172a',
+    width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #334155',
+    fontSize: '14px', marginBottom: '16px', boxSizing: 'border-box', color: '#e2e8f0', background: '#0f172a',
   };
 
   if (loading) {
-    return <div style={cardStyle}><p style={{ color: '#64748b', fontSize: '14px' }}>Loading school details...</p></div>;
+    return <div style={cardStyle}><p style={{ color: '#94a3b8', fontSize: '14px' }}>Loading school details...</p></div>;
   }
 
   return (
     <div style={cardStyle}>
-      <h2 style={{ fontSize: '16px', color: '#0f172a', marginBottom: '4px', fontWeight: 600 }}>
+      <h2 style={{ fontSize: '16px', color: '#e2e8f0', marginBottom: '4px', fontWeight: 600 }}>
         School Details
       </h2>
-      <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '20px' }}>
+      <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '20px' }}>
         Shown on report card letterheads and used for official correspondence.
       </p>
 
@@ -234,10 +234,10 @@ export default function SchoolProfilePage() {
   }, []);
 
   return (
-    <div style={{ padding: '32px', fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div style={{ padding: '32px', fontFamily: "'Inter', system-ui, sans-serif", background: '#0f172a', minHeight: '100vh' }}>
       <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', color: '#0f172a', marginBottom: '4px' }}>School Profile</h1>
-        <p style={{ color: '#64748b', fontSize: '14px' }}>Manage your school's official documents and branding</p>
+        <h1 style={{ fontSize: '24px', color: '#e2e8f0', marginBottom: '4px' }}>School Profile</h1>
+        <p style={{ color: '#94a3b8', fontSize: '14px' }}>Manage your school's official documents and branding</p>
       </div>
 
       <SchoolDetailsCard />
