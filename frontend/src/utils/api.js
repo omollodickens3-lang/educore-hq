@@ -22,10 +22,6 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (email, password) => api.post('/auth/login', { email, password }),
   me: () => api.get('/auth/me'),
-  changePassword: (currentPassword, newPassword) => api.post('/auth/change-password', { currentPassword, newPassword }),
-  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
-  resetPassword: (token, newPassword) => api.post('/auth/reset-password', { token, newPassword }),
-  deleteAccount: (password) => api.delete('/auth/me', { data: { password } }),
 };
 export const learnersAPI = {
   getAll: (params) => api.get('/learners', { params }),
@@ -36,15 +32,6 @@ export const learnersAPI = {
   delete: (id) => api.delete(`/learners/${id}`),
   getStats: () => api.get('/learners/stats'),
   getProgress: (id) => api.get(`/learners/${id}/progress`),
-  getAtRisk: (params) => api.get('/learners/at-risk', { params }),
-  updateStrands: (id, data) => api.put(`/learners/${id}/strands`, data),
-  downloadKemisWorksheet: (grade, stream) => {
-    const params = new URLSearchParams();
-    if (grade) params.set('grade', grade);
-    if (stream) params.set('stream', stream);
-    const query = params.toString();
-    return api.get(`/learners/kemis-worksheet${query ? `?${query}` : ''}`, { responseType: 'blob' });
-  },
 };
 export const attendanceAPI = {
   getAlerts: () => api.get('/attendance/alerts'),
@@ -56,7 +43,6 @@ export const teachersAPI = {
   create: (data) => api.post('/teachers', data),
   update: (id, data) => api.put(`/teachers/${id}`, data),
   delete: (id) => api.delete(`/teachers/${id}`),
-  resetPassword: (id, newPassword) => api.put(`/teachers/${id}/reset-password`, { newPassword }),
   assignSubjects: (id, subjects) => api.post(`/teachers/${id}/subjects`, { subjects }),
   removeSubject: (subjectId) => api.delete(`/teachers/subjects/${subjectId}`),
 };
@@ -78,54 +64,11 @@ teachersAPI.uploadSignature = (id, file) => {
   return api.post(`/teachers/${id}/signature`, formData);
 };
 
-// reportsAPI.download:
-// - `printSafe` defaults to true, so the existing "Download Report" button
-//   (which calls this with just learnerId/examId/signedBy, exactly as before)
-//   now always requests the black-and-white-safe header render from the
-//   backend by default — no other call site needs to change.
-// - Pass `printSafe: false` explicitly if a colorful/on-screen-only version
-//   is ever needed again.
 export const reportsAPI = {
-  download: (learnerId, examId, signedBy, printSafe = true) => {
-    const params = new URLSearchParams();
-    if (signedBy) params.set("signedBy", signedBy);
-    if (printSafe) params.set("printSafe", "true");
-    const query = params.toString();
-    const url = `/reports/learner/${learnerId}/${examId}${query ? `?${query}` : ""}`;
-    return api.get(url, { responseType: "blob" });
-  },
-  // Bulk: one merged PDF covering every learner in a class (grade+stream) or
-  // a whole grade (all streams, stream omitted) for a single exam.
-  downloadBulk: (examId, grade, stream, printSafe = true) => {
-    const params = new URLSearchParams();
-    params.set("grade", grade);
-    if (stream) params.set("stream", stream);
-    if (printSafe) params.set("printSafe", "true");
-    const url = `/reports/bulk/${examId}?${params.toString()}`;
-    return api.get(url, { responseType: "blob" });
-  },
-  // Term report (new default): Opener/Mid-Term/End-Term columns for one
-  // learner, for a whole term rather than a single exam.
-  downloadTerm: (learnerId, term, academicYear, signedBy, printSafe = true) => {
-    const params = new URLSearchParams();
-    params.set("term", term);
-    params.set("academicYear", academicYear);
-    if (signedBy) params.set("signedBy", signedBy);
-    if (printSafe) params.set("printSafe", "true");
-    const url = `/reports/term/${learnerId}?${params.toString()}`;
-    return api.get(url, { responseType: "blob" });
-  },
-  // Bulk term report: grade+stream = one class, grade only = whole grade,
-  // neither = whole school (admin-tier only, enforced server-side).
-  downloadTermBulk: (term, academicYear, grade, stream, signedBy, printSafe = true) => {
-    const params = new URLSearchParams();
-    params.set("term", term);
-    params.set("academicYear", academicYear);
-    if (grade) params.set("grade", grade);
-    if (stream) params.set("stream", stream);
-    if (signedBy) params.set("signedBy", signedBy);
-    if (printSafe) params.set("printSafe", "true");
-    const url = `/reports/term-bulk?${params.toString()}`;
+  download: (learnerId, examId, signedBy) => {
+    const url = signedBy
+      ? `/reports/learner/${learnerId}/${examId}?signedBy=${signedBy}`
+      : `/reports/learner/${learnerId}/${examId}`;
     return api.get(url, { responseType: "blob" });
   },
 };
@@ -148,16 +91,6 @@ export const parentAPI = {};
 parentAPI.getMyChild = () => api.get('/parent/my-child');
 parentAPI.register = (data) => api.post('/parent/register', data);
 
-export const feesAPI = {};
-feesAPI.getBalance = (learnerId, term, academicYear) =>
-  api.get(`/fees/balance/${learnerId}`, { params: { term, academicYear } });
-feesAPI.pay = (learnerId, data) => api.post(`/fees/pay/${learnerId}`, data);
-feesAPI.getHistory = (learnerId) => api.get(`/fees/history/${learnerId}`);
-feesAPI.getStructures = (params) => api.get('/fees/structures', { params });
-feesAPI.setStructure = (data) => api.post('/fees/structures', data);
-feesAPI.getPaymentSettings = () => api.get('/fees/payment-settings');
-feesAPI.setPaymentSettings = (data) => api.post('/fees/payment-settings', data);
-
 
 export const classesAPI = {};
 classesAPI.getAll = () => api.get('/classes');
@@ -177,16 +110,6 @@ schoolsAPI.uploadStamp = (file) => {
   formData.append('stamp', file);
   return api.post('/schools/stamp', formData);
 };
-
-schoolsAPI.uploadLogo = (file) => {
-  const formData = new FormData();
-  formData.append('logo', file);
-  return api.post('/schools/logo', formData);
-};
-
-schoolsAPI.getProfile = () => api.get('/schools/profile');
-schoolsAPI.updateProfile = (data) => api.put('/schools/profile', data);
-schoolsAPI.search = (q) => api.get('/schools/search', { params: { q } });
 
 export const superAdminAPI = {
   listSchools: () => api.get('/super-admin/schools'),
