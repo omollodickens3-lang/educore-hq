@@ -82,9 +82,19 @@ teachersAPI.uploadSignature = (id, file) => {
 // - `printSafe` defaults to true, so the existing "Download Report" button
 //   (which calls this with just learnerId/examId/signedBy, exactly as before)
 //   now always requests the black-and-white-safe header render from the
-//   backend by default — no other call site needs to change.
+//   backend by default â€” no other call site needs to change.
 // - Pass `printSafe: false` explicitly if a colorful/on-screen-only version
 //   is ever needed again.
+// Report downloads embed a signature + stamp + logo image per learner, so a
+// whole-class or whole-school PDF can legitimately take 10-20+ seconds to
+// render and transfer (a 34-learner class ran ~15s / ~20MB in testing) â€”
+// well past the 15s global default above. That mismatch was aborting these
+// requests client-side right around the 15s mark, which surfaced in devtools
+// as a confusing "canceled"/404-looking failure even though the server had
+// generated the file correctly. Single-learner downloads finish in a couple
+// of seconds either way, so the longer timeout here is harmless for those.
+const REPORT_DOWNLOAD_TIMEOUT = 120000;
+
 export const reportsAPI = {
   download: (learnerId, examId, signedBy, printSafe = true) => {
     const params = new URLSearchParams();
@@ -92,7 +102,7 @@ export const reportsAPI = {
     if (printSafe) params.set("printSafe", "true");
     const query = params.toString();
     const url = `/reports/learner/${learnerId}/${examId}${query ? `?${query}` : ""}`;
-    return api.get(url, { responseType: "blob" });
+    return api.get(url, { responseType: "blob", timeout: REPORT_DOWNLOAD_TIMEOUT });
   },
   // Bulk: one merged PDF covering every learner in a class (grade+stream) or
   // a whole grade (all streams, stream omitted) for a single exam.
@@ -102,7 +112,7 @@ export const reportsAPI = {
     if (stream) params.set("stream", stream);
     if (printSafe) params.set("printSafe", "true");
     const url = `/reports/bulk/${examId}?${params.toString()}`;
-    return api.get(url, { responseType: "blob" });
+    return api.get(url, { responseType: "blob", timeout: REPORT_DOWNLOAD_TIMEOUT });
   },
   // Term report (new default): Opener/Mid-Term/End-Term columns for one
   // learner, for a whole term rather than a single exam.
@@ -113,7 +123,7 @@ export const reportsAPI = {
     if (signedBy) params.set("signedBy", signedBy);
     if (printSafe) params.set("printSafe", "true");
     const url = `/reports/term/${learnerId}?${params.toString()}`;
-    return api.get(url, { responseType: "blob" });
+    return api.get(url, { responseType: "blob", timeout: REPORT_DOWNLOAD_TIMEOUT });
   },
   // Bulk term report: grade+stream = one class, grade only = whole grade,
   // neither = whole school (admin-tier only, enforced server-side).
@@ -126,7 +136,7 @@ export const reportsAPI = {
     if (signedBy) params.set("signedBy", signedBy);
     if (printSafe) params.set("printSafe", "true");
     const url = `/reports/term-bulk?${params.toString()}`;
-    return api.get(url, { responseType: "blob" });
+    return api.get(url, { responseType: "blob", timeout: REPORT_DOWNLOAD_TIMEOUT });
   },
 };
 
