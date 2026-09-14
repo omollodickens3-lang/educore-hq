@@ -78,7 +78,13 @@ export default function FeeStructuresPage() {
       const res = await feesAPI.getStructures();
       setStructures(res.data.feeStructures || []);
     } catch (e) {
-      toast.error("Failed to load fee structures");
+      const details = [
+        `Message: ${e.message || "none"}`,
+        `HTTP status: ${e.response?.status ?? "no response received"}`,
+        `Server error: ${e.response?.data?.error || "none"}`,
+      ].join("\n");
+      alert(`Fee structures failed to load — full details:\n\n${details}`);
+      toast.error(e.response?.data?.error || "Failed to load fee structures");
     } finally {
       setLoading(false);
     }
